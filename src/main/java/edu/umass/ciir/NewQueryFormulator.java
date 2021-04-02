@@ -4,21 +4,16 @@ import com.cedarsoftware.util.io.JsonWriter;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 public class NewQueryFormulator {
     private Map<String, String> queries = new ConcurrentHashMap<>();
     private Map<String, String> nonTranslatedQueries = new ConcurrentHashMap<>();
-    Logger logger;
-    AnalyticTasks tasks;
-    String mode;
+    protected Logger logger;
+    protected AnalyticTasks tasks;
+    protected String mode;
 
     NewQueryFormulator(AnalyticTasks tasks) {
         this.tasks = tasks;
@@ -41,7 +36,7 @@ public class NewQueryFormulator {
         this.queries = queries;
     }
 
-    protected void buildQueries(String queryFileName) {}
+    protected void buildQueries(String phase, String queryFileName) {}
 
     protected void writeQueryFile(String queryFileName) {
         // Output the query list as a JSON file,

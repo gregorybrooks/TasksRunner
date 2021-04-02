@@ -27,7 +27,7 @@ public class QueryFormulatorArabic1 extends NewQueryFormulator {
             String programName = "python3";
             String pythonProgramName = Pathnames.programFileLocation + "run_multipartiterank_qformulator.py";
             String logFile = Pathnames.logFileLocation + "multipartiterank_qformulator.log";
-            String inputFile = Pathnames.eventExtractorFileLocation + tasks.getMode() + ".analytic_tasks.json";
+            String inputFile = Pathnames.eventExtractorFileLocation + mode + ".analytic_tasks.json";
             String tt_path = Pathnames.translationTableLocation + "unidirectional-with-null-en-ar.simple-tok.txt";
             String muse_en_path = Pathnames.programFileLocation + "translation_package/muse/wiki.multi.en.vec";
             String muse_ar_path = Pathnames.programFileLocation + "translation_package/muse/wiki.multi.ar.vec";
@@ -72,4 +72,6 @@ public class QueryFormulatorArabic1 extends NewQueryFormulator {
             throw new TasksRunnerException(e);
         }
     }
+
+
 }

@@ -125,7 +125,7 @@ public class TasksRunner {
     
             logger.info("PHASE 2: Building task-level queries");
             NewQueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks, taskLevelFormulator);
-            queryFormulator.buildQueries(qf.getQueryFileName());
+            queryFormulator.buildQueries("Task", qf.getQueryFileNameOnly());
 
             qf.readQueryFile();
 
@@ -153,7 +153,7 @@ public class TasksRunner {
             qf.resetQueries();  // Clears any existing queries read in from an old file
 
             NewQueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks, requestLevelFormulator);
-            requestQueryFormulator.buildQueries(qf.getQueryFileName());
+            requestQueryFormulator.buildQueries("Request", qf.getQueryFileNameOnly());
 
             qf.readQueryFile();
 
@@ -217,7 +217,9 @@ public class TasksRunner {
        NewQueryFormulator qf;
        switch (formulatorVariant) {
            case "QF_AUTO":
-               qf = new QueryFormulatorArabic1(tasks);
+//               qf = new QueryFormulatorArabic1(tasks);
+//               qf = new QueryFormulatorJavaRequestLevel(tasks);
+               qf = new QueryFormulatorDockerRequestLevel(tasks);
                break;
            case "QF_HITL":
                qf = new QueryFormulatorArabic_HITL(tasks);
@@ -226,7 +228,9 @@ public class TasksRunner {
                qf = new QueryFormulatorArabic_AUTO_HITL(tasks);
                break;
            case "QF_AUTOTaskLevel":
-               qf = new QueryFormulatorArabic1TaskLevel(tasks);
+//               qf = new QueryFormulatorArabic1TaskLevel(tasks);
+//               qf = new QueryFormulatorJavaTaskLevel(tasks);
+               qf = new QueryFormulatorDockerTaskLevel(tasks);
                break;
            case "QF_HITLTaskLevel":
                qf = new QueryFormulatorArabic_HITLTaskLevel(tasks);
