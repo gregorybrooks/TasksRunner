@@ -7,29 +7,37 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
-public class QueryFormulatorDockerTaskLevel extends NewQueryFormulator {
+public class QueryFormulatorDocker extends TasksRunnerQueryFormulator {
 
-    QueryFormulatorDockerTaskLevel(AnalyticTasks tasks) {
+    QueryFormulatorDocker(AnalyticTasks tasks) {
         super(tasks);
     }
 
-    String dockerImageName = "task-query-builder1:1.0.0";
-
-    public void callDockerImage(String queryFileName, String outLang, String phase) {
+    public void callDockerImage(String queryFileName, String outLang, String phase, String dockerImageName) {
         try {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String command = "sudo docker run --rm"
-                    + " -e MODE=" + mode
-                    + " -e OUT_LANG=" + outLang
-                    + " -e PHASE=" + phase
-                    + " -e INPUTFILE=" + analyticTasksInfoFilename
-                    + " -e QUERYFILE=" + queryFileName
-                    + " -v /var/run/docker.sock:/var/run/docker.sock"
-                    + " -v " + Pathnames.scratchLocation + ":/scratch"
-                    + " -v " + Pathnames.queryFileLocation + ":/queryfiles"
-                    // the analytic_tasks.json file is considered a task file to the outside world,
-                    // but actually lives in the event extractor directory and is the "input file"
-                    + " -v " + Pathnames.eventExtractorFileLocation + ":/taskfiles"
+                    + " --env MODE=" + mode
+                    + " --env OUT_LANG=" + outLang
+                    + " --env PHASE=" + phase
+                    + " --env INPUTFILE=" + analyticTasksInfoFilename
+                    + " --env QUERYFILE=" + queryFileName
+                    /* For each directory that we want to share between this parent docker container (TasksRunner)
+                     and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
+                     in an environment variable, and we make that path a bind-volume so the child container
+                     can actually access it.
+                     */
+/*
+                    + " --env eventExtractorFileLocation=$eventExtractorFileLocation"
+                    + " --env queryFileLocation=$queryFileLocation"
+                    + " -v $eventExtractorFileLocation:$eventExtractorFileLocation"
+                    + " -v $queryFileLocation:$queryFileLocation"
+*/
+                    + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
+                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
+                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                    + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
+
                     + " " + dockerImageName
                     + " sh -c ./runit_DOCKER.sh";
             String logFile = Pathnames.logFileLocation + "docker-program.log";
@@ -79,13 +87,19 @@ public class QueryFormulatorDockerTaskLevel extends NewQueryFormulator {
      **/
     public void buildQueries(String phase, String queryFileName) {
         String language;
-
         if (Pathnames.targetLanguageIsEnglish) {
             language = "en";
         } else {
             language = "ar";
         }
 
-        callDockerImage(queryFileName, language, phase);
+        String dockerImageName;
+        if (phase.equals("Request")) {
+            dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
+        } else {
+            dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
+        }
+
+        callDockerImage(queryFileName, language, phase, dockerImageName);
     }
 }

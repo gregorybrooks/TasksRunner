@@ -8,14 +8,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
-public class NewQueryFormulator {
+public class TasksRunnerQueryFormulator {
     private Map<String, String> queries = new ConcurrentHashMap<>();
     private Map<String, String> nonTranslatedQueries = new ConcurrentHashMap<>();
     protected Logger logger;
     protected AnalyticTasks tasks;
     protected String mode;
 
-    NewQueryFormulator(AnalyticTasks tasks) {
+    TasksRunnerQueryFormulator(AnalyticTasks tasks) {
         this.tasks = tasks;
         this.mode = tasks.getMode();
         logger = Logger.getLogger("TasksRunner");

@@ -1,3 +1,11 @@
+set +v
+
+die () {
+    echo >&2 "$@"
+    exit 1
+}
+
+[ "$#" -eq 1 ] || die "1 argument required, $# provided"
 set -v
 set -o allexport
 ENV_FILE=/mnt/scratch/BETTER_DRY_RUN/clear_ir.dry_run.$1.env

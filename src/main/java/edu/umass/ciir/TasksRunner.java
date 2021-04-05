@@ -72,26 +72,12 @@ public class TasksRunner {
          * (There are separate query formulators for the creation of Task-level queries and
          * Request-level queries.)
          */
-        String requestLevelFormulator;
-        String taskLevelFormulator;
         String mode = tasks.getMode();
-        switch (mode) {
-            case "HITL":
-                requestLevelFormulator = "QF_HITL";
-                taskLevelFormulator = "QF_HITLTaskLevel";
-                break;
-            case "AUTO":
-                requestLevelFormulator = "QF_AUTO";
-                taskLevelFormulator = "QF_AUTOTaskLevel";
-                break;
-            case "AUTO-HITL":
-                requestLevelFormulator = "QF_AUTO_HITL";
-                taskLevelFormulator = "QF_AUTO_HITLTaskLevel";
-                break;
-            default:
-                throw new TasksRunnerException("Invalid mode: " + mode);
-        }
         logger.info("Executing in " + mode + " mode");
+
+        /* These are used in the file names */
+        String requestLevelFormulator = mode + "." + Pathnames.requestLevelQueryFormulatorDockerImage;
+        String taskLevelFormulator = mode + "." + Pathnames.taskLevelQueryFormulatorDockerImage;
 
         EventExtractor eventExtractor = new EventExtractor(tasks, mode);
 
@@ -124,7 +110,7 @@ public class TasksRunner {
             qf.resetQueries();  // Clears any existing queries read in from an old file
     
             logger.info("PHASE 2: Building task-level queries");
-            NewQueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks, taskLevelFormulator);
+            TasksRunnerQueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
             queryFormulator.buildQueries("Task", qf.getQueryFileNameOnly());
 
             qf.readQueryFile();
@@ -152,7 +138,7 @@ public class TasksRunner {
             qf = new QueryManager(tasks, requestLevelFormulator);
             qf.resetQueries();  // Clears any existing queries read in from an old file
 
-            NewQueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks, requestLevelFormulator);
+            TasksRunnerQueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
             requestQueryFormulator.buildQueries("Request", qf.getQueryFileNameOnly());
 
             qf.readQueryFile();
@@ -213,34 +199,8 @@ public class TasksRunner {
 	    }
     }
 
-    public static NewQueryFormulator NewQueryFormulatorFactory(AnalyticTasks tasks, String formulatorVariant) {
-       NewQueryFormulator qf;
-       switch (formulatorVariant) {
-           case "QF_AUTO":
-//               qf = new QueryFormulatorArabic1(tasks);
-//               qf = new QueryFormulatorJavaRequestLevel(tasks);
-               qf = new QueryFormulatorDockerRequestLevel(tasks);
-               break;
-           case "QF_HITL":
-               qf = new QueryFormulatorArabic_HITL(tasks);
-               break;
-           case "QF_AUTO_HITL":
-               qf = new QueryFormulatorArabic_AUTO_HITL(tasks);
-               break;
-           case "QF_AUTOTaskLevel":
-//               qf = new QueryFormulatorArabic1TaskLevel(tasks);
-//               qf = new QueryFormulatorJavaTaskLevel(tasks);
-               qf = new QueryFormulatorDockerTaskLevel(tasks);
-               break;
-           case "QF_HITLTaskLevel":
-               qf = new QueryFormulatorArabic_HITLTaskLevel(tasks);
-               break;
-           case "QF_AUTO_HITLTaskLevel":
-               qf = new QueryFormulatorArabic_AUTO_HITLTaskLevel(tasks);
-               break;
-           default:
-               throw new TasksRunnerException("Invalid query formulator type: " + formulatorVariant);
-       }
+    public static TasksRunnerQueryFormulator NewQueryFormulatorFactory(AnalyticTasks tasks) {
+        TasksRunnerQueryFormulator qf = new QueryFormulatorDocker(tasks);
         return qf;
     }
 
@@ -420,7 +380,7 @@ public class TasksRunner {
      * Pre-processes the Arabic corpus file. Must be done before calling buildIndex().
      */
     private void preprocess() {
-        String arabicCorpusFile = Pathnames.dataFileLocation + Pathnames.arabicCorpusFileName;
+        String arabicCorpusFile = Pathnames.corpusFileLocation + Pathnames.arabicCorpusFileName;
         String tempFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1.jl.out";
         String trecFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1-uuid.trectext";
         logger.info("Preprocessing the Arabic corpus at " + arabicCorpusFile);
