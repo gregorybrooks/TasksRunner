@@ -5,9 +5,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class QueryFormulatorJava extends TasksRunnerQueryFormulator {
+public class QueryFormulatorJava extends QueryFormulator {
+
+    private static final Logger logger = Logger.getLogger("TasksRunner");
 
     QueryFormulatorJava(AnalyticTasks tasks) {
         super(tasks);
@@ -15,7 +18,7 @@ public class QueryFormulatorJava extends TasksRunnerQueryFormulator {
 
     String javaJarFile = "TaskQueryBuilder1-1.0.0.jar";
 
-    public void callJavaProgram(String queryFileName, String outLang, String phase) {
+    private void callJavaProgram(String queryFileName, String outLang, String phase) {
         try {
             String programName = "java -jar ";
             String javaProgramName = Pathnames.programFileLocation + javaJarFile;

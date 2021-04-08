@@ -99,8 +99,7 @@ public class TasksRunner {
             System.out.println("Skipping phase 2");
         } else {
             logger.info("PHASE 2: Retrieving the file of example doc events created by the event extractor");
-            // TEMP ignore events completely
-            // eventExtractor.extractExampleEventsPart2();
+            eventExtractor.extractExampleEventsPart2();
 
             /* write the analytic tasks info file, with event info, for multipartite
             and re-ranking to use */
@@ -110,7 +109,7 @@ public class TasksRunner {
             qf.resetQueries();  // Clears any existing queries read in from an old file
     
             logger.info("PHASE 2: Building task-level queries");
-            TasksRunnerQueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
+            QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
             queryFormulator.buildQueries("Task", qf.getQueryFileNameOnly());
 
             qf.readQueryFile();
@@ -138,7 +137,7 @@ public class TasksRunner {
             qf = new QueryManager(tasks, requestLevelFormulator);
             qf.resetQueries();  // Clears any existing queries read in from an old file
 
-            TasksRunnerQueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
+            QueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
             requestQueryFormulator.buildQueries("Request", qf.getQueryFileNameOnly());
 
             qf.readQueryFile();
@@ -159,9 +158,7 @@ public class TasksRunner {
 
             /* Extract events from the request-level hits, to use when re-ranking the request-level results */
             logger.info("Extracting events from the top request-level hits");
-            /* TEMP - no need to do this because we are not doing phase 3
             eventExtractor.createInputForEventExtractorFromRequestHits(qf);
-            */
 
             // [Run the ISI QF event extractor here]
     
@@ -177,9 +174,7 @@ public class TasksRunner {
             eventExtractor.retrieveEventsFromRequestHits(qf);
 
             logger.info("PHASE 3: Building file with doc text and events for task hits, for experiments");
-            /*
             eventExtractor.retrieveEventsFromTaskHits(qf);
-             */
 
             logger.info("PHASE 3: Reranking");
             qf.rerank();
@@ -199,8 +194,8 @@ public class TasksRunner {
 	    }
     }
 
-    public static TasksRunnerQueryFormulator NewQueryFormulatorFactory(AnalyticTasks tasks) {
-        TasksRunnerQueryFormulator qf = new QueryFormulatorDocker(tasks);
+    public static QueryFormulator NewQueryFormulatorFactory(AnalyticTasks tasks) {
+        QueryFormulator qf = new QueryFormulatorDocker(tasks);
         return qf;
     }
 

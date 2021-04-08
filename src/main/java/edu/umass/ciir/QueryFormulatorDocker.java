@@ -5,15 +5,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class QueryFormulatorDocker extends TasksRunnerQueryFormulator {
+public class QueryFormulatorDocker extends QueryFormulator {
+
+    private static final Logger logger = Logger.getLogger("TasksRunner");
 
     QueryFormulatorDocker(AnalyticTasks tasks) {
         super(tasks);
     }
 
-    public void callDockerImage(String queryFileName, String outLang, String phase, String dockerImageName) {
+    private void callDockerImage(String queryFileName, String outLang, String phase, String dockerImageName) {
         try {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String command = "sudo docker run --rm"

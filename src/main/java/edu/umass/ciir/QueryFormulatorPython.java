@@ -5,16 +5,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class QueryFormulatorPython extends TasksRunnerQueryFormulator {
+public class QueryFormulatorPython extends QueryFormulator {
+
+    private static final Logger logger = Logger.getLogger("TasksRunner");
 
     QueryFormulatorPython(AnalyticTasks tasks) {
         super(tasks);
     }
     String pythonProgramName = "run_multipartiterank_qformulator.py";
 
-    public void callPythonProgram(String queryFileName, String outLang, String phase) {
+    private void callPythonProgram(String queryFileName, String outLang, String phase) {
         try {
             String programName = "python3";
             String pythonProgramNameFullPath = Pathnames.programFileLocation + pythonProgramName;
