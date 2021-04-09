@@ -1,6 +1,11 @@
 package edu.umass.ciir;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Pathnames of the files used by the program, and settings such as 'mode' and 'runIRPhase2'.
@@ -11,6 +16,8 @@ import java.util.Map;
  * and if running in a Docker container, pass that file as the --env-file parameter to docker run.
  */
 public class Pathnames {
+    private static final Logger logger = Logger.getLogger("TasksRunner");
+
     private static Map<String, String> env = System.getenv();
 
     public static boolean doTaskLevelEvaluation = true;
@@ -78,6 +85,38 @@ public class Pathnames {
     public static boolean runIRPhase2 = false;
     public static boolean runIRPhase3 = false;
 */
+    public static void checkDockerImage (String imageName) {
+        int exitVal = 0;
+        int numLines = 0;
+        try {
+            // String command = "sudo docker image ls " + imageName + " | wc -l ";
+            List builders = Arrays.asList(
+                    new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
+                    new ProcessBuilder("wc", "-l"));
+
+            List<Process> processes = ProcessBuilder.startPipeline(builders);
+            Process process = processes.get(processes.size() - 1);
+
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.length() == 0) {
+                    continue;
+                }
+                numLines = Integer.parseInt(line.strip());
+            }
+            exitVal = process.waitFor();
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+        if (exitVal != 0) {
+            throw new TasksRunnerException("Unexpected ERROR while executing docker command. Exit value is " + exitVal);
+        }
+        if (numLines < 2) {
+            throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
+        }
+    }
 
     public enum Required {
         REQUIRED,
@@ -122,19 +161,17 @@ public class Pathnames {
         appFileLocation = ensureTrailingSlash(getFromEnv("appFileLocation",
                 "MISSING ENV VAR: appFileLocation", Required.REQUIRED));
 
+        logFileLocation = ensureTrailingSlash(getFromEnv("logFileLocation",
+                scratchFileLocation + "logfiles/"));
         requestLevelQueryFormulatorDockerImage = getFromEnv("requestLevelQueryFormulatorDockerImage",
                 "MISSING ENV VAR: requestLevelQueryFormulatorDockerImage", Required.REQUIRED);
-        // TODO: verify the image is loaded on this system by doing this:
-        //     docker image ls <imageName> | wc -l > 1
-        //  (if it isn't loaded, the result is only one line, a header line, else you get another
-        //   line with the image details)
+        checkDockerImage(requestLevelQueryFormulatorDockerImage);
         taskLevelQueryFormulatorDockerImage = getFromEnv("taskLevelQueryFormulatorDockerImage",
                 "MISSING ENV VAR: taskLevelQueryFormulatorDockerImage", Required.REQUIRED);
+        checkDockerImage(taskLevelQueryFormulatorDockerImage);
 
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
                 scratchFileLocation + "queryfiles/"));
-        logFileLocation = ensureTrailingSlash(getFromEnv("logFileLocation",
-                scratchFileLocation + "logfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
         arabicIndexName = getFromEnv("arabicIndexName",
