@@ -53,7 +53,6 @@ public class Pathnames {
     public static boolean expandQrelDocuments = true;
     public static String mode = "";
 
-
 // english training as english and arabic
 /*
     public static String scratchLocation = "/home/glbrooks/BETTER/";
@@ -93,7 +92,7 @@ public class Pathnames {
         runIRPhase2 = (getFromEnv("runIRPhase2", "true").equals("true"));
         runIRPhase3 = (getFromEnv("runIRPhase3", "false").equals("true"));
 
-        scratchFileLocation = getFromEnv("scratchLocation", scratchFileLocation);
+        scratchFileLocation = getFromEnv("scratchFileLocation", scratchFileLocation);
         corpusFileLocation = getFromEnv("dataFileLocation", corpusFileLocation);
         appFileLocation = getFromEnv("taskFileLocation", appFileLocation);
         requestLevelQueryFormulatorDockerImage = getFromEnv("requestLevelQueryFormulatorDockerImage",
