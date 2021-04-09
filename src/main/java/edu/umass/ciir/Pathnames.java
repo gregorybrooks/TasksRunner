@@ -34,8 +34,10 @@ public class Pathnames {
     public static String queryFileLocation = scratchFileLocation + "queryfiles/";
     public static String logFileLocation = scratchFileLocation + "logfiles/";
     public static String indexLocation = scratchFileLocation + "indexes/";
+    public static String englishIndexName = "BETTER-DryRun-v3";
     public static String englishIndexLocation = indexLocation + "BETTER-DryRun-v3";
-    public static String arabicIndexLocation = indexLocation + "BETTER-DryRun-v3";
+    public static String arabicIndexName = "BETTER-DryRun-v3";
+    public static String arabicIndexLocation = indexLocation + arabicIndexName;
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
     public static String programFileLocation = scratchFileLocation + "programfiles/";
     public static String eventExtractorFileLocation = scratchFileLocation + "eventextractorfiles/";
@@ -77,11 +79,32 @@ public class Pathnames {
     public static boolean runIRPhase3 = false;
 */
 
+    public enum Required {
+        REQUIRED,
+        OPTIONAL
+    }
+
     private static String getFromEnv(String key, String default_value) {
+        return getFromEnv(key, default_value, Required.OPTIONAL);
+    }
+
+    private static String getFromEnv(String key, String default_value, Required required) {
         if (env.containsKey(key)) {
             return env.get(key);
         } else {
-            return default_value;
+            if (required == Required.REQUIRED) {
+                throw new TasksRunnerException(default_value);
+            } else {
+                return default_value;
+            }
+        }
+    }
+
+    private static String ensureTrailingSlash(String s) {
+        if (!s.endsWith("/")) {
+            return s + "/";
+        } else {
+            return s;
         }
     }
 
@@ -92,32 +115,62 @@ public class Pathnames {
         runIRPhase2 = (getFromEnv("runIRPhase2", "true").equals("true"));
         runIRPhase3 = (getFromEnv("runIRPhase3", "false").equals("true"));
 
-        scratchFileLocation = getFromEnv("scratchFileLocation", scratchFileLocation);
-        corpusFileLocation = getFromEnv("dataFileLocation", corpusFileLocation);
-        appFileLocation = getFromEnv("taskFileLocation", appFileLocation);
+        scratchFileLocation = ensureTrailingSlash(getFromEnv("scratchFileLocation",
+                "MISSING ENV VAR: scratchFileLocation", Required.REQUIRED));
+        corpusFileLocation = ensureTrailingSlash(getFromEnv("corpusFileLocation",
+                "MISSING ENV VAR: corpusFileLocation", Required.REQUIRED));
+        appFileLocation = ensureTrailingSlash(getFromEnv("appFileLocation",
+                "MISSING ENV VAR: appFileLocation", Required.REQUIRED));
+
         requestLevelQueryFormulatorDockerImage = getFromEnv("requestLevelQueryFormulatorDockerImage",
-                requestLevelQueryFormulatorDockerImage);
+                "MISSING ENV VAR: requestLevelQueryFormulatorDockerImage", Required.REQUIRED);
+        // TODO: verify the image is loaded on this system by doing this:
+        //     docker image ls <imageName> | wc -l > 1
+        //  (if it isn't loaded, the result is only one line, a header line, else you get another
+        //   line with the image details)
         taskLevelQueryFormulatorDockerImage = getFromEnv("taskLevelQueryFormulatorDockerImage",
-                taskLevelQueryFormulatorDockerImage);
-        queryFileLocation = getFromEnv("queryFileLocation", queryFileLocation);
-        logFileLocation = getFromEnv("logFileLocation", logFileLocation);
-        indexLocation = getFromEnv("indexLocation", indexLocation);
-        englishIndexLocation = getFromEnv("englishIndexLocation", englishIndexLocation);
-        arabicIndexLocation = getFromEnv("arabicIndexLocation", arabicIndexLocation);
-        galagoLocation = getFromEnv("galagoLocation", galagoLocation);
-        programFileLocation = getFromEnv("programFileLocation", programFileLocation);
-        eventExtractorFileLocation = getFromEnv("eventExtractorFileLocation", eventExtractorFileLocation);
-        translationTableLocation = getFromEnv("translationTableLocation", translationTableLocation);
-        taskCorpusFileLocation = getFromEnv("taskCorpusFileLocation", taskCorpusFileLocation);
-        galagoJobDirLocation = getFromEnv("galagoJobDirLocation", galagoJobDirLocation);
-        arabicCorpusFileName = getFromEnv("arabicCorpusFileName", arabicCorpusFileName);
-        englishCorpusFileName = getFromEnv("englishCorpusFileName", englishCorpusFileName);
-        tasksFileName = getFromEnv("tasksFileName", tasksFileName);
-        supplementalFileName = getFromEnv("supplementalFileName", supplementalFileName);
+                "MISSING ENV VAR: taskLevelQueryFormulatorDockerImage", Required.REQUIRED);
+
+        queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
+                scratchFileLocation + "queryfiles/"));
+        logFileLocation = ensureTrailingSlash(getFromEnv("logFileLocation",
+                scratchFileLocation + "logfiles/"));
+        indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
+                scratchFileLocation + "indexes/"));
+        arabicIndexName = getFromEnv("arabicIndexName",
+                "MISSING ENV VAR: arabicIndexName", Required.REQUIRED);
+        arabicIndexLocation = getFromEnv("arabicIndexLocation",
+                indexLocation + arabicIndexName);
+        // Currently the index on the English training data is not used
+        englishIndexName = getFromEnv("englishIndexName", "NOT_USED");
+        englishIndexLocation = getFromEnv("englishIndexLocation",
+                indexLocation + englishIndexName);
+
+        galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
+                scratchFileLocation + "galago/bin/"));
+        programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
+                scratchFileLocation + "programfiles/"));
+        eventExtractorFileLocation = ensureTrailingSlash(getFromEnv("eventExtractorFileLocation",
+                scratchFileLocation + "eventextractorfiles/"));
+        translationTableLocation = ensureTrailingSlash(getFromEnv("translationTableLocation",
+                programFileLocation + "translation_tables/"));
+        taskCorpusFileLocation = ensureTrailingSlash(getFromEnv("taskCorpusFileLocation",
+                taskCorpusFileLocation));
+        galagoJobDirLocation = ensureTrailingSlash(getFromEnv("galagoJobDirLocation",
+                scratchFileLocation + "galago_job_dir/"));
+
+        arabicCorpusFileName = getFromEnv("arabicCorpusFileName",
+                "MISSING ENV VAR: arabicCorpusFileName", Required.REQUIRED);
+        englishCorpusFileName = getFromEnv("englishCorpusFileName",
+                "MISSING ENV VAR: englishCorpusFileName", Required.REQUIRED);
+        tasksFileName = getFromEnv("tasksFileName",
+                "MISSING ENV VAR: tasksFileName", Required.REQUIRED);
+        supplementalFileName = getFromEnv("supplementalFileName", "does_not_exist.json");
         qrelFileName = getFromEnv("qrelFileName", qrelFileName);
         readQrelFile = (getFromEnv("readQrelFile", "true").equals("true"));
         expandQrelDocuments = (getFromEnv("expandQrelDocuments", "true").equals("true"));
-        mode = getFromEnv("mode", mode);
+        mode = getFromEnv("mode", "MISSING ENV VAR: mode (must be AUTO, AUTO-HITL, or HITL)",
+                Required.REQUIRED);
         doRequestLevelEvaluation = (getFromEnv("doRequestLevelEvaluation", "true").equals("true"));
         doTaskLevelEvaluation = (getFromEnv("doTaskLevelEvaluation", "true").equals("true"));
         isTargetEnglish = getFromEnv("isTargetEnglish", isTargetEnglish);
