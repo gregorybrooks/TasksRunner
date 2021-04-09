@@ -40,6 +40,10 @@ public class QueryManager {
         try {
             this.tasks = tasks;
             taskFileNameGeneric = tasks.getTaskFileName();
+            // When the query formulation name is a Docker image name, it might be qualified
+            // with the owner's name and a "/", which confuses things when the formulation name
+            // is used in a pathname, so change the "/" to a "-"
+            queryFormulationName = queryFormulationName.replace("/", "-");
             this.key =  tasks.getMode() + "." + taskFileNameGeneric + "." + queryFormulationName;
             queryFileNameOnly = key + ".queries.json";
             queryFileFullPathName = Pathnames.queryFileLocation + queryFileNameOnly;
@@ -81,7 +85,7 @@ public class QueryManager {
 
     public void callReranker(String currentRunFile, String outputFileName) {
         try {
-            String logFile = Pathnames.logFileLocation + "reranker.log";
+            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/reranker.log";
             String tempCommand = "cd " + Pathnames.programFileLocation + "BETTER-prod && PYTHONPATH=" + Pathnames.programFileLocation + "BETTER-prod "
                     + "CUDA_VISIBLE_DEVICES=3 python3 "
                     + Pathnames.programFileLocation + "BETTER-prod/src/document_reader.py --data_dir="
@@ -416,6 +420,11 @@ public class QueryManager {
      * are in memory.
      */
     public void executeRequestQueries(EventExtractor eventExtractor, String taskLevelFormulationName) {
+        // When the query formulation name is a Docker image name, it might be qualified
+        // with the owner's name and a "/", which confuses things when the formulation name
+        // is used in a pathname, so change the "/" to a "-"
+        String finalTaskLevelFormulationName = taskLevelFormulationName.replace("/", "-");
+
         AtomicLong totalRunTime = new AtomicLong(0);
         List<String> runFiles = new CopyOnWriteArrayList<>();
         logger.info("Executing request queries for " + tasks.getTaskList().size());
@@ -423,7 +432,7 @@ public class QueryManager {
             String theRunFileName = Pathnames.runFileLocation + key + ".TASK." + t.taskNum + ".out";
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
             String indexName = Pathnames.indexLocation + tasks.getMode() + "." + taskFileNameGeneric + "."
-                    + taskLevelFormulationName + "." + t.taskNum + ".PARTIAL";
+                    + finalTaskLevelFormulationName + "." + t.taskNum + ".PARTIAL";
             runFiles.add(theRunFileName);
 
             logger.info("Executing request queries for task " + t.taskNum);
@@ -468,7 +477,7 @@ public class QueryManager {
         if (threadCount == 1) {
             command = "galago batch-search";
         }
-        String galagoLogFile = Pathnames.logFileLocation + "galago.log";
+        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago.log";
         String arabicParm = "";
         if (!Pathnames.targetLanguageIsEnglish) {
             arabicParm = "--defaultTextPart=postings.snowball ";
@@ -542,7 +551,7 @@ public class QueryManager {
         if (!Pathnames.targetLanguageIsEnglish) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
-        String galagoLogFile = Pathnames.logFileLocation + "galago_" + taskID + "_executeAgainstPartial.log";
+        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_executeAgainstPartial.log";
         String tempCommand = Pathnames.galagoLocation + command
                 + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
                 + " --systemName=CLEAR --trec=true "
@@ -629,7 +638,7 @@ public class QueryManager {
         String confFile = createGalagoPartialIndexConfFile(taskID);
         Instant start = Instant.now();
 
-        String galagoLogFile = Pathnames.logFileLocation + "galago_" + taskID + "_indexbuild.log";
+        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_indexbuild.log";
         String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
                 Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
                 " --index=" + Pathnames.arabicIndexLocation +

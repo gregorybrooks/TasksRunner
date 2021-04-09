@@ -172,6 +172,10 @@ public class Pathnames {
 
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
                 scratchFileLocation + "queryfiles/"));
+        runFileLocation = ensureTrailingSlash(getFromEnv("runFileLocation",
+                scratchFileLocation + "runfiles/"));
+        evaluationFileLocation = ensureTrailingSlash(getFromEnv("evaluationFileLocation",
+                scratchFileLocation + "evaluationfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
         arabicIndexName = getFromEnv("arabicIndexName",
@@ -192,7 +196,7 @@ public class Pathnames {
         translationTableLocation = ensureTrailingSlash(getFromEnv("translationTableLocation",
                 programFileLocation + "translation_tables/"));
         taskCorpusFileLocation = ensureTrailingSlash(getFromEnv("taskCorpusFileLocation",
-                taskCorpusFileLocation));
+                scratchFileLocation + "taskcorpusfiles/"));
         galagoJobDirLocation = ensureTrailingSlash(getFromEnv("galagoJobDirLocation",
                 scratchFileLocation + "galago_job_dir/"));
 
@@ -203,7 +207,8 @@ public class Pathnames {
         tasksFileName = getFromEnv("tasksFileName",
                 "MISSING ENV VAR: tasksFileName", Required.REQUIRED);
         supplementalFileName = getFromEnv("supplementalFileName", "does_not_exist.json");
-        qrelFileName = getFromEnv("qrelFileName", qrelFileName);
+        qrelFileName = getFromEnv("qrelFileName",
+                "MISSING ENV VAR: qrelFileName", Required.REQUIRED);
         readQrelFile = (getFromEnv("readQrelFile", "true").equals("true"));
         expandQrelDocuments = (getFromEnv("expandQrelDocuments", "true").equals("true"));
         mode = getFromEnv("mode", "MISSING ENV VAR: mode (must be AUTO, AUTO-HITL, or HITL)",
