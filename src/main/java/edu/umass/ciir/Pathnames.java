@@ -176,6 +176,8 @@ public class Pathnames {
                 scratchFileLocation + "runfiles/"));
         evaluationFileLocation = ensureTrailingSlash(getFromEnv("evaluationFileLocation",
                 scratchFileLocation + "evaluationfiles/"));
+        qrelFileLocation = ensureTrailingSlash(getFromEnv("qrelFileLocation",
+                scratchFileLocation + "qrelfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
         arabicIndexName = getFromEnv("arabicIndexName",

@@ -1,4 +1,4 @@
 set -v
-docker rmi tasks-runner:latest
-docker build -t tasks-runner:latest .
-docker tag tasks-runner:latest gregorybrooks/tasks-runner:latest
+docker rmi tasks-runner
+docker build -t tasks-runner .
+docker tag tasks-runner gregorybrooks/tasks-runner

@@ -158,7 +158,7 @@ public class TasksRunner {
 
             /* Extract events from the request-level hits, to use when re-ranking the request-level results */
             logger.info("Extracting events from the top request-level hits");
-            eventExtractor.createInputForEventExtractorFromRequestHits(qf);
+            // TEMP to save time eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
             // [Run the ISI QF event extractor here]
     

@@ -311,6 +311,7 @@ public class AnalyticTasks {
      */
     private void readQRELFile() throws IOException {
         File f = new File(qrelFile);
+//        System.out.println("Will try to read qrel file " + qrelFile);
         if (f.exists()) {
             BufferedReader qrelReader = new BufferedReader(new InputStreamReader(
                     new FileInputStream(qrelFile)));
