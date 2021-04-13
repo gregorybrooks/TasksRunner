@@ -8,7 +8,7 @@ die () {
 [ "$#" -eq 1 ] || die "1 argument required, $# provided"
 set -v
 set -o allexport
-ENV_FILE=/mnt/scratch/BETTER/BETTER_TEST_ENVIRONMENTS/BETTER_DRY_RUN/clear_ir.dry_run.$1.env
+ENV_FILE=/mnt/scratch/BETTER/BETTER_TEST_ENVIRONMENTS/BETTER_DRY_RUN/clear_ir.dry_run.env
 source $ENV_FILE
 
 CONTROL_FILE=./run_settings.env
