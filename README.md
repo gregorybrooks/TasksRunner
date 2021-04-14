@@ -32,12 +32,6 @@ as the query formulators--one for task-level and one for request-level:
     # These settings control the run:
     #
     mode=AUTO     # can be AUTO, AUTO-HITL, or HITL
-    tasksFileName=dry-run-topics.auto.json    
-                           # Each mode has a different tasks file:
-                           # AUTO: dry-run-topics.auto.json
-                           # AUTO-HITL: dry-run-topics.auto-hitl.json
-                           # HITL: dry-run-topics.hitl.json
-    supplementalFileName=doesnotexist.json    # only in HITL mode, change this to 'supplemental_info.json'
     runPreprocess=false    # This pre-phase gets the corpus file ready for Galago indexing.
                            # No need to do this--it is included in the Environment.
     runIndexBuild=false    # This pre-phase indexes the pre-processed corpus data with Galago.
@@ -46,11 +40,15 @@ as the query formulators--one for task-level and one for request-level:
                            # No need to do this--the annotator was run once and the file was saved in the Docker image.
     runIRPhase2=true       # Phase 2 builds the queries, executes them, and evaluates them.
     runIRPhase3=false      # Phase 3 calls the re-ranker and builds the final output run file--we skip this for now.
+    doTaskLevelEvaluation=true
+    doRequestLevelEvaluation=true
     
     # In the following 2 settings, put the names of the Docker images to be used to formulate the queries. 
     # These Docker images should be in Docker Hub.
 
     requestLevelQueryFormulatorDockerImage=gregorybrooks/doct5query_combine_all_passage_queries
     taskLevelQueryFormulatorDockerImage=gregorybrooks/better-query-builder-2
+
+    # (gregorybrooks/better-query-builder-2 corresponds to TASK_LEVEL_4 / TASK_LEVEL_HITL)
 
     #############################################################################################
