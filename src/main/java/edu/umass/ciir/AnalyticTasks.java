@@ -16,11 +16,12 @@ public class AnalyticTasks {
      * Pathnames are all defined in the Pathnames object, so they can be configured easily.
      */
     private static final String taskFilesDirectory = Pathnames.appFileLocation;
-    private String taskFileName = Pathnames.tasksFileName;
+    private String taskFileName = "";
     private String internalAnalyticTasksInfoFileName = "";
     private String tasksAndRequestsFile = "";
     private String supplementalFile = "";
     private String mode = "";
+    private boolean sparse = false;
 
     /**
      * The tasks in the tasksAndRequestsFile after being converted into a Map of Task objects.
@@ -65,50 +66,66 @@ public class AnalyticTasks {
      *
      */
     public AnalyticTasks() {
-        this.mode = Pathnames.mode;  // default to the env file
-        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        openFiles(false);
+        setDefaults();
+        openFiles();
     }
 
     public AnalyticTasks(String mode) {
+        setDefaults();
         this.mode = mode;
-        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        openFiles(false);
+        openFiles();
     }
 
     public AnalyticTasks(String mode, String taskFileNameParm) {
+        setDefaults();
         this.mode = mode;
         this.taskFileName = taskFileNameParm;
-        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        openFiles(false);
+        openFiles();
     }
 
     public AnalyticTasks(String mode, boolean sparse) {
+        setDefaults();
         this.mode = mode;
-        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        openFiles(sparse);
+        this.sparse = sparse;
+        openFiles();
     }
 
     public AnalyticTasks(Boolean sparse) {
-        this.mode = Pathnames.mode;
-        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        openFiles(sparse);
+        setDefaults();
+        this.sparse = sparse;
+        openFiles();
     }
 
     public AnalyticTasks(String mode, String taskFileNameParm, Boolean sparse) {
+        setDefaults();
         this.mode = mode;
         this.taskFileName = taskFileNameParm;
-        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        openFiles(sparse);
+        this.sparse = sparse;
+        openFiles();
     }
 
-    private void openFiles(boolean sparse) {
+    private void setDefaults() {
+        this.mode = Pathnames.mode;  // default to the env file
+        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
+                + mode + ".analytic_tasks.json";
+        String tempTaskFileName = "";
+        switch (mode) {
+            case "AUTO":
+                taskFileName = Pathnames.tasksFileNameAUTO;
+                break;
+            case "AUTO-HITL":
+                taskFileName = Pathnames.tasksFileNameAUTOHITL;
+                break;
+            case "HITL":
+                taskFileName = Pathnames.tasksFileNameHITL;
+                break;
+            default:
+                throw new TasksRunnerException("Invalid mode: " + mode + ". Must be AUTO, AUTO-HITL, or HITL");
+        }
+        this.sparse = false;
+    }
+
+    private void openFiles() {
         try {
             tasksAndRequestsFile = Pathnames.appFileLocation + taskFileName;
             supplementalFile = Pathnames.scratchFileLocation + Pathnames.supplementalFileName;
@@ -118,7 +135,10 @@ public class AnalyticTasks {
             readTaskFile();
 
             if (!sparse) {
-                readSupplementalFile();
+                if (mode.equals("HITL")) {
+                    logger.info("Opening supplemental task definition file " + supplementalFile);
+                    readSupplementalFile();
+                }
 
                 /* Get relevance judgments for these requests.
                  * Unless there are no relevance judgments available for this analytic task file / corpus

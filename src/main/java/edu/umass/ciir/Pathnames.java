@@ -53,7 +53,9 @@ public class Pathnames {
     public static String galagoJobDirLocation = scratchFileLocation + "galago_job_dir/";
     public static String arabicCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
     public static String englishCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
-    public static String tasksFileName = "dry-run-topics.auto.json";
+    public static String tasksFileNameAUTO = "dry-run-topics.auto.json";
+    public static String tasksFileNameAUTOHITL = "dry-run-topics.auto-hitl.json";
+    public static String tasksFileNameHITL = "dry-run-topics.hitl.json";
     public static String qrelFileName = "req-qrels";
     public static String isTargetEnglish = "true";
     public static boolean targetLanguageIsEnglish = true;
@@ -206,9 +208,13 @@ public class Pathnames {
                 "MISSING ENV VAR: arabicCorpusFileName", Required.REQUIRED);
         englishCorpusFileName = getFromEnv("englishCorpusFileName",
                 "MISSING ENV VAR: englishCorpusFileName", Required.REQUIRED);
-        tasksFileName = getFromEnv("tasksFileName",
-                "MISSING ENV VAR: tasksFileName", Required.REQUIRED);
-        supplementalFileName = getFromEnv("supplementalFileName", "does_not_exist.json");
+        tasksFileNameAUTO = getFromEnv("tasksFileNameAUTO",
+                "MISSING ENV VAR: tasksFileNameAUTO", Required.REQUIRED);
+        tasksFileNameAUTOHITL = getFromEnv("tasksFileNameAUTOHITL",
+                "MISSING ENV VAR: tasksFileNameAUTOHITL", Required.REQUIRED);
+        tasksFileNameHITL = getFromEnv("tasksFileNameHITL",
+                "MISSING ENV VAR: tasksFileNameHITL", Required.REQUIRED);
+        supplementalFileName = getFromEnv("supplementalFileName", "supplemental_info.json");
         qrelFileName = getFromEnv("qrelFileName",
                 "MISSING ENV VAR: qrelFileName", Required.REQUIRED);
         readQrelFile = (getFromEnv("readQrelFile", "true").equals("true"));
