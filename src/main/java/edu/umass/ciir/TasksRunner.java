@@ -104,19 +104,21 @@ public class TasksRunner {
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
                 Paths.get(Pathnames.queryFileLocation),
                 qf.getKey() + "*.queries.json")) {
-            dirStream.forEach(path -> executeOne(path, key, queryFileDirectory, taskLevelFormulator));
+            dirStream.forEach(path -> executeOne(path, key, queryFileDirectory, requestLevelFormulator,
+                    taskLevelFormulator));
         } catch (IOException cause) {
             throw new TasksRunnerException(cause);
         }
         logger.info("PHASE 2: Execution of all request queries complete.");
     }
 
-    private void executeOne(Path path, String key, String queryFileDirectory, String taskLevelFormulator) {
+    private void executeOne(Path path, String key, String queryFileDirectory, String requestLevelFormulator,
+                            String taskLevelFormulator) {
         String pathname = path.toString();
         logger.info("PHASE 2: Found a query file produced by the query formulator: " + path);
         pathname = pathname.replace(queryFileDirectory + key, "");
         String extra = pathname.replace(".queries.json", "");
-        String newQueryFormulationName = key + extra;
+        String newQueryFormulationName = requestLevelFormulator + extra;
         logger.info("  Effective query formulation name is: " + newQueryFormulationName);
 
         QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase);

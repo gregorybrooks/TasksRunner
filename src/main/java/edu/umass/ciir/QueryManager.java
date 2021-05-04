@@ -977,7 +977,7 @@ public class QueryManager {
                 csvWriter.append("TOTAL");
                 csvWriter.append(",");
                 csvWriter.append(String.format("%.4f", microAvgnDCG));
-                csvWriter.append(",");
+                csvWriter.append("\n");
                 csvWriter.close();
 
                 stats.put("TOTAL", microAvgnDCG);
