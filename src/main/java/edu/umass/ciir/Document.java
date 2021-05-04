@@ -22,12 +22,14 @@ public class Document {
     private static Map<String,List<SentenceRange>> endlishDocSentencesMap = new ConcurrentHashMap<>();
 
     public static void buildDocMap(Set<String> uniqueDocIDs) {
-        String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
-        buildDocMap(uniqueDocIDs, corpus, docMap, endlishDocSentencesMap);
+        if (!Pathnames.englishCorpusFileName.isEmpty()) {
+            String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
+            buildDocMap(uniqueDocIDs, corpus, docMap, endlishDocSentencesMap);
+        }
     }
 
     public static void buildArabicDocMap(Set<String> uniqueDocIDs) {
-        String corpus = Pathnames.corpusFileLocation + Pathnames.arabicCorpusFileName;
+        String corpus = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
         buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap);
     }
 
@@ -35,7 +37,7 @@ public class Document {
         String command = "grep";
         ProcessBuilder processBuilder = new ProcessBuilder(
                 command, docid,
-                Pathnames.corpusFileLocation + Pathnames.arabicCorpusFileName);
+                Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
         int exitVal = 0;
         String docText = "";
         try {
@@ -84,7 +86,8 @@ public class Document {
     private static void buildDocMap(Set<String> uniqueDocIDs, String corpus, Map<String,String> map,
                                     Map<String,List<SentenceRange>> sentenceMap) {
 //        AtomicInteger idx = new AtomicInteger(0);
-        logger.info("Building document map for " + uniqueDocIDs.size() + " docs");
+        logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
+        + corpus);
         try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
             stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
                     .forEach(line -> {

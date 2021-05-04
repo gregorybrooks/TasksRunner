@@ -16,7 +16,7 @@ See the script named run_docker.sh for how to run the Docker image. It takes one
     CONTROL_FILE=./run_settings.env
     source $CONTROL_FILE
 
-    docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation tasks-runner:latest bash -c "./runit_dry_run_DOCKER.sh"
+    docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation gregorybrooks/tasks-runner:latest bash -c "./runit_DOCKER.sh"
 
     #############################################################################################
 
@@ -32,8 +32,6 @@ as the query formulators--one for task-level and one for request-level:
     # These settings control the run:
     #
     mode=AUTO     # can be AUTO, AUTO-HITL, or HITL
-    runPreprocess=false    # This pre-phase gets the corpus file ready for Galago indexing.
-                           # No need to do this--it is included in the Environment.
     runIndexBuild=false    # This pre-phase indexes the pre-processed corpus data with Galago.
                            # No need to do this--it is included in the Environment.
     runIRPhase1=false      # Phase 1 creates the file for the event annotator to find events in the sample docs.

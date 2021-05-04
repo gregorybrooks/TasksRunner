@@ -26,6 +26,15 @@ public class Task {
         return taskLevelQuery;
     }
 
+    Task (String taskNum, String taskTitle, String taskNarr, Map<String, Request> requests) {
+        this.taskNum = taskNum;
+        this.taskTitle = filterCertainCharacters(taskTitle);
+        this.taskNarr = filterCertainCharacters(taskNarr);
+        this.requests = requests;
+        taskExampleDocs = new ArrayList<ExampleDocument>();
+        taskRelevantDocTextList = new ArrayList<String>();
+    }
+
     public List<String> getExampleDocids() {
         List<String> docids = new ArrayList<>();
         for (ExampleDocument d : taskExampleDocs) {

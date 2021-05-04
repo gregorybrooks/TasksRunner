@@ -132,7 +132,14 @@ public class AnalyticTasks {
             logger.info("Opening task definition file " + tasksAndRequestsFile);
 
             /* Get task and request definitions */
-            readTaskFile();
+            if (Pathnames.analyticTasksFileFormat.equals("BETTER")) {
+                readTaskFile();
+            } else if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
+                readTaskFileFarsi();
+            } else {
+                throw new TasksRunnerException("Invalid analytic tasks file format: "
+                        + Pathnames.analyticTasksFileFormat + ". Must be BETTER or FARSI");
+            }
 
             if (!sparse) {
                 if (mode.equals("HITL")) {
@@ -650,6 +657,52 @@ public class AnalyticTasks {
             writer.close();
         } catch (Exception e) {
             throw new TasksRunnerException(e);
+        }
+    }
+
+    /**
+     * Reads in the analytic task definition file and creates tasks.
+     * @throws IOException if it has a problem reading the file
+     */
+    private void readTaskFileFarsi() throws IOException, ParseException {
+        BufferedReader rdr = new BufferedReader(new InputStreamReader(new FileInputStream(tasksAndRequestsFile)));
+        String line;
+        int id = 0;
+        String taskNum = "";
+        String taskTitle = "";
+        String taskNarr = "";
+        String reqNum = "";
+        String reqText = "";
+        while ((line = rdr.readLine()) != null) {
+            if (line.startsWith("<?xml ")) {
+            } else if (line.startsWith("<topics>")) {
+            } else if (line.startsWith("</topics>")) {
+            } else if (line.startsWith("<topic>")) {
+                ++id;
+            } else if (line.startsWith("</topic>")) {
+                reqNum = taskNum; // one-to-one, qrels use this identifier
+                Request r = new Request(reqNum, reqText);
+                Map<String,Request> requests = new TreeMap<>();
+                requests.put(reqNum, r);
+                Task t = new Task(taskNum, taskTitle, taskNarr, requests);
+                tasks.put(t.taskNum, t);
+            } else if (line.startsWith("<identifier>")) {
+                line = line.replace("<identifier>", "");
+                line = line.replace("</identifier>", "");
+                taskNum = line;
+            } else if (line.startsWith("<title>")) {
+                line = line.replace("<title>", "");
+                line = line.replace("</title>", "");
+                taskTitle = line;
+            } else if (line.startsWith("<description>")) {
+                line = line.replace("<description>", "");
+                line = line.replace("</description>", "");
+                reqText = line;
+            } else if (line.startsWith("<narrative>")) {
+                line = line.replace("<narrative>", "");
+                line = line.replace("</narrative>", "");
+                taskNarr = line;
+            }
         }
     }
 

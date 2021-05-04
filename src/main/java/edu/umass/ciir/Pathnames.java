@@ -27,6 +27,7 @@ public class Pathnames {
     public static boolean runIRPhase1 = false;
     public static boolean runIRPhase2 = true;
     public static boolean runIRPhase3 = false;
+    public static ProcessingModel processingModel = ProcessingModel.TWO_STEP;
 
     public static String scratchFileLocation = "/mnt/scratch/BETTER_DRY_RUN/scratch/clear_ir/";
     public static String corpusFileLocation = "/mnt/scratch/BETTER_DRY_RUN/corpus/";
@@ -43,15 +44,15 @@ public class Pathnames {
     public static String indexLocation = scratchFileLocation + "indexes/";
     public static String englishIndexName = "BETTER-DryRun-v3";
     public static String englishIndexLocation = indexLocation + "BETTER-DryRun-v3";
-    public static String arabicIndexName = "BETTER-DryRun-v3";
-    public static String arabicIndexLocation = indexLocation + arabicIndexName;
+    public static String targetIndexName = "BETTER-DryRun-v3";
+    public static String targetIndexLocation = indexLocation + targetIndexName;
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
     public static String programFileLocation = scratchFileLocation + "programfiles/";
     public static String eventExtractorFileLocation = scratchFileLocation + "eventextractorfiles/";
     public static String translationTableLocation = programFileLocation + "translation_tables/";
     public static String taskCorpusFileLocation = scratchFileLocation + "taskcorpusfiles/";
     public static String galagoJobDirLocation = scratchFileLocation + "galago_job_dir/";
-    public static String arabicCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
+    public static String targetCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
     public static String englishCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
     public static String tasksFileNameAUTO = "dry-run-topics.auto.json";
     public static String tasksFileNameAUTOHITL = "dry-run-topics.auto-hitl.json";
@@ -59,19 +60,22 @@ public class Pathnames {
     public static String qrelFileName = "req-qrels";
     public static String isTargetEnglish = "true";
     public static boolean targetLanguageIsEnglish = true;
+    public static String targetLanguage = "ENGLISH";
     public static String supplementalFileName = "supplemental_info.json";
     public static boolean readQrelFile = true;
     public static boolean expandQrelDocuments = true;
     public static String mode = "";
+    public static String corpusFileFormat = "BETTER";
+    public static String analyticTasksFileFormat = "BETTER";
 
 // english training as english and arabic
 /*
     public static String scratchLocation = "/home/glbrooks/BETTER/";
-    public static String arabicCorpusFileName = "english-training-corpus.jl";
+    public static String targetCorpusFileName = "english-training-corpus.jl";
     public static String englishCorpusFileName = "english-training-corpus.jl";
     public static String tasksFileName = "ir-hitl-performer-tasks.fixed.json";
     public static String englishIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
-    public static String arabicIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
+    public static String targetIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
     public static String isTargetEnglish = "true";
     public static boolean targetLanguageIsEnglish = true;
     public static String supplementalFileName = "supplemental_info.json";
@@ -125,6 +129,11 @@ public class Pathnames {
         OPTIONAL
     }
 
+    public enum ProcessingModel {
+        TWO_STEP,
+        ONE_STEP
+    }
+
     private static String getFromEnv(String key, String default_value) {
         return getFromEnv(key, default_value, Required.OPTIONAL);
     }
@@ -156,6 +165,9 @@ public class Pathnames {
         runIRPhase2 = (getFromEnv("runIRPhase2", "true").equals("true"));
         runIRPhase3 = (getFromEnv("runIRPhase3", "false").equals("true"));
 
+        processingModel = ProcessingModel.valueOf((getFromEnv("processingModel",
+                "TWO_STEP")));
+
         scratchFileLocation = ensureTrailingSlash(getFromEnv("scratchFileLocation",
                 "MISSING ENV VAR: scratchFileLocation", Required.REQUIRED));
         corpusFileLocation = ensureTrailingSlash(getFromEnv("corpusFileLocation",
@@ -163,14 +175,18 @@ public class Pathnames {
         appFileLocation = ensureTrailingSlash(getFromEnv("appFileLocation",
                 "MISSING ENV VAR: appFileLocation", Required.REQUIRED));
 
+        tempFileLocation = ensureTrailingSlash(getFromEnv("tempFileLocation",
+                scratchFileLocation + "tmp/"));
         logFileLocation = ensureTrailingSlash(getFromEnv("logFileLocation",
                 scratchFileLocation + "logfiles/"));
         requestLevelQueryFormulatorDockerImage = getFromEnv("requestLevelQueryFormulatorDockerImage",
                 "MISSING ENV VAR: requestLevelQueryFormulatorDockerImage", Required.REQUIRED);
         checkDockerImage(requestLevelQueryFormulatorDockerImage);
         taskLevelQueryFormulatorDockerImage = getFromEnv("taskLevelQueryFormulatorDockerImage",
-                "MISSING ENV VAR: taskLevelQueryFormulatorDockerImage", Required.REQUIRED);
-        checkDockerImage(taskLevelQueryFormulatorDockerImage);
+                "MISSING ENV VAR: taskLevelQueryFormulatorDockerImage");
+        if (processingModel == ProcessingModel.TWO_STEP) {
+            checkDockerImage(taskLevelQueryFormulatorDockerImage);
+        }
 
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
                 scratchFileLocation + "queryfiles/"));
@@ -182,10 +198,10 @@ public class Pathnames {
                 scratchFileLocation + "qrelfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
-        arabicIndexName = getFromEnv("arabicIndexName",
-                "MISSING ENV VAR: arabicIndexName", Required.REQUIRED);
-        arabicIndexLocation = getFromEnv("arabicIndexLocation",
-                indexLocation + arabicIndexName);
+        targetIndexName = getFromEnv("targetIndexName",
+                "MISSING ENV VAR: targetIndexName", Required.REQUIRED);
+        targetIndexLocation = getFromEnv("targetIndexLocation",
+                indexLocation + targetIndexName);
         // Currently the index on the English training data is not used
         englishIndexName = getFromEnv("englishIndexName", "NOT_USED");
         englishIndexLocation = getFromEnv("englishIndexLocation",
@@ -204,8 +220,8 @@ public class Pathnames {
         galagoJobDirLocation = ensureTrailingSlash(getFromEnv("galagoJobDirLocation",
                 scratchFileLocation + "galago_job_dir/"));
 
-        arabicCorpusFileName = getFromEnv("arabicCorpusFileName",
-                "MISSING ENV VAR: arabicCorpusFileName", Required.REQUIRED);
+        targetCorpusFileName = getFromEnv("targetCorpusFileName",
+                "MISSING ENV VAR: targetCorpusFileName", Required.REQUIRED);
         englishCorpusFileName = getFromEnv("englishCorpusFileName",
                 "MISSING ENV VAR: englishCorpusFileName", Required.REQUIRED);
         tasksFileNameAUTO = getFromEnv("tasksFileNameAUTO",
@@ -221,9 +237,15 @@ public class Pathnames {
         expandQrelDocuments = (getFromEnv("expandQrelDocuments", "true").equals("true"));
         mode = getFromEnv("mode", "MISSING ENV VAR: mode (must be AUTO, AUTO-HITL, or HITL)",
                 Required.REQUIRED);
+        corpusFileFormat = getFromEnv("corpusFileFormat", "MISSING ENV VAR: corpusFileFormat",
+                Required.REQUIRED);
+        analyticTasksFileFormat = getFromEnv("analyticTasksFileFormat",
+                "MISSING ENV VAR: analyticTasksFileFormat", Required.REQUIRED);
         doRequestLevelEvaluation = (getFromEnv("doRequestLevelEvaluation", "true").equals("true"));
         doTaskLevelEvaluation = (getFromEnv("doTaskLevelEvaluation", "true").equals("true"));
         isTargetEnglish = getFromEnv("isTargetEnglish", isTargetEnglish);
         targetLanguageIsEnglish = (isTargetEnglish.equals("true"));
+        targetLanguage = getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
+                Required.REQUIRED);
     }
 }

@@ -16,7 +16,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
         super(tasks);
     }
 
-    private void callDockerImage(String queryFileName, String outLang, String phase, String dockerImageName) {
+    private void callDockerImage(String queryFileNameKey, String outLang, String phase, String dockerImageName) {
         try {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String command = "sudo docker run --rm"
@@ -24,7 +24,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
                     + " --env OUT_LANG=" + outLang
                     + " --env PHASE=" + phase
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
-                    + " --env QUERYFILE=" + queryFileName
+                    + " --env QUERYFILE=" + queryFileNameKey
                     /* For each directory that we want to share between this parent docker container (TasksRunner)
                      and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
                      in an environment variable, and we make that path a bind-volume so the child container
@@ -38,12 +38,14 @@ public class QueryFormulatorDocker extends QueryFormulator {
 */
                     + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
                     + " --env queryFileLocation=" + Pathnames.queryFileLocation
+                    + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
                     + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
+                    + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
 
                     + " " + dockerImageName
                     + " sh -c ./runit_DOCKER.sh";
-            String logFile = Pathnames.logFileLocation + "docker-program.log";
+            String logFile = Pathnames.logFileLocation + mode + "/docker-program.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);
@@ -88,7 +90,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
      * Constructs the queries from the Tasks, writes the Galago-ready query file
      *
      **/
-    public void buildQueries(String phase, String queryFileName) {
+    public void buildQueries(String phase, String queryFileNameKey) {
         String language;
         if (Pathnames.targetLanguageIsEnglish) {
             language = "en";
@@ -103,6 +105,6 @@ public class QueryFormulatorDocker extends QueryFormulator {
             dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
         }
 
-        callDockerImage(queryFileName, language, phase, dockerImageName);
+        callDockerImage(queryFileNameKey, language, phase, dockerImageName);
     }
 }

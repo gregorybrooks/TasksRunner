@@ -34,17 +34,19 @@ public class QueryManager {
     private AnalyticTasks tasks;
     private long runTime = 0;
     private String rerankedRunFile;
+    private String phase;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    public QueryManager(AnalyticTasks tasks, String queryFormulationName) {
+    public QueryManager(AnalyticTasks tasks, String queryFormulationName, String phase) {
         try {
             this.tasks = tasks;
+            this.phase = phase;
             taskFileNameGeneric = tasks.getTaskFileName();
             // When the query formulation name is a Docker image name, it might be qualified
             // with the owner's name and a "/", which confuses things when the formulation name
             // is used in a pathname, so change the "/" to a "-"
             queryFormulationName = queryFormulationName.replace("/", "-");
-            this.key =  tasks.getMode() + "." + taskFileNameGeneric + "." + queryFormulationName;
+            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
             queryFileNameOnly = key + ".queries.json";
             queryFileFullPathName = Pathnames.queryFileLocation + queryFileNameOnly;
             queryFileName = queryFileFullPathName; // for historical reasons
@@ -149,6 +151,7 @@ public class QueryManager {
      * @throws ParseException
      */
     private Map<String, String> getGeneratedQueries(String queryFileName) {
+        logger.info("Reading query file: " + queryFileName);
         Map<String, String> queriesMap = new HashMap<>();
         try {
             File tempFile = new File(queryFileName);
@@ -191,6 +194,16 @@ public class QueryManager {
         }
     }
 
+    private String getTaskIDFromRequestID(String requestID) {
+        String thisTaskID;
+        if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
+            thisTaskID = requestID;
+        } else {
+            thisTaskID = requestID.substring(0, 5);
+        }
+        return thisTaskID;
+    }
+
     /**
      * Writes a query file for all of the requests for this task.
      * @param taskID the task
@@ -203,7 +216,7 @@ public class QueryManager {
             JSONArray qlist = new JSONArray();
             for (Map.Entry<String, String> entry : queries.entrySet()) {
                 String requestID = entry.getKey();
-                String thisTaskID = requestID.substring(0,5);
+                String thisTaskID = getTaskIDFromRequestID(requestID);
                 if (thisTaskID.equals(taskID)) {
                     JSONObject qentry = new JSONObject();
                     qentry.put("number", entry.getKey());
@@ -419,7 +432,7 @@ public class QueryManager {
      * Also, it creates an event extractor input file for each task, while the hits
      * are in memory.
      */
-    public void executeRequestQueries(EventExtractor eventExtractor, String taskLevelFormulationName) {
+    public void executeRequestQueries(String taskLevelFormulationName) {
         // When the query formulation name is a Docker image name, it might be qualified
         // with the owner's name and a "/", which confuses things when the formulation name
         // is used in a pathname, so change the "/" to a "-"
@@ -431,8 +444,10 @@ public class QueryManager {
         tasks.getTaskList().parallelStream().forEach(t ->  {
             String theRunFileName = Pathnames.runFileLocation + key + ".TASK." + t.taskNum + ".out";
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
-            String indexName = Pathnames.indexLocation + tasks.getMode() + "." + taskFileNameGeneric + "."
-                    + finalTaskLevelFormulationName + "." + t.taskNum + ".PARTIAL";
+
+            String taskLevelKey = tasks.getMode() + ".Task."
+                    + finalTaskLevelFormulationName;
+            String indexName = Pathnames.indexLocation + taskLevelKey + "." + t.taskNum + ".PARTIAL";
             runFiles.add(theRunFileName);
 
             logger.info("Executing request queries for task " + t.taskNum);
@@ -455,7 +470,7 @@ public class QueryManager {
      * @param N the number of hits to get
      */
     public void execute(int N) {
-        execute(3, N, queryFileName, runFileName, Pathnames.arabicIndexLocation);
+        execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
     }
 
     /**
@@ -479,7 +494,7 @@ public class QueryManager {
         }
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago.log";
         String arabicParm = "";
-        if (!Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.targetLanguage.equals("ARABIC")) {
             arabicParm = "--defaultTextPart=postings.snowball ";
         }
         String tempCommand = Pathnames.galagoLocation + command
@@ -548,7 +563,7 @@ public class QueryManager {
             command = "galago batch-search";
         }
         String arabicPart = "";
-        if (!Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.targetLanguage.equals("ARABIC")) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_executeAgainstPartial.log";
@@ -556,7 +571,7 @@ public class QueryManager {
                 + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
                 + " --systemName=CLEAR --trec=true "
                 + " --index/partial=" + indexName
-                + " --index/full=" + Pathnames.arabicIndexLocation
+                + " --index/full=" + Pathnames.targetIndexLocation
                 + " --defaultIndexPart=partial --backgroundIndex=full"
                 + arabicPart
                 + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
@@ -641,7 +656,7 @@ public class QueryManager {
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_indexbuild.log";
         String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
                 Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
-                " --index=" + Pathnames.arabicIndexLocation +
+                " --index=" + Pathnames.targetIndexLocation +
                 " --partialIndex=" + Pathnames.indexLocation + key + "." + taskID + ".PARTIAL "
                 + confFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
 
@@ -697,18 +712,22 @@ public class QueryManager {
             outputQueries.put("mode", "local" );
             outputQueries.put("fieldIndex", true);
             outputQueries.put("tmpdir", Pathnames.tempFileLocation );
+
             JSONArray stemmerList = new JSONArray();
-            stemmerList.add("krovetz");
-            if (!Pathnames.targetLanguageIsEnglish) {
+            JSONObject stemmerClass = new JSONObject();
+            if (Pathnames.targetLanguage.equals("ARABIC")) {
+                stemmerList.add("krovetz");
                 stemmerList.add("snowball");
+                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+                stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
+            } else if (Pathnames.targetLanguage.equals("ENGLISH")) {
+                stemmerList.add("krovetz");
+                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+            } else if (Pathnames.targetLanguage.equals("FARSI")) {
             }
             outputQueries.put("stemmer", stemmerList);
-            JSONObject stemmerClass = new JSONObject();
-            stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            if (!Pathnames.targetLanguageIsEnglish) {
-                stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            }
             outputQueries.put("stemmerClass", stemmerClass );
+
             JSONObject tokenizer = new JSONObject();
             JSONArray fields = new JSONArray();
             fields.add("exid");
@@ -917,7 +936,7 @@ public class QueryManager {
                         continue;
                     }
 
-                    taskID = requestID.substring(0, 5);
+                    taskID = getTaskIDFromRequestID(requestID);
                     if (!taskID.equals(prevTaskID) && !prevTaskID.equals("EMPTY")) {
                         ++totalTasks;
                         totalTasknCDG += (tasknCDG / totalRequestsInTask);

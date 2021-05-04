@@ -1,4 +1,3 @@
 set -v
-docker rmi tasks-runner
-docker build -t tasks-runner .
-docker tag tasks-runner gregorybrooks/tasks-runner
+docker rmi gregorybrooks/tasks-runner
+docker build -t gregorybrooks/tasks-runner .

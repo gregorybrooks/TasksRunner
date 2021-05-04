@@ -112,6 +112,12 @@ public class Request {
         }
     }
 
+    Request(String reqNum, String reqText) {
+        this.reqNum = reqNum;
+        this.reqText = reqText;
+        this.reqExampleDocs = new ArrayList<ExampleDocument>();
+    }
+
     public List<String> getReqExtrList() {
         List<String> extractions = new ArrayList<>();
         for (ExampleDocument d : reqExampleDocs) {
@@ -127,6 +133,4 @@ public class Request {
         }
         return docids;
     }
-
-
 }

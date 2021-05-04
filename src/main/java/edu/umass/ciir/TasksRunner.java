@@ -6,7 +6,9 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,6 +18,9 @@ import java.util.stream.Stream;
 
 public class TasksRunner {
 
+    private AnalyticTasks tasks;
+    private String mode;
+    private String phase;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
     /**
@@ -51,13 +56,119 @@ public class TasksRunner {
         configureLogger(logFileName);
     }
 
+    private void twoStepProcessingModel() {
+        /* These are used in the file names */
+        String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
+        String taskLevelFormulator = Pathnames.taskLevelQueryFormulatorDockerImage;
+        phase = "Task";
+
+        QueryManager qf = new QueryManager(tasks, taskLevelFormulator, phase);
+        qf.resetQueries();  // Clears any existing queries read in from an old file
+
+        logger.info("PHASE 2: Building task-level queries");
+        QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
+        queryFormulator.buildQueries(phase, qf.getKey());
+
+        qf.readQueryFile();
+
+        logger.info("PHASE 2: Executing the task-level queries");
+        qf.execute(2500);
+        logger.info("PHASE 2: Execution of task-level queries complete. Run time: " + qf.getRunTime());
+
+            /* Create an input file for the event extractor for the top N task-level hits.
+            (We did this to experiment with task-level hits, but it is not needed normally.)
+            logger.info("Extracting events from the top task-level hits");
+            eventExtractor.createInputForEventExtractorFromTaskHits(qf);
+            */
+
+        // Evaluate the task-level results (they are saved into a file as a side effect)
+        if (Pathnames.doTaskLevelEvaluation) {
+            logger.info("PHASE 2: Evaluating the task-level results");
+            Map<String, QueryManager.EvaluationStats> tstats = qf.evaluateTaskLevel();
+        }
+
+        logger.info("PHASE 2: Building a separate index for each task's top hits");
+        qf.buildTaskLevelIndexes();
+
+        logger.info("PHASE 2: Building request-level queries");
+        phase = "Request";
+        qf = new QueryManager(tasks, requestLevelFormulator, phase);
+        qf.resetQueries();  // Clears any existing queries read in from an old file
+
+        QueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
+//        requestQueryFormulator.buildQueries(phase, qf.getQueryFileNameOnly());
+        String key = qf.getKey();
+        requestQueryFormulator.buildQueries(phase, key);
+
+        String queryFileDirectory = Pathnames.queryFileLocation;
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
+                Paths.get(Pathnames.queryFileLocation),
+                qf.getKey() + "*.queries.json")) {
+            dirStream.forEach(path -> executeOne(path, key, queryFileDirectory, taskLevelFormulator));
+        } catch (IOException cause) {
+            throw new TasksRunnerException(cause);
+        }
+        logger.info("PHASE 2: Execution of all request queries complete.");
+    }
+
+    private void executeOne(Path path, String key, String queryFileDirectory, String taskLevelFormulator) {
+        String pathname = path.toString();
+        logger.info("PHASE 2: Found a query file produced by the query formulator: " + path);
+        pathname = pathname.replace(queryFileDirectory + key, "");
+        String extra = pathname.replace(".queries.json", "");
+        String newQueryFormulationName = key + extra;
+        logger.info("  Effective query formulation name is: " + newQueryFormulationName);
+
+        QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase);
+        logger.info("PHASE 2: Writing separate query files for the requests in each task");
+        qf.writeQueryFiles();
+
+        logger.info("PHASE 2: Executing the request queries, using the task-level indexes");
+        qf.executeRequestQueries(taskLevelFormulator);
+
+        logger.info("PHASE 2: Execution of request queries complete. Run time: " + qf.getRunTime());
+
+        // Evaluate the request-level results (they are saved into a file as a side effect)
+        if (Pathnames.doRequestLevelEvaluation) {
+            Map<String, Double> rstats = qf.evaluate("RAW");
+            logger.info("PHASE 2: Evaluation of request-level hits complete");
+        }
+
+    }
+
+    private void oneStepProcessingModel() {
+        /* These are used in the file names */
+        String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
+        phase = "Request";
+
+        QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase);
+        qf.resetQueries();  // Clears any existing queries read in from an old file
+
+        logger.info("PHASE 2: Building queries");
+        QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
+        queryFormulator.buildQueries(phase, qf.getKey());
+
+        qf.readQueryFile();
+
+        logger.info("PHASE 2: Executing the queries");
+        qf.execute(1000);
+        logger.info("PHASE 2: Execution of queries complete. Run time: " + qf.getRunTime());
+
+        // Evaluate the results (they are saved into a file as a side effect)
+        if (Pathnames.doRequestLevelEvaluation) {
+            logger.info("PHASE 2: Evaluating the results");
+            Map<String, Double> rstats = qf.evaluate("RAW");
+        }
+
+
+    }
     /**
      * Processes the analytic tasks file: generates queries for the Tasks and Requests,
      * executes the queries, annotates hits with events.
      */
     private void process() {
         logger.info("Opening the analytic task file, expanding example docs");
-        AnalyticTasks tasks = new AnalyticTasks();
+        tasks = new AnalyticTasks();
 
         /*
          * We can be executing in one of 3 modes: AUTO, AUTO-HITL, or HITL.
@@ -72,12 +183,8 @@ public class TasksRunner {
          * (There are separate query formulators for the creation of Task-level queries and
          * Request-level queries.)
          */
-        String mode = tasks.getMode();
+        mode = tasks.getMode();
         logger.info("Executing in " + mode + " mode");
-
-        /* These are used in the file names */
-        String requestLevelFormulator = mode + "." + Pathnames.requestLevelQueryFormulatorDockerImage;
-        String taskLevelFormulator = mode + "." + Pathnames.taskLevelQueryFormulatorDockerImage;
 
         EventExtractor eventExtractor = new EventExtractor(tasks, mode);
 
@@ -104,56 +211,13 @@ public class TasksRunner {
             /* write the analytic tasks info file, with event info, for multipartite
             and re-ranking to use */
             tasks.writeJSONVersion();
-    
-            QueryManager qf = new QueryManager(tasks, taskLevelFormulator);
-            qf.resetQueries();  // Clears any existing queries read in from an old file
-    
-            logger.info("PHASE 2: Building task-level queries");
-            QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
-            queryFormulator.buildQueries("Task", qf.getQueryFileNameOnly());
 
-            qf.readQueryFile();
-
-            logger.info("PHASE 2: Executing the task-level queries");
-            qf.execute(2500);
-            logger.info("PHASE 2: Execution of task-level queries complete. Run time: " + qf.getRunTime());
-
-            /* Create an input file for the event extractor for the top N task-level hits.
-            (We did this to experiment with task-level hits, but it is not needed normally.)
-            logger.info("Extracting events from the top task-level hits");
-            eventExtractor.createInputForEventExtractorFromTaskHits(qf);
-            */
-
-            // Evaluate the task-level results (they are saved into a file as a side effect)
-	        if (Pathnames.doTaskLevelEvaluation) {
-                logger.info("PHASE 2: Evaluating the task-level results");
-                Map<String, QueryManager.EvaluationStats> tstats = qf.evaluateTaskLevel();
-            }
-
-            logger.info("PHASE 2: Building a separate index for each task's top hits");
-            qf.buildTaskLevelIndexes();
-    
-            logger.info("PHASE 2: Building request-level queries");
-            qf = new QueryManager(tasks, requestLevelFormulator);
-            qf.resetQueries();  // Clears any existing queries read in from an old file
-
-            QueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
-            requestQueryFormulator.buildQueries("Request", qf.getQueryFileNameOnly());
-
-            qf.readQueryFile();
-
-            logger.info("PHASE 2: Writing separate query files for the requests in each task");
-            qf.writeQueryFiles();
-    
-            logger.info("PHASE 2: Executing the request queries, using the task-level indexes");
-            qf.executeRequestQueries(eventExtractor, taskLevelFormulator);
-    
-            logger.info("PHASE 2: Execution of request queries complete. Run time: " + qf.getRunTime());
-    
-            // Evaluate the request-level results (they are saved into a file as a side effect)
-	        if (Pathnames.doRequestLevelEvaluation) {
-                Map<String, Double> rstats = qf.evaluate("RAW");
-                logger.info("PHASE 2: Evaluation of request-level hits complete");
+            if (Pathnames.processingModel == Pathnames.ProcessingModel.TWO_STEP) {
+                twoStepProcessingModel();
+            } else if (Pathnames.processingModel == Pathnames.ProcessingModel.ONE_STEP) {
+                oneStepProcessingModel();
+            } else {
+                throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
 
             /* Extract events from the request-level hits, to use when re-ranking the request-level results */
@@ -168,7 +232,9 @@ public class TasksRunner {
 	    if (!runPhase3) {
 	        System.out.println("Skipping phase 3");
 	    } else {
-            QueryManager qf = new QueryManager(tasks, requestLevelFormulator);
+	        phase = "Request";
+            String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
+            QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase);
     
             logger.info("PHASE 3: Building file with doc text and events for request hits, for reranker");
             eventExtractor.retrieveEventsFromRequestHits(qf);
@@ -179,7 +245,7 @@ public class TasksRunner {
             logger.info("PHASE 3: Reranking");
             qf.rerank();
     
-            //eventExtractor.writeFileForHITL(qf);  // writes top 10 hits for HITL to judge
+            //NOT NEEDED eventExtractor.writeFileForHITL(qf);  // writes top 10 hits for HITL to judge
     
             // Evaluate the request-level results (they are saved into a file as a side effect)
 	        if (Pathnames.doRequestLevelEvaluation) {
@@ -338,7 +404,7 @@ public class TasksRunner {
             outputQueries.put("fileType", "trectext");
             String trecFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1-uuid.trectext";
             outputQueries.put("inputPath", trecFile );
-            outputQueries.put("indexPath", Pathnames.arabicIndexLocation );
+            outputQueries.put("indexPath", Pathnames.targetIndexLocation);
             outputQueries.put("mode", "local" );
             outputQueries.put("fieldIndex", true);
             outputQueries.put("tmpdir", Pathnames.tempFileLocation );
@@ -375,7 +441,7 @@ public class TasksRunner {
      * Pre-processes the Arabic corpus file. Must be done before calling buildIndex().
      */
     private void preprocess() {
-        String arabicCorpusFile = Pathnames.corpusFileLocation + Pathnames.arabicCorpusFileName;
+        String arabicCorpusFile = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
         String tempFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1.jl.out";
         String trecFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1-uuid.trectext";
         logger.info("Preprocessing the Arabic corpus at " + arabicCorpusFile);
@@ -393,10 +459,10 @@ public class TasksRunner {
     public static void main (String[] args) {
         TasksRunner betterIR = new TasksRunner();
         betterIR.setupLogging();
-        if (Pathnames.runPreprocess) {
-            betterIR.preprocess();
-        } else if (Pathnames.runIndexBuild) {
-            betterIR.buildIndex();
+        if (Pathnames.runIndexBuild) {
+            Preprocessor preprocessor = new Preprocessor();
+            preprocessor.preprocess();
+            preprocessor.buildIndex();
         } else {
             betterIR.process();
         }
