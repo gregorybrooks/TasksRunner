@@ -2,51 +2,19 @@
 Given a test environment (tasks file, English training corpus, Arabic (e.g.) target corpus, qrel file), 
 this program converts the tasks into Galago queries and executes them. 
 
-See the script named run_docker.sh for how to run the Docker image. It takes one parameter, the MODE
-(AUTO, AUTO-HITL, or HITL):
+To use this Docker image, first pull it from Docker Hub by running get_docker_image_from_dockerhub.sh.
+This gets the Docker image into your machine's Docker repository.
+You should never have to rebuild the Docker image, but if you want to use rebuild_docker.sh.
 
-    #############################################################################################
-    #!/bin/bash
-    set -o allexport
-    set -v
+If you haven't set up a DRY RUN test environment yet on your machine, get the zip file from Greg 
+and install it. This creates a directory tree on your machine that has the right structure for 
+TasksRunner, and includes the corpus and some other required files.
 
-    ENV_FILE=/mnt/scratch/BETTER/BETTER_TEST_ENVIRONMENTS/BETTER_DRY_RUN/clear_ir.dry_run.env
-    source $ENV_FILE
+Edit run_docker_DRY_RUN.sh to point to that environment. Leave DOCKERHUB_USER set to gregorybrooks
+since the Docker image that you pulled from Docker Hub and that you will be running is 
+called gregorybrooks/tasks-runner.
 
-    CONTROL_FILE=./run_settings.env
-    source $CONTROL_FILE
+Edit run_settings_DRY_RUN.env to tell TasksRunner what mode to run in (e.g. AUTO), what processing
+steps to run, and which Docker images to use to formulate the task-level and request-level queries.
 
-    docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation gregorybrooks/tasks-runner:latest bash -c "./runit_DOCKER.sh"
-
-    #############################################################################################
-
-The "control file" called run_settings.env is where you tell TasksRunner which Docker images to use
-as the query formulators--one for task-level and one for request-level:
-
-    #############################################################################################
-
-    #!/bin/bash
-    #
-    # ----- CLEAR IR settings -----
-    #
-    # These settings control the run:
-    #
-    mode=AUTO     # can be AUTO, AUTO-HITL, or HITL
-    runIndexBuild=false    # This pre-phase indexes the pre-processed corpus data with Galago.
-                           # No need to do this--it is included in the Environment.
-    runIRPhase1=false      # Phase 1 creates the file for the event annotator to find events in the sample docs.
-                           # No need to do this--the annotator was run once and the file was saved in the Docker image.
-    runIRPhase2=true       # Phase 2 builds the queries, executes them, and evaluates them.
-    runIRPhase3=false      # Phase 3 calls the re-ranker and builds the final output run file--we skip this for now.
-    doTaskLevelEvaluation=true
-    doRequestLevelEvaluation=true
-    
-    # In the following 2 settings, put the names of the Docker images to be used to formulate the queries. 
-    # These Docker images should be in Docker Hub.
-
-    requestLevelQueryFormulatorDockerImage=gregorybrooks/doct5query_combine_all_passage_queries
-    taskLevelQueryFormulatorDockerImage=gregorybrooks/better-query-builder-2
-
-    # (gregorybrooks/better-query-builder-2 corresponds to TASK_LEVEL_4 / TASK_LEVEL_HITL)
-
-    #############################################################################################
+Then run run_docker_DRY_RUN.sh.

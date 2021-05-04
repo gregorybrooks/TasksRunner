@@ -1,3 +1,4 @@
 set -v
-docker rmi gregorybrooks/tasks-runner
-docker build -t gregorybrooks/tasks-runner .
+DOCKERHUB_USER=gregorybrooks
+docker rmi $DOCKERHUB_USER/tasks-runner
+docker build -t $DOCKERHUB_USER/tasks-runner .
