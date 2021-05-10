@@ -10,4 +10,4 @@ source $ENV_FILE
 CONTROL_FILE=./run_settings_FARSI.env
 source $CONTROL_FILE
 
-docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation $DOCKERHUB_USER/tasks-runner bash -c "./runit.sh"
+docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation $DOCKERHUB_USER/tasks-runner:2.0.1 bash -c "./runit.sh"
