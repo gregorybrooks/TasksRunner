@@ -168,7 +168,7 @@ public class TasksRunner {
      * Processes the analytic tasks file: generates queries for the Tasks and Requests,
      * executes the queries, annotates hits with events.
      */
-    private void process() {
+    void process() {
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks();
 
