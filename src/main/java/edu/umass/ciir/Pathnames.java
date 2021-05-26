@@ -67,6 +67,7 @@ public class Pathnames {
     public static String mode = "";
     public static String corpusFileFormat = "BETTER";
     public static String analyticTasksFileFormat = "BETTER";
+    public static boolean sudoNeeded = true;
 
 // english training as english and arabic
 /*
@@ -96,10 +97,16 @@ public class Pathnames {
         int numLines = 0;
         try {
             // String command = "sudo docker image ls " + imageName + " | wc -l ";
-            List builders = Arrays.asList(
-                    new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
-                    new ProcessBuilder("wc", "-l"));
-
+            List builders;
+            if (Pathnames.sudoNeeded) {
+                builders = Arrays.asList(
+                        new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
+                        new ProcessBuilder("wc", "-l"));
+            } else {
+                builders = Arrays.asList(
+                        new ProcessBuilder("docker", "image", "ls", imageName),
+                        new ProcessBuilder("wc", "-l"));
+            }
             List<Process> processes = ProcessBuilder.startPipeline(builders);
             Process process = processes.get(processes.size() - 1);
 
@@ -120,6 +127,7 @@ public class Pathnames {
             throw new TasksRunnerException("Unexpected ERROR while executing docker command. Exit value is " + exitVal);
         }
         if (numLines < 2) {
+            System.out.println();
             throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
         }
     }
@@ -247,5 +255,6 @@ public class Pathnames {
         targetLanguageIsEnglish = (isTargetEnglish.equals("true"));
         targetLanguage = getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
                 Required.REQUIRED);
+        sudoNeeded = (getFromEnv("sudoNeeded", "true").equals("true"));
     }
 }

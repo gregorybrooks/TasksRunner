@@ -176,6 +176,34 @@ public class EventExtractor {
         return tot_chars;
     }
 
+    public void writeInputFileRerankerFormat(Map<String,SimpleHit> entries, String outputFileName, String query)  {
+        try {
+            JSONObject outermostEntry = new JSONObject();
+            JSONObject resultsEntry = new JSONObject();
+
+            JSONArray docEntries = new JSONArray();
+            for (Map.Entry<String, SimpleHit> entry : entries.entrySet()) {
+                String key = entry.getKey();
+                SimpleHit hit = entry.getValue();
+                JSONObject docEntry = new JSONObject();
+
+                docEntry.put("docid", key);
+                docEntry.put("doctext", hit.docText);
+                docEntry.put("score", hit.score);
+                docEntries.add(docEntry);
+            }
+            outermostEntry.put("results", docEntries);
+            outermostEntry.put("query", query);
+
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(outputFileName)));
+            writer.write(outermostEntry.toJSONString());
+            writer.close();
+        } catch (Exception cause) {
+            throw new TasksRunnerException(cause);
+        }
+    }
+
     public int writeInputFileSimpleFormatTask(Map<String,SimpleHit> entries, String fileForExtractor)  {
         int tot_chars = 0;
         try {
@@ -323,6 +351,9 @@ public class EventExtractor {
     private String constructRequestLevelSimpleFileName(Request r) {
         return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.SIMPLE.json";
     }
+    private String constructRequestLevelRerankerFileName(Request r) {
+        return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.FOR_RERANKER.json";
+    }
 
     private String constructExampleFileFromEventExtractorFileName() {
         return Pathnames.eventExtractorFileLocation + mode + ".EXAMPLES.json.results.json";
@@ -381,6 +412,38 @@ public class EventExtractor {
                 writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
             }
         }
+    }
+
+    /**
+     * Creates an input file to give to the event extractor, of the top hits for each request.
+     */
+    public void createInputForRerankerFromRequestHits(QueryManager qf) {
+        Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
+        List<Request> requestList = tasks.getRequests();
+
+        // Load the document text map in one pass through the corpus file:
+        Document.buildArabicDocMap(requestList.parallelStream()
+                .flatMap(r -> qf.getDocids(r.reqNum, REQUEST_HITS_DETAILED).stream())
+                .collect(Collectors.toSet()));
+
+        Map<String,String> queries = qf.getQueries();
+        for (Task t : tasks.getTaskList()) {
+            for (Request r : t.getRequests().values()) {
+                List<String> hits = qf.getDocids(r.reqNum, REQUEST_HITS_DETAILED);
+                simpleEntries.clear();
+                String query = queries.get(r.reqNum);
+                for (String td : hits) {
+                    String score = qf.getScore(r.reqNum, td);
+                    String docText = Document.getArabicDocumentWithMap(td);
+                    simpleEntries.put(td, new SimpleHit(td, docText, score, ""));
+                }
+                if (simpleEntries.size() > 0) {
+                    String fileName = constructRequestLevelRerankerFileName(r);
+                    writeInputFileRerankerFormat(simpleEntries, fileName, query);
+                }
+            }
+        }
+
     }
 
     private List<Hit> mergeHits (String reqNum, List<Hit> hits, List<String> docids) {

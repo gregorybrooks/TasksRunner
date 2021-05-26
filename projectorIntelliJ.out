@@ -1,0 +1,5 @@
+
+New version 1.1.6 of projector-installer is available (ver. 1.1.2 is installed)!
+Changelog: https://github.com/JetBrains/projector-installer/blob/master/CHANGELOG.md#116
+To update use command: pip3 install projector-installer --upgrade --user
+

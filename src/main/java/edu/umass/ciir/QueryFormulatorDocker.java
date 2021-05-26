@@ -19,7 +19,8 @@ public class QueryFormulatorDocker extends QueryFormulator {
     private void callDockerImage(String queryFileNameKey, String outLang, String phase, String dockerImageName) {
         try {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
-            String command = "sudo docker run --rm"
+            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+            String command = sudo + " docker run --rm"
                     + " --env MODE=" + mode
                     + " --env OUT_LANG=" + outLang
                     + " --env PHASE=" + phase

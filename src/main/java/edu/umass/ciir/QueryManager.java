@@ -190,6 +190,7 @@ public class QueryManager {
     public void writeQueryFiles() {
         for (Task t : tasks.getTaskList()) {
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
+            logger.info("Writing query file " + queryFileName);
             writeQueryFile(t.taskNum, queryFileName);
         }
     }

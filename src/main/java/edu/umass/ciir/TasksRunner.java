@@ -22,6 +22,7 @@ public class TasksRunner {
     private String mode;
     private String phase;
     private static final Logger logger = Logger.getLogger("TasksRunner");
+    EventExtractor eventExtractor;
 
     /**
      * Configures the logger for this program.
@@ -101,9 +102,16 @@ public class TasksRunner {
         requestQueryFormulator.buildQueries(phase, key);
 
         String queryFileDirectory = Pathnames.queryFileLocation;
+
+        DirectoryStream.Filter<Path> filter = file -> ((file.toString().startsWith(queryFileDirectory + key))
+                && (!file.toString().startsWith(queryFileDirectory + key + ".TASK."))
+                && (!file.toString().contains(".PRETTY."))
+                && (!file.toString().contains(".NON_TRANSLATED.")));
+
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
                 Paths.get(Pathnames.queryFileLocation),
-                qf.getKey() + "*.queries.json")) {
+                filter)) {
+//                qf.getKey() + "*.queries.json")) {
             dirStream.forEach(path -> executeOne(path, key, queryFileDirectory, requestLevelFormulator,
                     taskLevelFormulator));
         } catch (IOException cause) {
@@ -136,6 +144,36 @@ public class TasksRunner {
             logger.info("PHASE 2: Evaluation of request-level hits complete");
         }
 
+        /* Extract events from the request-level hits, to use when re-ranking the request-level results */
+        logger.info("Extracting events from the top request-level hits");
+        // To save time, temporarily skipping this:
+        // eventExtractor.createInputForEventExtractorFromRequestHits(qf);
+
+        // Create the input file for my Galago reranker project:
+        //eventExtractor.createInputForRerankerFromRequestHits(qf);
+    }
+
+    private void oneStepExecuteOne(Path path, String key, String queryFileDirectory, String requestLevelFormulator) {
+        String pathname = path.toString();
+        logger.info("PHASE 2: Found a query file produced by the query formulator: " + path);
+        pathname = pathname.replace(queryFileDirectory + key, "");
+        String extra = pathname.replace(".queries.json", "");
+        String newQueryFormulationName = requestLevelFormulator + extra;
+        logger.info("  Effective query formulation name is: " + newQueryFormulationName);
+
+        QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase);
+        qf.readQueryFile();
+        qf.execute(1000);
+        if (Pathnames.doRequestLevelEvaluation) {
+            Map<String, Double> rstats = qf.evaluate("RAW");
+        }
+        /* Extract events from the request-level hits, to use when re-ranking the request-level results */
+        logger.info("Extracting events from the top request-level hits");
+        // To save time, temporarily skipping this:
+        // eventExtractor.createInputForEventExtractorFromRequestHits(qf);
+
+        // Create the input file for my Galago reranker project:
+        //eventExtractor.createInputForRerankerFromRequestHits(qf);
     }
 
     private void oneStepProcessingModel() {
@@ -148,22 +186,19 @@ public class TasksRunner {
 
         logger.info("PHASE 2: Building queries");
         QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
-        queryFormulator.buildQueries(phase, qf.getKey());
+        String key = qf.getKey();
+        queryFormulator.buildQueries(phase, key);
 
-        qf.readQueryFile();
-
-        logger.info("PHASE 2: Executing the queries");
-        qf.execute(1000);
-        logger.info("PHASE 2: Execution of queries complete. Run time: " + qf.getRunTime());
-
-        // Evaluate the results (they are saved into a file as a side effect)
-        if (Pathnames.doRequestLevelEvaluation) {
-            logger.info("PHASE 2: Evaluating the results");
-            Map<String, Double> rstats = qf.evaluate("RAW");
+        String queryFileDirectory = Pathnames.queryFileLocation;
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
+                Paths.get(Pathnames.queryFileLocation),
+                qf.getKey() + "*.queries.json")) {
+            dirStream.forEach(path -> oneStepExecuteOne(path, key, queryFileDirectory, requestLevelFormulator));
+        } catch (IOException cause) {
+            throw new TasksRunnerException(cause);
         }
-
-
     }
+
     /**
      * Processes the analytic tasks file: generates queries for the Tasks and Requests,
      * executes the queries, annotates hits with events.
@@ -188,7 +223,7 @@ public class TasksRunner {
         mode = tasks.getMode();
         logger.info("Executing in " + mode + " mode");
 
-        EventExtractor eventExtractor = new EventExtractor(tasks, mode);
+        eventExtractor = new EventExtractor(tasks, mode);
 
         boolean runPhase1 = Pathnames.runIRPhase1;
         boolean runPhase2 = Pathnames.runIRPhase2;
@@ -222,9 +257,6 @@ public class TasksRunner {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
 
-            /* Extract events from the request-level hits, to use when re-ranking the request-level results */
-            logger.info("Extracting events from the top request-level hits");
-            // TEMP to save time eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
             // [Run the ISI QF event extractor here]
     
