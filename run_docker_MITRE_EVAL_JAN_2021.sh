@@ -10,4 +10,4 @@ source $ENV_FILE
 CONTROL_FILE=./run_settings_MITRE_EVAL_JAN_2021.env
 source $CONTROL_FILE
 
-docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation $DOCKERHUB_USER/tasks-runner:BUGGY bash -c "./runit.sh"
+docker run --rm --env-file=$ENV_FILE --env-file=$CONTROL_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $appFileLocation:$appFileLocation -v $corpusFileLocation:$corpusFileLocation -v $scratchFileLocation:$scratchFileLocation $DOCKERHUB_USER/tasks-runner:2.1.0 bash -c "./runit.sh"

@@ -1068,8 +1068,7 @@ public class QueryManager {
          * <p>
          * For averaging the evaluation results, we use the MICRO approach.
          *
-         * @throws IOException
-         * @throws InterruptedException
+         * @return the Map of task ID to the stats for that task
          */
         public Map<String,EvaluationStats> evaluate() {
             try {

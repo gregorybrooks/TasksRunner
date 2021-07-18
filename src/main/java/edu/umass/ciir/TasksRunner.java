@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.*;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -150,7 +152,7 @@ public class TasksRunner {
         // eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
         // Create the input file for my Galago reranker project:
-        //eventExtractor.createInputForRerankerFromRequestHits(qf);
+        eventExtractor.createInputForRerankerFromRequestHits(qf);
     }
 
     private void oneStepExecuteOne(Path path, String key, String queryFileDirectory, String requestLevelFormulator) {
@@ -168,12 +170,12 @@ public class TasksRunner {
             Map<String, Double> rstats = qf.evaluate("RAW");
         }
         /* Extract events from the request-level hits, to use when re-ranking the request-level results */
-        logger.info("Extracting events from the top request-level hits");
         // To save time, temporarily skipping this:
+        // logger.info("Extracting events from the top request-level hits");
         // eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
         // Create the input file for my Galago reranker project:
-        //eventExtractor.createInputForRerankerFromRequestHits(qf);
+        // eventExtractor.createInputForRerankerFromRequestHits(qf);
     }
 
     private void oneStepProcessingModel() {
@@ -190,13 +192,16 @@ public class TasksRunner {
         queryFormulator.buildQueries(phase, key);
 
         String queryFileDirectory = Pathnames.queryFileLocation;
+        List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
                 Paths.get(Pathnames.queryFileLocation),
                 qf.getKey() + "*.queries.json")) {
-            dirStream.forEach(path -> oneStepExecuteOne(path, key, queryFileDirectory, requestLevelFormulator));
+            dirStream.forEach(path -> files.add(path)
+            );
         } catch (IOException cause) {
             throw new TasksRunnerException(cause);
         }
+        files.parallelStream().forEach(path -> oneStepExecuteOne(path, key, queryFileDirectory, requestLevelFormulator));
     }
 
     /**
@@ -300,203 +305,19 @@ public class TasksRunner {
     }
 
     /**
-     * @author dfisher (originally)
-     * Reads in the corpus file, which is a JSON file that has a BETTER-specific schema,
-     * and outputs the documents in the trectext format, suitable for indexing by Galago.
-     */
-    public void betterToTrec (String inputFile, String outputFile) {
-        try {
-
-            JSONParser parser = new JSONParser();
-            BufferedReader rdr = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile)));
-            PrintWriter writer = new PrintWriter(outputFile);
-            String line;
-            int id = 1;
-            while ((line = rdr.readLine()) != null) {
-                JSONObject json = (JSONObject) parser.parse(line);
-                if (!json.containsKey("derived-metadata")) {
-                    throw new TasksRunnerException("No derived-metadata field in corpus file, line " + id);
-                }
-                JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
-                if (!derived_metadata.containsKey("id")) {
-                    throw new TasksRunnerException("No id field in the derived-metadata field in corpus file, line " + id);
-                }
-                if (!derived_metadata.containsKey("text")) {
-                    throw new TasksRunnerException("No text field in the derived-metadata field in corpus file, line " + id);
-                }
-                String uuid = (String) derived_metadata.get("id");
-                String text = (String) derived_metadata.get("text");
-                writer.println("<DOC>\n<DOCNO>" + uuid + "</DOCNO>\n<ID>" + id + "</ID>\n<TEXT>");
-                writer.println(text);
-                writer.println("</TEXT>\n</DOC>");
-                ++id;
-            }
-            writer.close();
-        } catch (Exception cause) {
-            throw new TasksRunnerException(cause);
-        }
-    }
-
-    /**
-     * In order to use Galago's #reject operator we add a field to each
-     * document that contains its unique identifier.
-     * @param inFileName the trectext format file
-     * @param outputFileName the updated trectext format file
-     */
-    public void addExid (String inFileName, String outputFileName) {
-        try {
-            PrintWriter writer = new PrintWriter(outputFileName);
-            FileReader reader = new FileReader(inFileName);
-            BufferedReader br = new BufferedReader(reader);
-            String line;
-            int linesRead = 0;
-            int linesWritten = 0;
-            int docs = 0;
-            String save_line = "";
-            while((line = br.readLine()) != null)
-            {
-                ++linesRead;
-                writer.println(line);
-                ++linesWritten;
-                if (line.startsWith("<DOCNO>")) {
-                    ++docs;
-                    save_line = line;
-                    save_line = save_line.replace("DOCNO", "EXID");
-                }
-                else if (line.startsWith("<TEXT>")) {
-                    writer.println(save_line);
-                    ++linesWritten;
-                }
-            }
-            writer.close();
-            reader.close();
-        } catch (Exception cause) {
-            throw new TasksRunnerException(cause);
-        }
-    }
-
-    /**
-     * Builds a Galago index for the Arabic corpus.
-     */
-    private void buildIndex() {
-        String confFile = Pathnames.indexLocation + "better-clear-ir-arabic.conf";
-        logger.info("Building an index for arabic data");
-        logger.info("Creating Galago config file " + confFile);
-        createGalagoConfFile(confFile);
-        Instant start = Instant.now();
-
-        String galagoLogFile = Pathnames.logFileLocation + "galago_arabic_indexbuild.log";
-        String tempCommand = Pathnames.galagoLocation + "galago build " + confFile + " >& " + galagoLogFile;
-
-        logger.info("Executing this command: " + tempCommand);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            // do nothing
-        }
-
-        int exitVal;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal + ". See galago.log.");
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal + ". See galago.log.");
-        }
-
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        long runTime  = interval.toMinutes();
-        logger.info("Index build time (minutes):\n" + runTime);
-    }
-
-    /**
-     * Creates a Galago config file specifying the parameters for building the index
-     * for the Arabic corpus.
-     * @param fileName the full pathname for the config file
-     */
-    private void createGalagoConfFile(String fileName) {
-        try {
-            JSONObject outputQueries = new JSONObject();
-            outputQueries.put("fileType", "trectext");
-            String trecFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1-uuid.trectext";
-            outputQueries.put("inputPath", trecFile );
-            outputQueries.put("indexPath", Pathnames.targetIndexLocation);
-            outputQueries.put("mode", "local" );
-            outputQueries.put("fieldIndex", true);
-            outputQueries.put("tmpdir", Pathnames.tempFileLocation );
-            JSONArray stemmerList = new JSONArray();
-            stemmerList.add("krovetz");
-            stemmerList.add("snowball");
-            outputQueries.put("stemmer", stemmerList);
-            JSONObject stemmerClass = new JSONObject();
-            stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            outputQueries.put("stemmerClass", stemmerClass );
-            JSONObject tokenizer = new JSONObject();
-            JSONArray fields = new JSONArray();
-            fields.add("exid");
-            tokenizer.put("fields", fields);
-            JSONObject formats = new JSONObject();
-            formats.put("exid", "string");
-            tokenizer.put("formats", formats);
-            outputQueries.put("tokenizer", tokenizer);
-            outputQueries.put("galagoJobDir", Pathnames.galagoJobDirLocation);
-            outputQueries.put("deleteJobDir", true);
-            outputQueries.put("mem", "40g");
-
-            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                    new FileOutputStream(fileName)));
-            writer.write(outputQueries.toJSONString());
-            writer.close();
-        } catch (Exception cause) {
-            throw new TasksRunnerException(cause);
-        }
-    }
-
-    /**
-     * Pre-processes the Arabic corpus file. Must be done before calling buildIndex().
-     */
-    private void preprocess() {
-        String arabicCorpusFile = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
-        String tempFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1.jl.out";
-        String trecFile = Pathnames.tempFileLocation + "BETTER-Arabic-IR-data.v1-uuid.trectext";
-        logger.info("Preprocessing the Arabic corpus at " + arabicCorpusFile);
-        logger.info("Output is going to " + trecFile);
-
-        /* Convert the BETTER corpus file into a format we can use. */
-        betterToTrec(arabicCorpusFile, tempFile);
-        /* Add the EXID field, to store the unique ID (docid) for each document. */
-        addExid(tempFile, trecFile);
-    }
-
-    /**
      * Public entry point for this class.
      */
     public static void main (String[] args) {
         TasksRunner betterIR = new TasksRunner();
         betterIR.setupLogging();
-        if (Pathnames.runIndexBuild) {
-            Preprocessor preprocessor = new Preprocessor();
-            preprocessor.preprocess();
-            preprocessor.buildIndex();
+        if (Pathnames.runEnglishIndexBuild) {
+            Index index = new Index("english");
+            index.preprocess();
+            index.buildIndex();
+        } else if (Pathnames.runIndexBuild) {
+            Index index = new Index("target");
+            index.preprocess();
+            index.buildIndex();
         } else {
             betterIR.process();
         }

@@ -14,12 +14,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class Preprocessor {
+public class Index {
     private static final Logger logger = Logger.getLogger("TasksRunner");
-    private String targetCorpusFile = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
+    private String corpusFile = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
     private String tempFile = Pathnames.tempFileLocation + Pathnames.targetCorpusFileName + ".jl.out";
     private String trecFile = Pathnames.tempFileLocation + Pathnames.targetCorpusFileName + ".trectext";
     private String confFile = Pathnames.indexLocation + Pathnames.targetCorpusFileName + ".conf";
+    private String indexPath = Pathnames.targetIndexLocation;
+    private String type;
+
+    public Index(String indexType) {
+        type = indexType;   // either "target" or "english"
+    }
 
     public void farsiToTrec (String inputFile, String outputFile) {
         try {
@@ -136,12 +142,12 @@ public class Preprocessor {
      * Builds a Galago index for the target corpus.
      */
     void buildIndex() {
-        logger.info("Building an index for the target corpus");
+        logger.info("Building an index");
         logger.info("Creating Galago config file " + confFile);
         createGalagoConfFile(confFile);
         Instant start = Instant.now();
 
-        String galagoLogFile = Pathnames.logFileLocation + "galago_target_indexbuild.log";
+        String galagoLogFile = Pathnames.logFileLocation + "galago_" + type + "_indexbuild.log";
         String tempCommand = Pathnames.galagoLocation + "galago build " + confFile + " >& " + galagoLogFile;
 
         logger.info("Executing this command: " + tempCommand);
@@ -185,7 +191,6 @@ public class Preprocessor {
 
     /**
      * Creates a Galago config file specifying the parameters for building the index
-     * for the Arabic corpus.
      * @param fileName the full pathname for the config file
      */
     private void createGalagoConfFile(String fileName) {
@@ -193,21 +198,27 @@ public class Preprocessor {
             JSONObject outputQueries = new JSONObject();
             outputQueries.put("fileType", "trectext");
             outputQueries.put("inputPath", trecFile );
-            outputQueries.put("indexPath", Pathnames.targetIndexLocation);
+            outputQueries.put("indexPath", indexPath);
             outputQueries.put("mode", "local" );
             outputQueries.put("fieldIndex", true);
             outputQueries.put("tmpdir", Pathnames.tempFileLocation );
             JSONArray stemmerList = new JSONArray();
             JSONObject stemmerClass = new JSONObject();
-            if (Pathnames.targetLanguage.equals("ARABIC")) {
+            if (type.equals("target")) {
+                if (Pathnames.targetLanguage.equals("ARABIC")) {
+                    stemmerList.add("krovetz");
+                    stemmerList.add("snowball");
+                    stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+                    stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
+                } else if (Pathnames.targetLanguage.equals("ENGLISH")) {
+                    stemmerList.add("krovetz");
+                    stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+                } else if (Pathnames.targetLanguage.equals("FARSI")) {
+                }
+            } else {
+                /* English training corpus */
                 stemmerList.add("krovetz");
-                stemmerList.add("snowball");
                 stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-                stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            } else if (Pathnames.targetLanguage.equals("ENGLISH")) {
-                stemmerList.add("krovetz");
-                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            } else if (Pathnames.targetLanguage.equals("FARSI")) {
             }
             outputQueries.put("stemmer", stemmerList);
             outputQueries.put("stemmerClass", stemmerClass );
@@ -236,17 +247,41 @@ public class Preprocessor {
      * Pre-processes the target corpus file. Must be done before calling buildIndex().
      */
     void preprocess() {
-        logger.info("Preprocessing the target corpus at " + targetCorpusFile);
-        logger.info("Output is going to " + trecFile);
+        if (type.equals("target")) {
+            corpusFile = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
+            tempFile = Pathnames.tempFileLocation + "target.jl.out";
+            trecFile = Pathnames.tempFileLocation + "target.trectext";
+            confFile = Pathnames.indexLocation + "target.conf";
+            indexPath = Pathnames.targetIndexLocation;
 
-        /* Convert the target corpus file into a format we can use. */
-        if (Pathnames.corpusFileFormat.equals("BETTER")) {
-            betterToTrec(targetCorpusFile, tempFile);
-        } else if (Pathnames.corpusFileFormat.equals("FARSI")) {
-            farsiToTrec(targetCorpusFile, tempFile);
+            logger.info("Preprocessing the target corpus at " + corpusFile);
+            logger.info("Output is going to " + trecFile);
+
+            /* Convert the target corpus file into a format we can use. */
+            if (Pathnames.corpusFileFormat.equals("BETTER")) {
+                betterToTrec(corpusFile, tempFile);
+            } else if (Pathnames.corpusFileFormat.equals("FARSI")) {
+                farsiToTrec(corpusFile, tempFile);
+            }
+            /* Add the EXID field, to store the unique ID (docid) for each document. */
+            addExid(tempFile, trecFile);
+        } else if (type.equals("english")) {
+            corpusFile = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
+            tempFile = Pathnames.tempFileLocation + "english.jl.out";
+            trecFile = Pathnames.tempFileLocation + "english.trectext";
+            confFile = Pathnames.indexLocation + "english.conf";
+            indexPath = Pathnames.englishIndexLocation;
+
+            logger.info("Preprocessing the English corpus at " + corpusFile);
+            logger.info("Output is going to " + trecFile);
+
+            /* Convert the English corpus file into a format we can use. */
+            betterToTrec(corpusFile, tempFile);
+            /* Add the EXID field, to store the unique ID (docid) for each document. */
+            addExid(tempFile, trecFile);
+        } else {
+            throw new TasksRunnerException("Invalid index type:" + type);
         }
-        /* Add the EXID field, to store the unique ID (docid) for each document. */
-        addExid(tempFile, trecFile);
     }
 
 }

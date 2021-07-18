@@ -22,6 +22,8 @@ public class Pathnames {
 
     public static boolean doTaskLevelEvaluation = true;
     public static boolean doRequestLevelEvaluation = true;
+    public static boolean runEnglishPreprocess = false;
+    public static boolean runEnglishIndexBuild = false;
     public static boolean runPreprocess = false;
     public static boolean runIndexBuild = false;
     public static boolean runIRPhase1 = false;
@@ -43,10 +45,11 @@ public class Pathnames {
     public static String logFileLocation = scratchFileLocation + "logfiles/";
     public static String indexLocation = scratchFileLocation + "indexes/";
     public static String englishIndexName = "BETTER-DryRun-v3";
-    public static String englishIndexLocation = indexLocation + "BETTER-DryRun-v3";
+    public static String englishIndexLocation = indexLocation + englishIndexName;
     public static String targetIndexName = "BETTER-DryRun-v3";
     public static String targetIndexLocation = indexLocation + targetIndexName;
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
+    public static String galagoBaseLocation = scratchFileLocation + "galago";
     public static String programFileLocation = scratchFileLocation + "programfiles/";
     public static String eventExtractorFileLocation = scratchFileLocation + "eventextractorfiles/";
     public static String translationTableLocation = programFileLocation + "translation_tables/";
@@ -167,6 +170,8 @@ public class Pathnames {
     }
 
     static {
+        runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
+        runEnglishIndexBuild = (getFromEnv("runEnglishIndexBuild", "false").equals("true"));
         runPreprocess = (getFromEnv("runPreprocess", "false").equals("true"));
         runIndexBuild = (getFromEnv("runIndexBuild", "false").equals("true"));
         runIRPhase1 = (getFromEnv("runIRPhase1", "false").equals("true"));
@@ -217,6 +222,7 @@ public class Pathnames {
 
         galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
                 scratchFileLocation + "galago/bin/"));
+        galagoBaseLocation = galagoLocation.replace("/bin/","");
         programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
                 scratchFileLocation + "programfiles/"));
         eventExtractorFileLocation = ensureTrailingSlash(getFromEnv("eventExtractorFileLocation",

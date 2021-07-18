@@ -176,7 +176,17 @@ public class EventExtractor {
         return tot_chars;
     }
 
-    public void writeInputFileRerankerFormat(Map<String,SimpleHit> entries, String outputFileName, String query)  {
+    /**
+     * Writes out a file for each request, in the same format that batch-search-with-reranker uses to
+     * call a reranker
+     * @param entries the hits
+     * @param outputFileName the output file path
+     * @param query the text of the query
+     * @param queryNumber the request number
+     * @param sysName a name for Galago to use as "system name" in its output run files
+     */
+    public void writeInputFileRerankerFormat(Map<String,SimpleHit> entries, String outputFileName, String query,
+                                             String queryNumber, String sysName)  {
         try {
             JSONObject outermostEntry = new JSONObject();
             JSONObject resultsEntry = new JSONObject();
@@ -194,7 +204,8 @@ public class EventExtractor {
             }
             outermostEntry.put("results", docEntries);
             outermostEntry.put("query", query);
-
+            outermostEntry.put("queryNumber", queryNumber);
+            outermostEntry.put("sysName", sysName);
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
                     new FileOutputStream(outputFileName)));
             writer.write(outermostEntry.toJSONString());
@@ -439,7 +450,7 @@ public class EventExtractor {
                 }
                 if (simpleEntries.size() > 0) {
                     String fileName = constructRequestLevelRerankerFileName(r);
-                    writeInputFileRerankerFormat(simpleEntries, fileName, query);
+                    writeInputFileRerankerFormat(simpleEntries, fileName, query, r.reqNum, "CLEAR");
                 }
             }
         }
