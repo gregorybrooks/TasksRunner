@@ -36,6 +36,7 @@ public class Pathnames {
     public static String appFileLocation = "/mnt/scratch/BETTER_DRY_RUN/app/";
     public static String requestLevelQueryFormulatorDockerImage = "";
     public static String taskLevelQueryFormulatorDockerImage = "";
+    public static String neuralQueryProcessorDockerImage = "";
 
     public static String tempFileLocation = scratchFileLocation + "tmp/";
     public static String runFileLocation = scratchFileLocation + "runfiles/";
@@ -63,7 +64,7 @@ public class Pathnames {
     public static String qrelFileName = "req-qrels";
     public static String isTargetEnglish = "true";
     public static boolean targetLanguageIsEnglish = true;
-    public static String targetLanguage = "ENGLISH";
+    public static Language targetLanguage = Language.ENGLISH;
     public static String supplementalFileName = "supplemental_info.json";
     public static boolean readQrelFile = true;
     public static boolean expandQrelDocuments = true;
@@ -71,6 +72,7 @@ public class Pathnames {
     public static String corpusFileFormat = "BETTER";
     public static String analyticTasksFileFormat = "BETTER";
     public static boolean sudoNeeded = true;
+    public static String gpuDevice = "";
 
 // english training as english and arabic
 /*
@@ -142,7 +144,14 @@ public class Pathnames {
 
     public enum ProcessingModel {
         TWO_STEP,
-        ONE_STEP
+        ONE_STEP,
+        NEURAL
+    }
+
+    public enum Language {
+        ENGLISH,
+        ARABIC,
+        FARSI
     }
 
     private static String getFromEnv(String key, String default_value) {
@@ -193,12 +202,21 @@ public class Pathnames {
         logFileLocation = ensureTrailingSlash(getFromEnv("logFileLocation",
                 scratchFileLocation + "logfiles/"));
         requestLevelQueryFormulatorDockerImage = getFromEnv("requestLevelQueryFormulatorDockerImage",
-                "MISSING ENV VAR: requestLevelQueryFormulatorDockerImage", Required.REQUIRED);
-        checkDockerImage(requestLevelQueryFormulatorDockerImage);
+                "MISSING ENV VAR: requestLevelQueryFormulatorDockerImage");
+        if (processingModel == ProcessingModel.ONE_STEP || processingModel == ProcessingModel.TWO_STEP) {
+            checkDockerImage(requestLevelQueryFormulatorDockerImage);
+        }
+
         taskLevelQueryFormulatorDockerImage = getFromEnv("taskLevelQueryFormulatorDockerImage",
                 "MISSING ENV VAR: taskLevelQueryFormulatorDockerImage");
         if (processingModel == ProcessingModel.TWO_STEP) {
             checkDockerImage(taskLevelQueryFormulatorDockerImage);
+        }
+
+        neuralQueryProcessorDockerImage = getFromEnv("neuralQueryProcessorDockerImage",
+                "MISSING ENV VAR: neuralQueryProcessorDockerImage");
+        if (processingModel == ProcessingModel.NEURAL) {
+            checkDockerImage(neuralQueryProcessorDockerImage);
         }
 
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
@@ -259,8 +277,9 @@ public class Pathnames {
         doTaskLevelEvaluation = (getFromEnv("doTaskLevelEvaluation", "true").equals("true"));
         isTargetEnglish = getFromEnv("isTargetEnglish", isTargetEnglish);
         targetLanguageIsEnglish = (isTargetEnglish.equals("true"));
-        targetLanguage = getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
-                Required.REQUIRED);
+        targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
+                Required.REQUIRED));
         sudoNeeded = (getFromEnv("sudoNeeded", "true").equals("true"));
+        gpuDevice = getFromEnv("gpuDevice", "");
     }
 }

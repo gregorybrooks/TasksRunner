@@ -168,6 +168,7 @@ public class TasksRunner {
         qf.execute(1000);
         if (Pathnames.doRequestLevelEvaluation) {
             Map<String, Double> rstats = qf.evaluate("RAW");
+            logger.info(newQueryFormulationName + " TOTAL nDCG: " + String.format("%.4f", rstats.get("TOTAL")));
         }
         /* Extract events from the request-level hits, to use when re-ranking the request-level results */
         // To save time, temporarily skipping this:
@@ -176,6 +177,14 @@ public class TasksRunner {
 
         // Create the input file for my Galago reranker project:
         // eventExtractor.createInputForRerankerFromRequestHits(qf);
+    }
+
+
+    private void neuralProcessingModel() {
+        logger.info("PHASE 2: NEURAL PROCESSING MODE: Building and executing queries");
+        NeuralQueryProcessorDocker docker = new NeuralQueryProcessorDocker(tasks);
+        docker.callDockerImage();
+
     }
 
     private void oneStepProcessingModel() {
@@ -258,10 +267,11 @@ public class TasksRunner {
                 twoStepProcessingModel();
             } else if (Pathnames.processingModel == Pathnames.ProcessingModel.ONE_STEP) {
                 oneStepProcessingModel();
+            } else if (Pathnames.processingModel == Pathnames.ProcessingModel.NEURAL) {
+                neuralProcessingModel();
             } else {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
-
 
             // [Run the ISI QF event extractor here]
     

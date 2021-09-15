@@ -495,7 +495,7 @@ public class QueryManager {
         }
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago.log";
         String arabicParm = "";
-        if (Pathnames.targetLanguage.equals("ARABIC")) {
+        if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
             arabicParm = "--defaultTextPart=postings.snowball ";
         }
         String tempCommand = Pathnames.galagoLocation + command
@@ -564,7 +564,7 @@ public class QueryManager {
             command = "galago batch-search";
         }
         String arabicPart = "";
-        if (Pathnames.targetLanguage.equals("ARABIC")) {
+        if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_executeAgainstPartial.log";
@@ -716,15 +716,15 @@ public class QueryManager {
 
             JSONArray stemmerList = new JSONArray();
             JSONObject stemmerClass = new JSONObject();
-            if (Pathnames.targetLanguage.equals("ARABIC")) {
+            if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
                 stemmerList.add("krovetz");
                 stemmerList.add("snowball");
                 stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
                 stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            } else if (Pathnames.targetLanguage.equals("ENGLISH")) {
+            } else if (Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
                 stemmerList.add("krovetz");
                 stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            } else if (Pathnames.targetLanguage.equals("FARSI")) {
+            } else if (Pathnames.targetLanguage == Pathnames.Language.FARSI) {
             }
             outputQueries.put("stemmer", stemmerList);
             outputQueries.put("stemmerClass", stemmerClass );

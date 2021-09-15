@@ -8,16 +8,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class QueryFormulatorDocker extends QueryFormulator {
+public class NeuralQueryProcessorDocker  {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
+    protected AnalyticTasks tasks;
+    protected String mode;
 
-    QueryFormulatorDocker(AnalyticTasks tasks) {
-        super(tasks);
+    NeuralQueryProcessorDocker(AnalyticTasks tasks) {
+        this.tasks = tasks;
+        this.mode = tasks.getMode();
     }
 
-    private void callDockerImage(String queryFileNameKey, String outLang, String phase, String dockerImageName) {
+    public void callDockerImage() {
         try {
+            String dockerImageName = Pathnames.neuralQueryProcessorDockerImage;
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
@@ -25,40 +29,25 @@ public class QueryFormulatorDocker extends QueryFormulator {
             String command = sudo + " docker run --rm"
                     + gpu_parm
                     + " --env MODE=" + mode
-                    + " --env OUT_LANG=" + outLang
-                    + " --env PHASE=" + phase
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
-                    + " --env QUERYFILE=" + queryFileNameKey
                     /* For each directory that we want to share between this parent docker container (TasksRunner)
                      and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
                      in an environment variable, and we make that path a bind-volume so the child container
                      can actually access it.
                      */
-/*
-                    + " --env eventExtractorFileLocation=$eventExtractorFileLocation"
-                    + " --env queryFileLocation=$queryFileLocation"
-                    + " -v $eventExtractorFileLocation:$eventExtractorFileLocation"
-                    + " -v $queryFileLocation:$queryFileLocation"
-*/
                     + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
-                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
                     + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
                     + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
-                    + " --env galagoLocation=" + Pathnames.galagoLocation
-                    // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
-                    + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                    + " --env englishIndexLocation=" + Pathnames.englishIndexLocation + "/"
-                    + " -v " + Pathnames.englishIndexLocation + ":" + Pathnames.englishIndexLocation
-                    + " --env targetIndexLocation=" + Pathnames.targetIndexLocation + "/"
-                    + " -v " + Pathnames.targetIndexLocation + ":" + Pathnames.targetIndexLocation
-                    + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
-                    + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
+                    + " --env corpusFileLocation=" + Pathnames.corpusFileLocation + "/"
+                    + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
+                    + " --env targetCorpusFileName=" + Pathnames.targetCorpusFileName
+                    + " --env runFileLocation=" + Pathnames.runFileLocation + "/"
+                    + " -v " + Pathnames.runFileLocation + ":" + Pathnames.runFileLocation
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/docker-program.out";
+            String logFile = Pathnames.logFileLocation + mode + "/neural-docker-program.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);
@@ -97,27 +86,5 @@ public class QueryFormulatorDocker extends QueryFormulator {
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
-    }
-
-    /**
-     * Constructs the queries from the Tasks, writes the Galago-ready query file
-     *
-     **/
-    public void buildQueries(String phase, String queryFileNameKey) {
-        String language = Pathnames.targetLanguage.toString();
-//        if (Pathnames.targetLanguageIsEnglish) {
-//            language = "en";
-//        } else {
-//            language = "ar";
-//        }
-
-        String dockerImageName;
-        if (phase.equals("Request")) {
-            dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
-        } else {
-            dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
-        }
-
-        callDockerImage(queryFileNameKey, language, phase, dockerImageName);
     }
 }
