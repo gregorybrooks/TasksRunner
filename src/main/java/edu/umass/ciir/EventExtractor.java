@@ -6,12 +6,15 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Functions to interact with ISI's basic event extractor.
@@ -267,7 +270,7 @@ public class EventExtractor {
     /**
      * Number of hits to have full event details.
      */
-    private final int TASK_HITS_DETAILED = 100;
+    private final int TASK_HITS_DETAILED = 1000;
 
     /**
      * Creates an input file to give to the event extractor, of the top hits for each task.
@@ -376,7 +379,7 @@ public class EventExtractor {
     /**
      * Number of hits to have full event details.
      */
-    private final int REQUEST_HITS_DETAILED = 100;
+    private final int REQUEST_HITS_DETAILED = 1000;
 
     /**
      * Creates an input file to give to the event extractor, of the top hits for each request.
@@ -508,6 +511,157 @@ public class EventExtractor {
                 m.put("TaskExampleDoc" + "--" + t.taskNum + "--" + d.getDocid(), hit);
                 m.put("RequestExampleDoc" + "--" + r.reqNum + "--" + d.getDocid(), hit);
             }
+        }
+    }
+
+    public void annotateExampleDocEvents() {
+        try {
+            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_example_docs.log";
+            String tempCommand = "cd /home/tasksrunner/scripts && "
+                    + " sudo"
+                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                    + " APP_DIR=" + Pathnames.appFileLocation
+                    + " MODE=" + Pathnames.mode
+                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                    + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                    + " ./annotate_example_docs.sh"
+                    + " >& " + logFile;
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                ;
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing annotate_example_docs execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("annotate_example_docs output:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_example_docs, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from annotate_example_docs, exit value is: " + exitVal);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void annotateRequestDocEvents() {
+        try {
+            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_request_docs.log";
+            String tempCommand = "cd /home/tasksrunner/scripts && "
+                    + " sudo"
+                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                    + " MODE=" + Pathnames.mode
+                    + " APP_DIR=" + Pathnames.appFileLocation
+                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                    + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                    + " ./annotate_request_docs.sh"
+                    + " >& " + logFile;
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                ;
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing annotate_request_docs execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("annotate_request_docs output:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_request_docs, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from annotate_request_docs, exit value is: " + exitVal);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void preTrainEventAnnotator() {
+        try {
+            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/pretrain.log";
+            String tempCommand = "cd /home/tasksrunner/scripts && "
+                    + " sudo"
+                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                    + " APP_DIR=" + Pathnames.appFileLocation
+                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                    + " ./pretrain.sh"
+                    + " >& " + logFile;
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                ;
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing pretrain execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("pretrain output log:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from pretrainer, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from pretrainer, exit value is: " + exitVal);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
         }
     }
 

@@ -24,6 +24,7 @@ public class Pathnames {
     public static boolean doRequestLevelEvaluation = true;
     public static boolean runEnglishPreprocess = false;
     public static boolean runEnglishIndexBuild = false;
+    public static boolean runPreTrain = false;
     public static boolean runPreprocess = false;
     public static boolean runIndexBuild = false;
     public static boolean runIRPhase1 = false;
@@ -73,6 +74,9 @@ public class Pathnames {
     public static String analyticTasksFileFormat = "BETTER";
     public static boolean sudoNeeded = true;
     public static String gpuDevice = "";
+    public static String MODELS_BASE_DIR_ENGLISH = "";
+    public static String MODELS_BASE_DIR_FARSI = "";
+    public static String MODELS_BASE_DIR = "";
 
 // english training as english and arabic
 /*
@@ -181,6 +185,7 @@ public class Pathnames {
     static {
         runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
         runEnglishIndexBuild = (getFromEnv("runEnglishIndexBuild", "false").equals("true"));
+        runPreTrain = (getFromEnv("runPreTrain", "false").equals("true"));
         runPreprocess = (getFromEnv("runPreprocess", "false").equals("true"));
         runIndexBuild = (getFromEnv("runIndexBuild", "false").equals("true"));
         runIRPhase1 = (getFromEnv("runIRPhase1", "false").equals("true"));
@@ -281,5 +286,10 @@ public class Pathnames {
                 Required.REQUIRED));
         sudoNeeded = (getFromEnv("sudoNeeded", "true").equals("true"));
         gpuDevice = getFromEnv("gpuDevice", "");
+        MODELS_BASE_DIR = getFromEnv("MODELS_BASE_DIR", MODELS_BASE_DIR);
+        MODELS_BASE_DIR_ENGLISH = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_ENGLISH);
+        MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_FARSI);
+        targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
+                Required.REQUIRED));
     }
 }

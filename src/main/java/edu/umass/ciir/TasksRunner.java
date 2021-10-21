@@ -101,11 +101,21 @@ public class TasksRunner {
         QueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
 //        requestQueryFormulator.buildQueries(phase, qf.getQueryFileNameOnly());
         String key = qf.getKey();
+        logger.info("Key is " + key + ", query directory is " + Pathnames.queryFileLocation);
         requestQueryFormulator.buildQueries(phase, key);
 
         String queryFileDirectory = Pathnames.queryFileLocation;
 
-        DirectoryStream.Filter<Path> filter = file -> ((file.toString().startsWith(queryFileDirectory + key))
+        // DEBUG:
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
+                Paths.get(Pathnames.queryFileLocation))) {
+            dirStream.forEach(path -> System.out.println(path)
+            );
+        } catch (IOException cause) {
+            throw new TasksRunnerException(cause);
+        }
+
+        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(queryFileDirectory + key)
                 && (!file.toString().startsWith(queryFileDirectory + key + ".TASK."))
                 && (!file.toString().contains(".PRETTY."))
                 && (!file.toString().contains(".NON_TRANSLATED.")));
@@ -148,11 +158,11 @@ public class TasksRunner {
 
         /* Extract events from the request-level hits, to use when re-ranking the request-level results */
         logger.info("Extracting events from the top request-level hits");
-        // To save time, temporarily skipping this:
-        // eventExtractor.createInputForEventExtractorFromRequestHits(qf);
+
+        eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
         // Create the input file for my Galago reranker project:
-        eventExtractor.createInputForRerankerFromRequestHits(qf);
+        //eventExtractor.createInputForRerankerFromRequestHits(qf);
     }
 
     private void oneStepExecuteOne(Path path, String key, String queryFileDirectory, String requestLevelFormulator) {
@@ -173,7 +183,7 @@ public class TasksRunner {
         /* Extract events from the request-level hits, to use when re-ranking the request-level results */
         // To save time, temporarily skipping this:
         // logger.info("Extracting events from the top request-level hits");
-        // eventExtractor.createInputForEventExtractorFromRequestHits(qf);
+        eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
         // Create the input file for my Galago reranker project:
         // eventExtractor.createInputForRerankerFromRequestHits(qf);
@@ -218,6 +228,12 @@ public class TasksRunner {
      * executes the queries, annotates hits with events.
      */
     void process() {
+
+        if (!Pathnames.runPreTrain && !Pathnames.runIRPhase1 && !Pathnames.runIRPhase2 && !Pathnames.runIRPhase3) {
+            System.out.println("Skipping all phases");
+            return;  // EARLY EXIT FROM FUNCTION
+        }
+
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks();
 
@@ -239,24 +255,27 @@ public class TasksRunner {
 
         eventExtractor = new EventExtractor(tasks, mode);
 
-        boolean runPhase1 = Pathnames.runIRPhase1;
-        boolean runPhase2 = Pathnames.runIRPhase2;
-        boolean runPhase3 = Pathnames.runIRPhase3;
+        if (!Pathnames.runPreTrain) {
+            System.out.println("Skipping event annotator pre-training");
+        } else {
+            logger.info("PRE-TRAINING: Pre-training the event annotator");
+            eventExtractor.preTrainEventAnnotator();
+            logger.info("PRE-TRAINING COMPLETE");
+        }
 
-        if (!runPhase1) {
+        if (!Pathnames.runIRPhase1) {
             System.out.println("Skipping phase 1");
         } else {
-            logger.info("PHASE 1: Preparing a file of the example docs for the event extractor");
+            logger.info("PHASE 1: Preparing a file of the example docs for the event annotator");
             eventExtractor.extractExampleEventsPart1();
+            eventExtractor.annotateExampleDocEvents();
             logger.info("PHASE 1 COMPLETE");
     	}
 
-        // Extract events from sample docs here...
-
-        if (!runPhase2) {
+        if (!Pathnames.runIRPhase2) {
             System.out.println("Skipping phase 2");
         } else {
-            logger.info("PHASE 2: Retrieving the file of example doc events created by the event extractor");
+            logger.info("PHASE 2: Retrieving the file of example doc events created by the event annotator");
             eventExtractor.extractExampleEventsPart2();
 
             /* write the analytic tasks info file, with event info, for multipartite
@@ -273,12 +292,12 @@ public class TasksRunner {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
 
-            // [Run the ISI QF event extractor here]
-    
+            eventExtractor.annotateRequestDocEvents();
+
             logger.info("PHASE 2 COMPLETE");
         } 
 
-	    if (!runPhase3) {
+	    if (!Pathnames.runIRPhase3) {
 	        System.out.println("Skipping phase 3");
 	    } else {
 	        phase = "Request";
@@ -320,16 +339,17 @@ public class TasksRunner {
     public static void main (String[] args) {
         TasksRunner betterIR = new TasksRunner();
         betterIR.setupLogging();
+
         if (Pathnames.runEnglishIndexBuild) {
             Index index = new Index("english");
             index.preprocess();
             index.buildIndex();
-        } else if (Pathnames.runIndexBuild) {
+        }
+        if (Pathnames.runIndexBuild) {
             Index index = new Index("target");
             index.preprocess();
             index.buildIndex();
-        } else {
-            betterIR.process();
         }
+        betterIR.process();
     }
 }
