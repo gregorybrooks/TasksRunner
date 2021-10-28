@@ -1,0 +1,9 @@
+.git
+.idea
+pom.xml
+projectorIntelliJ.out
+run_docker*
+run_jar*
+run_settings*
+src
+README.md

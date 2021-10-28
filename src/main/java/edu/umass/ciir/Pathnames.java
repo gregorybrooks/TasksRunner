@@ -20,6 +20,10 @@ public class Pathnames {
 
     private static Map<String, String> env = System.getenv();
 
+    public static boolean useTaskSetFile = false;
+    public static int RESULTS_CAP = 1000;
+    public static boolean includeEventsInFinalResults = true;
+    public static boolean checkForSudo = true;
     public static boolean doTaskLevelEvaluation = true;
     public static boolean doRequestLevelEvaluation = true;
     public static boolean runEnglishPreprocess = false;
@@ -30,6 +34,7 @@ public class Pathnames {
     public static boolean runIRPhase1 = false;
     public static boolean runIRPhase2 = true;
     public static boolean runIRPhase3 = false;
+    public static boolean runIEPhase = false;
     public static ProcessingModel processingModel = ProcessingModel.TWO_STEP;
 
     public static String scratchFileLocation = "/mnt/scratch/BETTER_DRY_RUN/scratch/clear_ir/";
@@ -38,6 +43,7 @@ public class Pathnames {
     public static String requestLevelQueryFormulatorDockerImage = "";
     public static String taskLevelQueryFormulatorDockerImage = "";
     public static String neuralQueryProcessorDockerImage = "";
+    public static String rerankerDockerImage = "";
 
     public static String tempFileLocation = scratchFileLocation + "tmp/";
     public static String runFileLocation = scratchFileLocation + "runfiles/";
@@ -52,7 +58,7 @@ public class Pathnames {
     public static String targetIndexLocation = indexLocation + targetIndexName;
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
     public static String galagoBaseLocation = scratchFileLocation + "galago";
-    public static String programFileLocation = scratchFileLocation + "programfiles/";
+    public static String programFileLocation = "/home/tasksrunner/programfiles/";
     public static String eventExtractorFileLocation = scratchFileLocation + "eventextractorfiles/";
     public static String translationTableLocation = programFileLocation + "translation_tables/";
     public static String taskCorpusFileLocation = scratchFileLocation + "taskcorpusfiles/";
@@ -183,6 +189,11 @@ public class Pathnames {
     }
 
     static {
+
+        RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
+        includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
+        useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
+        checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
         runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
         runEnglishIndexBuild = (getFromEnv("runEnglishIndexBuild", "false").equals("true"));
         runPreTrain = (getFromEnv("runPreTrain", "false").equals("true"));
@@ -191,6 +202,7 @@ public class Pathnames {
         runIRPhase1 = (getFromEnv("runIRPhase1", "false").equals("true"));
         runIRPhase2 = (getFromEnv("runIRPhase2", "true").equals("true"));
         runIRPhase3 = (getFromEnv("runIRPhase3", "false").equals("true"));
+        runIEPhase = (getFromEnv("runIEPhase", "false").equals("true"));
 
         processingModel = ProcessingModel.valueOf((getFromEnv("processingModel",
                 "TWO_STEP")));
@@ -224,6 +236,12 @@ public class Pathnames {
             checkDockerImage(neuralQueryProcessorDockerImage);
         }
 
+        rerankerDockerImage = getFromEnv("rerankerDockerImage",
+                "MISSING ENV VAR: rerankerDockerImage");
+        if (!(processingModel == ProcessingModel.NEURAL)) {
+            checkDockerImage(rerankerDockerImage);
+        }
+
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
                 scratchFileLocation + "queryfiles/"));
         runFileLocation = ensureTrailingSlash(getFromEnv("runFileLocation",
@@ -244,10 +262,10 @@ public class Pathnames {
                 indexLocation + englishIndexName);
 
         galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
-                scratchFileLocation + "galago/bin/"));
+                "/home/tasksrunner/galago/bin/"));
         galagoBaseLocation = galagoLocation.replace("/bin/","");
         programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
-                scratchFileLocation + "programfiles/"));
+                "/home/tasksrunner/programfiles/"));
         eventExtractorFileLocation = ensureTrailingSlash(getFromEnv("eventExtractorFileLocation",
                 scratchFileLocation + "eventextractorfiles/"));
         translationTableLocation = ensureTrailingSlash(getFromEnv("translationTableLocation",
@@ -268,12 +286,10 @@ public class Pathnames {
         tasksFileNameHITL = getFromEnv("tasksFileNameHITL",
                 "MISSING ENV VAR: tasksFileNameHITL", Required.REQUIRED);
         supplementalFileName = getFromEnv("supplementalFileName", "supplemental_info.json");
-        qrelFileName = getFromEnv("qrelFileName",
-                "MISSING ENV VAR: qrelFileName", Required.REQUIRED);
+        qrelFileName = getFromEnv("qrelFileName","");
         readQrelFile = (getFromEnv("readQrelFile", "true").equals("true"));
         expandQrelDocuments = (getFromEnv("expandQrelDocuments", "true").equals("true"));
-        mode = getFromEnv("mode", "MISSING ENV VAR: mode (must be AUTO, AUTO-HITL, or HITL)",
-                Required.REQUIRED);
+        mode = getFromEnv("mode", "AUTO");
         corpusFileFormat = getFromEnv("corpusFileFormat", "MISSING ENV VAR: corpusFileFormat",
                 Required.REQUIRED);
         analyticTasksFileFormat = getFromEnv("analyticTasksFileFormat",

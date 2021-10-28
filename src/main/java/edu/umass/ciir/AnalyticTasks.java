@@ -2,6 +2,8 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.JsonObject;
+import org.json.simple.Jsonable;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
@@ -132,13 +134,29 @@ public class AnalyticTasks {
             logger.info("Opening task definition file " + tasksAndRequestsFile);
 
             /* Get task and request definitions */
-            if (Pathnames.analyticTasksFileFormat.equals("BETTER")) {
-                readTaskFile();
-            } else if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
-                readTaskFileFarsi();
-            } else {
+            if (!Pathnames.analyticTasksFileFormat.equals("BETTER")
+                    && !Pathnames.analyticTasksFileFormat.equals("FARSI")) {
                 throw new TasksRunnerException("Invalid analytic tasks file format: "
                         + Pathnames.analyticTasksFileFormat + ". Must be BETTER or FARSI");
+            }
+            try {
+                if (Pathnames.analyticTasksFileFormat.equals("BETTER")) {
+                    readTaskFile();
+                } else if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
+                    readTaskFileFarsi();
+                }
+            } catch (Exception e) {
+                System.out.println("ERROR: Problem reading tasks file " + tasksAndRequestsFile
+                        + ". Check your tasksFileNameXXX setting (one for each mode): ");
+                System.out.println("You are running in " + mode + " mode.");
+                if (mode.equals("AUTO")) {
+                    System.out.println("tasksFileNameAUTO = " + Pathnames.tasksFileNameAUTO);
+                } else if (mode.equals("AUTO-HITL")) {
+                    System.out.println("tasksFileNameAUTOHITL = " + Pathnames.tasksFileNameAUTOHITL);
+                } else if (mode.equals("HITL")) {
+                    System.out.println("tasksFileNameHITL = " + Pathnames.tasksFileNameHITL);
+                }
+                throw e;
             }
 
             if (!sparse) {
@@ -338,11 +356,10 @@ public class AnalyticTasks {
      */
     private void readQRELFile() throws IOException {
         File f = new File(qrelFile);
-//        System.out.println("Will try to read qrel file " + qrelFile);
         if (f.exists()) {
+            logger.info("Opening qrel file " + qrelFile);
             BufferedReader qrelReader = new BufferedReader(new InputStreamReader(
                     new FileInputStream(qrelFile)));
-//            System.out.println("Reading qrel file " + qrelFile);
             String line = qrelReader.readLine();
             while (line != null) {
                 String[] tokens = line.split(" ");
@@ -355,6 +372,8 @@ public class AnalyticTasks {
                 line = qrelReader.readLine();
             }
             qrelReader.close();
+        } else {
+            logger.info("Qrel file " + qrelFile + " not found");
         }
     }
 
@@ -721,6 +740,7 @@ public class AnalyticTasks {
             tasks.put(t.taskNum, t);
         }
     }
+
 
     private void readSupplementalFile() {
         try {

@@ -1,0 +1,9 @@
+#!/bin/bash
+set -ve
+
+# Extract events from the provided test_data.bp.json file (target language documents)
+echo `date`
+
+MODELS_BASE_DIR=${MODELS_BASE_DIR_FARSI} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-B-1 ./run.sh
+
+echo `date`

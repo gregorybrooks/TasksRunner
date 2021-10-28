@@ -3,6 +3,7 @@ package edu.umass.ciir;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,120 @@ public class TasksRunner {
     private String phase;
     private static final Logger logger = Logger.getLogger("TasksRunner");
     EventExtractor eventExtractor;
+
+/* Here is an example of a tasks.json file:
+{
+  "test-id": "Evaluation",
+  "task-set": {
+    "extract-basic-events": {"perform?": true},
+    "find-relevant-docs.automatic": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
+    },
+    "find-relevant-docs.auto-hitl": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
+    },
+    "find-relevant-docs.hitl": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
+    }
+}
+*/
+    /**
+     * Reads the tasks.json file, which tells us which function to perform.
+     * @param taskSetFile The full pathname of the tasks.json file.
+     */
+    private void readTaskSetFile(String taskSetFile) {
+        try {
+            Reader reader = new BufferedReader(new InputStreamReader(
+                    new FileInputStream(taskSetFile)));
+            JSONParser parser = new JSONParser();
+            JSONObject topLevelJSON = (JSONObject) parser.parse(reader);
+            String testIDJSON = (String) topLevelJSON.get("test-id");
+            JSONObject taskSetJSON = (JSONObject) topLevelJSON.get("task-set");
+            if (taskSetJSON.containsKey("extract-basic-events")) {
+                JSONObject extractBasicEventsJSON = (JSONObject) taskSetJSON.get("extract-basic-events");
+                Boolean perform = (Boolean) extractBasicEventsJSON.get("perform?");
+                if (perform) {
+                    logger.info("tasks.json says this is IE mode");
+                    Pathnames.runIEPhase = true;
+                    Pathnames.runPreTrain = false;
+                    Pathnames.runIndexBuild = false;
+                    Pathnames.runEnglishIndexBuild = false;
+                    Pathnames.runIRPhase1 = false;
+                    Pathnames.runIRPhase2 = false;
+                    Pathnames.runIRPhase3 = false;
+                    return;    // EARLY EXIT FROM FUNCTION
+                }
+            }
+            if (taskSetJSON.containsKey("find-relevant-docs.automatic")) {
+                JSONObject findRelevantDocsAutomaticJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.automatic");
+                boolean perform = (boolean) findRelevantDocsAutomaticJSON.get("perform?");
+                if (perform) {
+                    logger.info("tasks.json says this is AUTO mode");
+                    String corpusLocationJSON = (String) findRelevantDocsAutomaticJSON.get("corpus-location");
+                    String scratchLocationJSON = (String) findRelevantDocsAutomaticJSON.get("scratch-location");
+                    Pathnames.mode = "AUTO";
+                    Pathnames.runPreTrain = false;
+                    Pathnames.runIndexBuild = true;
+                    Pathnames.runEnglishIndexBuild = false;
+                    Pathnames.runIRPhase1 = true;
+                    Pathnames.runIRPhase2 = true;
+                    Pathnames.runIRPhase3 = true;
+                    Pathnames.runIEPhase = false;
+                    return;    // EARLY EXIT FROM FUNCTION
+                }
+            }
+            if (taskSetJSON.containsKey("find-relevant-docs.auto-hitl")) {
+                JSONObject findRelevantDocsAutoHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.auto-hitl");
+                boolean perform = (boolean) findRelevantDocsAutoHitlJSON.get("perform?");
+                if (perform) {
+                    logger.info("tasks.json says this is AUTO-HITL mode");
+                    String corpusLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("corpus-location");
+                    String scratchLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("scratch-location");
+                    Pathnames.mode = "AUTO-HITL";
+                    Pathnames.runPreTrain = false;
+                    Pathnames.runIndexBuild = false;
+                    Pathnames.runEnglishIndexBuild = false;
+                    Pathnames.runIRPhase1 = true;
+                    Pathnames.runIRPhase2 = true;
+                    Pathnames.runIRPhase3 = true;
+                    Pathnames.runIEPhase = false;
+                    return;    // EARLY EXIT FROM FUNCTION
+                }
+            }
+            if (taskSetJSON.containsKey("find-relevant-docs.hitl")) {
+                JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
+                boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
+                if (perform) {
+                    logger.info("tasks.json says this is HITL mode");
+                    String corpusLocationJSON = (String) findRelevantDocsHitlJSON.get("corpus-location");
+                    String scratchLocationJSON = (String) findRelevantDocsHitlJSON.get("scratch-location");
+                    Pathnames.mode = "HITL";
+                    Pathnames.runPreTrain = false;
+                    Pathnames.runIndexBuild = false;
+                    Pathnames.runEnglishIndexBuild = false;
+                    Pathnames.runIRPhase1 = true;
+                    Pathnames.runIRPhase2 = true;
+                    Pathnames.runIRPhase3 = true;
+                    Pathnames.runIEPhase = false;
+                    return;    // EARLY EXIT FROM FUNCTION
+                }
+            }
+        } catch (Exception e) {
+            String msg = "ERROR: Exception reading tasks.json file " + taskSetFile;
+            System.out.println(msg);
+            throw new TasksRunnerException(msg);
+
+        }
+        String msg = "ERROR: tasks.json says to perform NOTHING!";
+        System.out.println(msg);
+        throw new TasksRunnerException(msg);
+    }
 
     /**
      * Configures the logger for this program.
@@ -101,19 +216,9 @@ public class TasksRunner {
         QueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
 //        requestQueryFormulator.buildQueries(phase, qf.getQueryFileNameOnly());
         String key = qf.getKey();
-        logger.info("Key is " + key + ", query directory is " + Pathnames.queryFileLocation);
         requestQueryFormulator.buildQueries(phase, key);
 
         String queryFileDirectory = Pathnames.queryFileLocation;
-
-        // DEBUG:
-        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
-                Paths.get(Pathnames.queryFileLocation))) {
-            dirStream.forEach(path -> System.out.println(path)
-            );
-        } catch (IOException cause) {
-            throw new TasksRunnerException(cause);
-        }
 
         DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(queryFileDirectory + key)
                 && (!file.toString().startsWith(queryFileDirectory + key + ".TASK."))
@@ -123,7 +228,6 @@ public class TasksRunner {
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
                 Paths.get(Pathnames.queryFileLocation),
                 filter)) {
-//                qf.getKey() + "*.queries.json")) {
             dirStream.forEach(path -> executeOne(path, key, queryFileDirectory, requestLevelFormulator,
                     taskLevelFormulator));
         } catch (IOException cause) {
@@ -229,13 +333,9 @@ public class TasksRunner {
      */
     void process() {
 
-        if (!Pathnames.runPreTrain && !Pathnames.runIRPhase1 && !Pathnames.runIRPhase2 && !Pathnames.runIRPhase3) {
-            System.out.println("Skipping all phases");
-            return;  // EARLY EXIT FROM FUNCTION
-        }
-
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks();
+
 
         /*
          * We can be executing in one of 3 modes: AUTO, AUTO-HITL, or HITL.
@@ -243,7 +343,8 @@ public class TasksRunner {
          * the query formulators. The caller passes in the mode through the env file.
          * The input analytic tasks file should be different for AUTO vs the other 2 modes:
          * the AUTO file should not have anything for the fields like Task Narrative and
-         * Request Text. Those are only provided in AUTO-HITL and HITL mode.
+         * Request Text. Those
+         *  are only provided in AUTO-HITL and HITL mode.
          * HITL mode's only difference is that more sample documents are passed in, in the
          * supplemental_info.json file.
          * Once we know the mode, we select the 2 query formulators created for that mode.
@@ -254,6 +355,29 @@ public class TasksRunner {
         logger.info("Executing in " + mode + " mode");
 
         eventExtractor = new EventExtractor(tasks, mode);
+
+        if (Pathnames.runIEPhase) {
+            logger.info("Calling event annotator for test_data.bp.json file");
+            eventExtractor.annotateProvidedFileEvents();
+        } else {
+            System.out.println("Skipping IE on provided file");
+        }
+
+        if (Pathnames.runEnglishIndexBuild) {
+            Index index = new Index("english");
+            index.preprocess();
+            index.buildIndex();
+        } else {
+            System.out.println("Skipping English index building");
+        }
+
+        if (Pathnames.runIndexBuild) {
+            Index index = new Index("target");
+            index.preprocess();
+            index.buildIndex();
+        } else {
+            System.out.println("Skipping target language index building");
+        }
 
         if (!Pathnames.runPreTrain) {
             System.out.println("Skipping event annotator pre-training");
@@ -307,8 +431,8 @@ public class TasksRunner {
             logger.info("PHASE 3: Building file with doc text and events for request hits, for reranker");
             eventExtractor.retrieveEventsFromRequestHits(qf);
 
-            logger.info("PHASE 3: Building file with doc text and events for task hits, for experiments");
-            eventExtractor.retrieveEventsFromTaskHits(qf);
+            //logger.info("PHASE 3: Building file with doc text and events for task hits, for experiments");
+            //eventExtractor.retrieveEventsFromTaskHits(qf);
 
             logger.info("PHASE 3: Reranking");
             qf.rerank();
@@ -337,19 +461,59 @@ public class TasksRunner {
      * Public entry point for this class.
      */
     public static void main (String[] args) {
+/*
+        tasksrunner@d5435cba053a:~$ id
+
+                uid=1000(tasksrunner) gid=1000(tasksrunner) groups=1000(tasksrunner),27(sudo)
+*/
+        if (Pathnames.checkForSudo) {
+            boolean hasSudo = false;
+            try {
+                Process p = Runtime.getRuntime().exec("id");
+                BufferedReader sin = new BufferedReader(
+                        new InputStreamReader(p.getInputStream()));
+                String line;
+                while ((line = sin.readLine()) != null) {
+                    if (line.contains("sudo")) {
+                        hasSudo = true;
+                        break;
+                    }
+                }
+            } catch (Exception cause) {
+                throw new TasksRunnerException(cause);
+            }
+            if (!hasSudo) {
+                throw new TasksRunnerException("ERROR: This Docker container must be run by a user with SUDO privileges");
+            }
+        }
+
+        File f = new File(Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
+        if (!f.exists()) {
+            String errorMessage = "ERROR: corpus file (FARSI) " + Pathnames.corpusFileLocation
+                    + Pathnames.targetCorpusFileName
+                    + " does not exist! Check your environment file for the corpusFileLocation and targetCorpusFileName settings.";
+            System.out.println(errorMessage);
+            throw new TasksRunnerException(errorMessage);
+        }
+        f = new File(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);
+        if (!f.exists()) {
+            String errorMessage = "ERROR: corpus file (ENGLISH) " + Pathnames.corpusFileLocation
+                    + Pathnames.englishCorpusFileName
+                    + " does not exist! Check your environment file for the corpusFileLocation and englishCorpusFileName settings.";
+            System.out.println(errorMessage);
+            throw new TasksRunnerException(errorMessage);
+        }
+
+
         TasksRunner betterIR = new TasksRunner();
+        if (Pathnames.useTaskSetFile) {
+            /* This must be done before setupLogging() because that func uses mode,
+            which is set in readTaskSetFile()
+             */
+            betterIR.readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
+        }
         betterIR.setupLogging();
 
-        if (Pathnames.runEnglishIndexBuild) {
-            Index index = new Index("english");
-            index.preprocess();
-            index.buildIndex();
-        }
-        if (Pathnames.runIndexBuild) {
-            Index index = new Index("target");
-            index.preprocess();
-            index.buildIndex();
-        }
         betterIR.process();
     }
 }

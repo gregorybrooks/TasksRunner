@@ -1,0 +1,21 @@
+{
+  "test-id": "Evaluation",
+  "task-set": {
+    "extract-basic-events": {"perform?": true},
+    "find-relevant-docs.automatic": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
+    },
+    "find-relevant-docs.auto-hitl": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
+    },
+    "find-relevant-docs.hitl": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
+    }
+  }
+}

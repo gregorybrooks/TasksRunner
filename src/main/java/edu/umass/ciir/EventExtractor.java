@@ -379,7 +379,7 @@ public class EventExtractor {
     /**
      * Number of hits to have full event details.
      */
-    private final int REQUEST_HITS_DETAILED = 1000;
+    private final int REQUEST_HITS_DETAILED = 10;   // reduced from 100 for the Dry Run Oct 2021
 
     /**
      * Creates an input file to give to the event extractor, of the top hits for each request.
@@ -559,6 +559,57 @@ public class EventExtractor {
             if (exitVal != 0) {
                 logger.log(Level.SEVERE, "Unexpected ERROR from annotate_example_docs, exit value is: " + exitVal);
                 throw new TasksRunnerException("Unexpected ERROR from annotate_example_docs, exit value is: " + exitVal);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void annotateProvidedFileEvents() {
+        try {
+            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_provided_file.log";
+            String tempCommand = "cd /home/tasksrunner/scripts && "
+                    + " sudo"
+                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                    + " APP_DIR=" + Pathnames.appFileLocation
+                    + " MODE=" + Pathnames.mode
+                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                    + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                    + " ./annotate_provided_file.sh"
+                    + " >& " + logFile;
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                ;
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing annotate_provided_file execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("annotate_provided_file output:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_provided_file, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from annotate_provided_file, exit value is: " + exitVal);
             }
         } catch (Exception e) {
             throw new TasksRunnerException(e);

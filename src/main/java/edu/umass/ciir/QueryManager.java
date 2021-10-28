@@ -85,7 +85,77 @@ public class QueryManager {
         return tasks;
     }
 
+    /* vars needed by the Docker version of the reranker:
+    $TASK_FILE $DATA_DIR $QLANG $DLANG $RUNFILE_MASK $DEVICE $NUM_CPU $TOPK $OUTPUT_DIR
+    */
     public void callReranker(String currentRunFile, String outputFileName) {
+        try {
+            String mode = Pathnames.mode;
+            String dockerImageName = Pathnames.rerankerDockerImage;
+            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
+            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+            // if 4 GPUs, 0 is first one, 1 is second one, etc.
+            String deviceParm = "cuda:0";  // or cpu
+            String command = sudo + " docker run --rm"
+                    + gpu_parm
+                    + " --env MODE=" + mode
+                    + " --env DEVICE=" + deviceParm
+                    + " --env TASK_FILE=" + Pathnames.eventExtractorFileLocation + analyticTasksInfoFilename
+                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                    + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
+                    + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
+                    + " --env QLANG=en --env DLANG=" + Pathnames.targetLanguage
+                    + " --env RUNFILE_MASK='" + mode + ".[req-num].REQUESTHITS.events.json'"
+                    + " --env NUM_CPU=8 --env TOPK=1000"
+
+                    + " " + dockerImageName
+                    + " sh -c ./runit.sh";
+            String logFile = Pathnames.logFileLocation + mode + "/reranker-docker-program.out";
+            String tempCommand = command + " >& " + logFile;
+
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                // do nothing
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing docker image execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("Docker container output log:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from Docker container, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
+            }
+
+            Files.copy(new File(Pathnames.eventExtractorFileLocation + "fused.run").toPath(),
+                    new File(outputFileName).toPath(), REPLACE_EXISTING);
+
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void callRerankerOLD(String currentRunFile, String outputFileName) {
         try {
             String logFile = Pathnames.logFileLocation + Pathnames.mode + "/reranker.log";
             String tempCommand = "cd " + Pathnames.programFileLocation + "BETTER-prod && PYTHONPATH=" + Pathnames.programFileLocation + "BETTER-prod "
@@ -1201,7 +1271,8 @@ public class QueryManager {
      * @param writer the PrintWriter
      */
     private void addEvents(String requestID, PrintWriter writer) {
-        String fileName = Pathnames.eventExtractorFileLocation + requestID + ".REQUESTHITS.json.results.json";
+        String fileName = Pathnames.eventExtractorFileLocation + Pathnames.mode + "."
+            + requestID + ".REQUESTHITS.json.results.json";
         File f = new File(fileName);
         if (f.exists()) {
             logger.info("Reading top hits event file " + fileName);
@@ -1246,7 +1317,10 @@ public class QueryManager {
                     if (tasks.containsKey(taskID)) {
                         Map<String, List<Hit>> requests = tasks.get(taskID);
                         if (requests.containsKey(requestID)) {
-                            requests.get(requestID).add(hit);
+                            List<Hit> hitlist = requests.get(requestID);
+                            if (hitlist.size() < Pathnames.RESULTS_CAP) {
+                                hitlist.add(hit);
+                            }
                         } else {
                             List<Hit> requestHits = new ArrayList<>();
                             requestHits.add(hit);
@@ -1316,8 +1390,15 @@ public class QueryManager {
                             jsonHit.put("score", hit.score);
                             ranking.add(jsonHit);
                         }
-                        writer.println("        ],");  // end of ranking
-                        addEvents(requestID, writer);
+                        // end of ranking - time for the events
+
+                        if (Pathnames.includeEventsInFinalResults) {
+                            writer.println("        ],");
+                            addEvents(requestID, writer);
+                        } else {
+                            writer.println("        ]");  // no comma
+                        }
+
                         if (currentRequestIdx < numRequests) {
                             writer.println("      },");  // end of this request
                         } else {
