@@ -377,11 +377,6 @@ public class EventExtractor {
     }
 
     /**
-     * Number of hits to have full event details.
-     */
-    private final int REQUEST_HITS_DETAILED = 10;   // reduced from 100 for the Dry Run Oct 2021
-
-    /**
      * Creates an input file to give to the event extractor, of the top hits for each request.
      */
     public void createInputForEventExtractorFromRequestHits(QueryManager qf) {
@@ -391,7 +386,7 @@ public class EventExtractor {
 
         // Load the document text map in one pass through the corpus file:
         Document.buildArabicDocMap(requestList.parallelStream()
-                .flatMap(r -> qf.getDocids(r.reqNum, REQUEST_HITS_DETAILED).stream())
+                .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                 .collect(Collectors.toSet()));
 
         /* First, build the file to give to the HITL person */
@@ -418,7 +413,7 @@ public class EventExtractor {
 
         /* Create the file to give to the ISI event extractor */
         for (Request r : requestList) {
-            List<String> hits = qf.getDocids(r.reqNum, REQUEST_HITS_DETAILED);
+            List<String> hits = qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
             simpleEntries.clear();
             createInputFileEntriesFromHits("RequestLevelHit", r.reqNum, hits, simpleEntries);
             if (simpleEntries.size() > 0) {
@@ -437,13 +432,13 @@ public class EventExtractor {
 
         // Load the document text map in one pass through the corpus file:
         Document.buildArabicDocMap(requestList.parallelStream()
-                .flatMap(r -> qf.getDocids(r.reqNum, REQUEST_HITS_DETAILED).stream())
+                .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                 .collect(Collectors.toSet()));
 
         Map<String,String> queries = qf.getQueries();
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
-                List<String> hits = qf.getDocids(r.reqNum, REQUEST_HITS_DETAILED);
+                List<String> hits = qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
                 simpleEntries.clear();
                 String query = queries.get(r.reqNum);
                 for (String td : hits) {
@@ -828,7 +823,7 @@ public class EventExtractor {
                 hit.put("groupType", h.taskID.length() > 5 ? "R" : "T");
                 hit.put("docid", h.docid);
 
-                if (idx > REQUEST_HITS_DETAILED) {
+                if (idx > Pathnames.REQUEST_HITS_DETAILED) {
                     hit.put("docText", "");
                     JSONArray segmentSections = new JSONArray();
                     hit.put("sentences", segmentSections);

@@ -85,12 +85,20 @@ public class TasksRunner {
                     String scratchLocationJSON = (String) findRelevantDocsAutomaticJSON.get("scratch-location");
                     Pathnames.mode = "AUTO";
                     Pathnames.runPreTrain = false;
-                    Pathnames.runIndexBuild = true;
+                    if (!Pathnames.skipIndexBuild) {
+                        logger.info("skipIndexBuild is false");
+                        Pathnames.runIndexBuild = true;
+                    } else {
+                        logger.info("skipIndexBuild is true");
+                        Pathnames.runIndexBuild = false;
+                    }
                     Pathnames.runEnglishIndexBuild = false;
+/* For development, allow these to be controlled in eval.env:
                     Pathnames.runIRPhase1 = true;
                     Pathnames.runIRPhase2 = true;
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
+*/
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
@@ -105,10 +113,12 @@ public class TasksRunner {
                     Pathnames.runPreTrain = false;
                     Pathnames.runIndexBuild = false;
                     Pathnames.runEnglishIndexBuild = false;
+/* For development, allow these to be controlled in eval.env:
                     Pathnames.runIRPhase1 = true;
                     Pathnames.runIRPhase2 = true;
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
+*/
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
@@ -123,10 +133,12 @@ public class TasksRunner {
                     Pathnames.runPreTrain = false;
                     Pathnames.runIndexBuild = false;
                     Pathnames.runEnglishIndexBuild = false;
+/* For development, allow these to be controlled in eval.env:
                     Pathnames.runIRPhase1 = true;
                     Pathnames.runIRPhase2 = true;
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
+*/
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
@@ -335,7 +347,6 @@ public class TasksRunner {
 
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks();
-
 
         /*
          * We can be executing in one of 3 modes: AUTO, AUTO-HITL, or HITL.

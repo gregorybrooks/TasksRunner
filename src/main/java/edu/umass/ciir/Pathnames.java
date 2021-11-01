@@ -20,8 +20,10 @@ public class Pathnames {
 
     private static Map<String, String> env = System.getenv();
 
+    public static int REQUEST_HITS_DETAILED = 100;  // number of hits to get full text and event details
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
+    public static boolean skipIndexBuild = false;
     public static boolean includeEventsInFinalResults = true;
     public static boolean checkForSudo = true;
     public static boolean doTaskLevelEvaluation = true;
@@ -190,8 +192,10 @@ public class Pathnames {
 
     static {
 
+        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "1000"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
+        skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
         useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
         runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
