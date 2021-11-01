@@ -133,12 +133,12 @@ public class TasksRunner {
                     Pathnames.runPreTrain = false;
                     Pathnames.runIndexBuild = false;
                     Pathnames.runEnglishIndexBuild = false;
-/* For development, allow these to be controlled in eval.env:
+                    /* For development, allow these to be controlled in eval.env:
                     Pathnames.runIRPhase1 = true;
                     Pathnames.runIRPhase2 = true;
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
-*/
+                    */
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
