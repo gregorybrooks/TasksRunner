@@ -16,7 +16,7 @@ APP_DIR="${APP_DIR:-none}"
 # See the available paths in doc/development.md.
 BETTER_PATH="${BETTER_PATH:-none}"
 
-ENV_FILE="${ENV_FILE:-${ROOT_DIR}/variables.env}"
+ENV_FILE="${ENV_FILE:-${ROOT_DIR}/variables.env.FARSI}"
 
 # Stage at which the pipeline starts.
 START_STAGE="${START_STAGE:-ingest}"

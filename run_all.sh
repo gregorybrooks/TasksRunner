@@ -2,14 +2,19 @@
 set -ve
 set -o allexport
 
-APP_DIR=/mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_DRY_RUN/app
-CORPUS_DIR=/mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_DRY_RUN/corpus
-SCRATCH_DIR=/mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_DRY_RUN/scratch
-
-targetCorpusFileName=target/BETTER-Phase1-IR-Farsi-Translated-Eval-Corpus.jl
-englishCorpusFileName=english/english-training-corpus.jl
+if [ ! $# -eq 1 ]
+    then echo 'Supply ARABIC or FARSI as the only argument'
+    exit 1
+fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+TOP_LEVEL_SETTINGS_FILE="${SCRIPT_DIR}/top_level_settings.env.$1"
+source $TOP_LEVEL_SETTINGS_FILE
+
+# The following file is also passed to the Docker container, so it has to follow
+# the rules for Docker env files--no nested variables
+
 ENV_FILE="${SCRIPT_DIR}/eval.env"
 source $ENV_FILE
 
@@ -37,6 +42,6 @@ scratchFileLocation=$SCRATCH_DIR/clear_ir
 appFileLocation=${APP_DIR}
 EVENT_EXTRACTOR_FILE_DIRECTORY=${SCRATCH_DIR}/clear_ir/eventextractorfiles
 
-docker run --rm --env-file=$ENV_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $APP_DIR:$APP_DIR -v $CORPUS_DIR:$CORPUS_DIR -v $SCRATCH_DIR:$SCRATCH_DIR --env corpusFileLocation=$corpusFileLocation --env scratchFileLocation=$scratchFileLocation --env appFileLocation=$appFileLocation --env EVENT_EXTRACTOR_FILE_DIRECTORY=$EVENT_EXTRACTOR_FILE_DIRECTORY --env targetCorpusFileName=$targetCorpusFileName --env englishCorpusFileName=$englishCorpusFileName --entrypoint /home/tasksrunner/scripts/run_ir.sh gregorybrooks/tasks-runner:2.1.0
+docker run --rm --env-file=$ENV_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $APP_DIR:$APP_DIR -v $CORPUS_DIR:$CORPUS_DIR -v $SCRATCH_DIR:$SCRATCH_DIR --env APP_DIR=$APP_DIR --env CORPUS_DIR=$CORPUS_DIR --env SCRATCH_DIR=$SCRATCH_DIR --env targetIndexName=$targetIndexName --env englishIndexName=$englishIndexName --env targetLanguage=$targetLanguage --env targetCorpusFileName=$targetCorpusFileName --env englishCorpusFileName=$englishCorpusFileName --env corpusFileLocation=$corpusFileLocation --env scratchFileLocation=$scratchFileLocation --env appFileLocation=$appFileLocation --env EVENT_EXTRACTOR_FILE_DIRECTORY=$EVENT_EXTRACTOR_FILE_DIRECTORY --entrypoint /home/tasksrunner/scripts/run_ir.sh gregorybrooks/tasks-runner:3.0.0
 
 echo `date`

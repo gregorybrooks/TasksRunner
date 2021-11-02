@@ -612,6 +612,10 @@ public class EventExtractor {
     }
 
     public void annotateRequestDocEvents() {
+        String script = "./annotate_request_docs.sh.FARSI";
+        if (Pathnames.targetLanguage.equals("ARABIC")) {
+            script = "./annotate_request_docs.sh.ARABIC";
+        }
         try {
             String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_request_docs.log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
@@ -623,7 +627,7 @@ public class EventExtractor {
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
                     + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                    + " ./annotate_request_docs.sh"
+                    + " " + script
                     + " >& " + logFile;
             logger.info("Executing this command: " + tempCommand);
 
