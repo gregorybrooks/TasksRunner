@@ -96,7 +96,8 @@ public class QueryManager {
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
-            String deviceParm = "cuda:0";  // or cpu
+            // String deviceParm = "cuda:0";  // or cpu
+            String deviceParm = "cpu";  // or "cuda:0"
             String command = sudo + " docker run --rm"
                     + gpu_parm
                     + " --env MODE=" + mode
