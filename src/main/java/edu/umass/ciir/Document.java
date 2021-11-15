@@ -1,4 +1,5 @@
 package edu.umass.ciir;
+import com.sun.java.accessibility.util.Translator;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;

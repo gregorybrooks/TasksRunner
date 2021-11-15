@@ -475,6 +475,7 @@ public class QueryManager {
      */
     private void mergeRunFiles(List<String> runFiles) {
         String combinedRunFileName = Pathnames.runFileLocation + key + ".out";
+        logger.info("Combined run file name is " + combinedRunFileName);
         Path outFile= Paths.get(combinedRunFileName);
         try {
             Files.delete(outFile);
@@ -484,8 +485,10 @@ public class QueryManager {
         Charset charset = StandardCharsets.UTF_8;
         try {
             for (String runFile : runFiles) {
+                logger.info("Adding task-level run file " + runFile);
                 Path inFile=Paths.get(runFile);
                 List<String> lines = Files.readAllLines(inFile, charset);
+                logger.info(lines.size() + " lines");
                 Files.write(outFile, lines, charset, StandardOpenOption.CREATE,
                         StandardOpenOption.APPEND);
             }
@@ -519,8 +522,6 @@ public class QueryManager {
             String taskLevelKey = tasks.getMode() + ".Task."
                     + finalTaskLevelFormulationName;
             String indexName = Pathnames.indexLocation + taskLevelKey + "." + t.taskNum + ".PARTIAL";
-            runFiles.add(theRunFileName);
-
             logger.info("Executing request queries for task " + t.taskNum);
 
             executeAgainstPartialIndex(1, 1000, queryFileName, theRunFileName, indexName, t.taskNum);
@@ -678,7 +679,7 @@ public class QueryManager {
         }
         if (exitVal != 0) {
             logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
+            // TEMP throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
         }
 
         run = new Run(theRunFileName);  // Get new run file into memory

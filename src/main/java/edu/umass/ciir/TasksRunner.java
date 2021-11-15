@@ -86,10 +86,9 @@ public class TasksRunner {
                     Pathnames.mode = "AUTO";
                     Pathnames.runPreTrain = false;
                     if (!Pathnames.skipIndexBuild) {
-                        logger.info("skipIndexBuild is false");
                         Pathnames.runIndexBuild = true;
                     } else {
-                        logger.info("skipIndexBuild is true");
+                        logger.info("Skipping the index build");
                         Pathnames.runIndexBuild = false;
                     }
                     Pathnames.runEnglishIndexBuild = false;
@@ -427,7 +426,12 @@ public class TasksRunner {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
 
-            eventExtractor.annotateRequestDocEvents();
+            if (!Pathnames.skipRequestDocAnnotation) {
+                logger.info("PHASE 2: Calling the ISI event annotators for the request hits");
+                eventExtractor.annotateRequestDocEvents();
+            } else {
+                logger.info("PHASE 2: SKIPPING the ISI event annotators for the request hits");
+            }
 
             logger.info("PHASE 2 COMPLETE");
         } 

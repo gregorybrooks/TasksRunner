@@ -562,6 +562,12 @@ public class EventExtractor {
 
     public void annotateProvidedFileEvents() {
         try {
+            String script = "./annotate_provided_file.sh.FARSI";
+            String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
+            if (Pathnames.targetLanguage.equals("ARABIC")) {
+                script = "./annotate_provided_file.sh.ARABIC";
+                trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
+            }
             String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_provided_file.log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
@@ -572,7 +578,7 @@ public class EventExtractor {
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
                     + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                    + " ./annotate_provided_file.sh"
+                    + " " + script
                     + " >& " + logFile;
             logger.info("Executing this command: " + tempCommand);
 
@@ -613,15 +619,17 @@ public class EventExtractor {
 
     public void annotateRequestDocEvents() {
         String script = "./annotate_request_docs.sh.FARSI";
-        if (Pathnames.targetLanguage.equals("ARABIC")) {
+        String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
+        if (Pathnames.targetLanguage.toString().equals("ARABIC")) {
             script = "./annotate_request_docs.sh.ARABIC";
+            trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
         }
         try {
             String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_request_docs.log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                    + " " + trainingDirs
                     + " MODE=" + Pathnames.mode
                     + " APP_DIR=" + Pathnames.appFileLocation
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation

@@ -67,6 +67,10 @@ RUN touch $HOME/.sudo_as_admin_successful
 RUN LC_ALL=C.UTF-8 LANG=C.UTF-8 python3 -m spacy download en_core_web_sm
 
 WORKDIR /home/tasksrunner
-ADD . .
-RUN sudo chown -R tasksrunner .
+ADD galago galago
+ADD programfiles programfiles
+ADD runit.sh runit.sh
+ADD scripts scripts
+ADD target target
+#RUN sudo chown -R tasksrunner .
 

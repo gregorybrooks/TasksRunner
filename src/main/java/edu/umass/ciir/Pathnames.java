@@ -24,6 +24,7 @@ public class Pathnames {
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
     public static boolean skipIndexBuild = false;
+    public static boolean skipRequestDocAnnotation = false;
     public static boolean includeEventsInFinalResults = true;
     public static boolean checkForSudo = true;
     public static boolean doTaskLevelEvaluation = true;
@@ -84,6 +85,7 @@ public class Pathnames {
     public static String gpuDevice = "";
     public static String MODELS_BASE_DIR_ENGLISH = "";
     public static String MODELS_BASE_DIR_FARSI = "";
+    public static String MODELS_BASE_DIR_ARABIC = "";
     public static String MODELS_BASE_DIR = "";
 
 // english training as english and arabic
@@ -196,6 +198,7 @@ public class Pathnames {
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
+        skipRequestDocAnnotation = (getFromEnv("skipRequestDocAnnotation", "false").equals("true"));
         useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
         runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
@@ -308,7 +311,8 @@ public class Pathnames {
         gpuDevice = getFromEnv("gpuDevice", "");
         MODELS_BASE_DIR = getFromEnv("MODELS_BASE_DIR", MODELS_BASE_DIR);
         MODELS_BASE_DIR_ENGLISH = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_ENGLISH);
-        MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_FARSI);
+        MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_FARSI", MODELS_BASE_DIR_FARSI);
+        MODELS_BASE_DIR_ARABIC = getFromEnv("MODELS_BASE_DIR_ARABIC", MODELS_BASE_DIR_FARSI);
         targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
                 Required.REQUIRED));
     }
