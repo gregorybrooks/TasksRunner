@@ -312,7 +312,7 @@ public class Pathnames {
         MODELS_BASE_DIR = getFromEnv("MODELS_BASE_DIR", MODELS_BASE_DIR);
         MODELS_BASE_DIR_ENGLISH = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_ENGLISH);
         MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_FARSI", MODELS_BASE_DIR_FARSI);
-        MODELS_BASE_DIR_ARABIC = getFromEnv("MODELS_BASE_DIR_ARABIC", MODELS_BASE_DIR_FARSI);
+        MODELS_BASE_DIR_ARABIC = getFromEnv("MODELS_BASE_DIR_ARABIC", MODELS_BASE_DIR_ARABIC);
         targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
                 Required.REQUIRED));
     }

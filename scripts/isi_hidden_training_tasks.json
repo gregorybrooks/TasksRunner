@@ -3,17 +3,17 @@
   "task-set": {
     "extract-basic-events": {"perform?": true, "train-on-hidden-data?": true},
     "find-relevant-docs.automatic": {
-      "perform?": true,
+      "perform?": false,
       "corpus-location": "/corpus",
       "scratch-storage": "/scratch"
     },
     "find-relevant-docs.auto-hitl": {
-      "perform?": true,
+      "perform?": false,
       "corpus-location": "/corpus",
       "scratch-storage": "/scratch"
     },
     "find-relevant-docs.hitl": {
-      "perform?": true,
+      "perform?": false,
       "corpus-location": "/corpus",
       "scratch-storage": "/scratch"
     }
