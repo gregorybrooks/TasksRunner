@@ -72,7 +72,7 @@ if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
         CURRENT_STAGE="translate-ar-en"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/translate.sh \
+             --gpus device=2 --entrypoint /code/translate.sh \
              ${DOCKER_IMAGE_PREFIX}-translator:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "translate-ar-en" ]; then exit; fi
     fi
@@ -93,7 +93,7 @@ if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
         CURRENT_STAGE="classify-english-mentions"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/classify-english-mentions.sh \
+             --gpus device=2 --entrypoint /code/classify-english-mentions.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "classify-english-mentions" ]; then exit; fi
     fi
@@ -113,7 +113,7 @@ if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/detect-english-triggers.sh \
+             --gpus device=2 --entrypoint /code/detect-english-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "detect-triggers" ]; then exit; fi
     fi
@@ -123,7 +123,7 @@ if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/attach-arguments.sh \
+             --gpus device=2 --entrypoint /code/attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "attach-arguments" ]; then exit; fi
     fi
@@ -133,7 +133,7 @@ if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/postprocess.sh \
+             --gpus device=2 --entrypoint /code/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "postprocess" ]; then exit; fi
     fi
@@ -166,7 +166,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-BOS" ]; then
         CURRENT_STAGE="translate-en-ar"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/translate.sh \
+             --gpus device=2 --entrypoint /code/translate.sh \
              ${DOCKER_IMAGE_PREFIX}-translator:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "translate-en-ar" ]; then exit; fi
     fi
@@ -186,7 +186,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-BOS" ]; then
         CURRENT_STAGE="postprocess-train-data"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/postprocess-projections.sh \
+             --gpus device=2 --entrypoint /code/postprocess-projections.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "postprocess-train-data" ]; then exit; fi
     fi
@@ -207,7 +207,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-BOS" ]; then
         CURRENT_STAGE="classify-arabic-mentions"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/classify-arabic-mentions.sh \
+             --gpus device=2 --entrypoint /code/classify-arabic-mentions.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "classify-arabic-mentions" ]; then exit; fi
     fi
@@ -217,7 +217,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-BOS" ]; then
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/detect-arabic-triggers.sh \
+             --gpus device=2 --entrypoint /code/detect-arabic-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "detect-triggers" ]; then exit; fi
     fi
@@ -228,7 +228,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-BOS" ]; then
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/attach-arguments.sh \
+             --gpus device=2 --entrypoint /code/attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "attach-arguments" ]; then exit; fi
     fi
@@ -248,7 +248,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-BOS" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/postprocess.sh \
+             --gpus device=2 --entrypoint /code/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "postprocess" ]; then exit; fi
     fi
@@ -281,7 +281,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-MDR" ]; then
         CURRENT_STAGE="translate-en-ar"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/translate.sh \
+             --gpus device=2 --entrypoint /code/translate.sh \
              ${DOCKER_IMAGE_PREFIX}-translator:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "translate-en-ar" ]; then exit; fi
     fi
@@ -301,7 +301,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-MDR" ]; then
         CURRENT_STAGE="postprocess-train-data"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/postprocess-projections.sh \
+             --gpus device=2 --entrypoint /code/postprocess-projections.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "postprocess-train-data" ]; then exit; fi
     fi
@@ -322,7 +322,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-MDR" ]; then
         CURRENT_STAGE="classify-arabic-mentions"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/classify-arabic-mentions.sh \
+             --gpus device=2 --entrypoint /code/classify-arabic-mentions.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "classify-arabic-mentions" ]; then exit; fi
     fi
@@ -332,7 +332,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-MDR" ]; then
         CURRENT_STAGE="extract-events"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/extract.sh \
+             --gpus device=2 --entrypoint /code/extract.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-xdygiepp:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "extract-events" ]; then exit; fi
     fi
@@ -342,7 +342,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-MDR" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/postprocess.sh \
+             --gpus device=2 --entrypoint /code/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "postprocess" ]; then exit; fi
     fi
@@ -373,7 +373,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-BOS" ]; then
         CURRENT_STAGE="classify-english-mentions"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/classify-english-mentions.sh \
+             --gpus device=2 --entrypoint /code/classify-english-mentions.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "classify-english-mentions" ]; then exit; fi
     fi
@@ -393,7 +393,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-BOS" ]; then
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/detect-english-triggers.sh \
+             --gpus device=2 --entrypoint /code/detect-english-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "detect-triggers" ]; then exit; fi
     fi
@@ -403,7 +403,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-BOS" ]; then
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/attach-arguments.sh \
+             --gpus device=2 --entrypoint /code/attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "attach-arguments" ]; then exit; fi
     fi
@@ -413,7 +413,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-BOS" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus device=1 --entrypoint /code/postprocess.sh \
+             --gpus device=2 --entrypoint /code/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:${DOCKER_IMAGE_TAG}
         if [ "$END_STAGE" = "postprocess" ]; then exit; fi
     fi
@@ -451,7 +451,7 @@ else
         if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Classifying arabic mentions."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/classify-arabic-mentions.sh ${DOCKER_IMAGE_PREFIX}-bert-bio
             if [ "$END_STAGE" = "classify-arabic-mentions" ]; then
                 exit
@@ -466,7 +466,7 @@ else
                [ "$BETTER_PATH" = "B" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Augment test data with name-finding."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/augment-with-name-finding.sh ${DOCKER_IMAGE_PREFIX}-event-extractor-boston
             if [ "$END_STAGE" = "augment-with-name-finding" ]; then
                 exit
@@ -481,7 +481,7 @@ else
                [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Translating Arabic test JSON files into English."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/translate.sh ${DOCKER_IMAGE_PREFIX}-translator
             if [ "$END_STAGE" = "translate" ]; then
                 exit
@@ -508,7 +508,7 @@ else
         if [ "$BETTER_PATH" = "BASIC-A-BOS" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Classifying english mentions."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/classify-english-mentions.sh ${DOCKER_IMAGE_PREFIX}-bert-bio
             if [ "$END_STAGE" = "classify-english-mentions" ]; then
                 exit
@@ -536,7 +536,7 @@ else
                [ "$BETTER_PATH" = "E-MDR" ] || [ "$BETTER_PATH" = "E-MDR+BOS" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Extracting events."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/extract.sh ${DOCKER_IMAGE_PREFIX}-event-extractor-mdr
             if [ "$END_STAGE" = "extract-events" ]; then
                 exit
@@ -546,7 +546,7 @@ else
                [ "$BETTER_PATH" = "E-BOS" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Extracting events."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/extract.sh ${DOCKER_IMAGE_PREFIX}-event-extractor-boston
             if [ "$END_STAGE" = "extract-events" ]; then
                 exit
@@ -556,7 +556,7 @@ else
         if [ "$BETTER_PATH" = "BASIC-B-MDR" ] || [ "$BETTER_PATH" = "BASIC-E-MDR" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Extracting events."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/extract.sh ${DOCKER_IMAGE_PREFIX}-event-extractor-xdygiepp
             if [ "$END_STAGE" = "extract-events" ]; then
                 exit
@@ -575,7 +575,7 @@ else
                [ "$BETTER_PATH" = "E-MDR+BOS" ] || [ "$BETTER_PATH" = "E-BOS-JOINT" ]; then
             echo "Pipeline step: -------------------------------------------------"
             echo "Attaching arguments."
-            time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+            time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
                  /code/attach-arguments.sh ${DOCKER_IMAGE_PREFIX}-argument-attachment
             if [ "$END_STAGE" = "attach-arguments" ]; then
                 exit
@@ -587,7 +587,7 @@ else
         STARTED="true"
         echo "Pipeline step: -------------------------------------------------"
         echo "Postprocessing."
-        time docker run $ADDITIONAL_FLAGS --gpus device=1 --entrypoint \
+        time docker run $ADDITIONAL_FLAGS --gpus device=2 --entrypoint \
              /code/postprocess.sh ${DOCKER_IMAGE_PREFIX}-event-extractor-boston
 
         if [ "$END_STAGE" = "postprocess" ]; then

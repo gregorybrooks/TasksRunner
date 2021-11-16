@@ -89,7 +89,7 @@ if [ "$BETTER_PATH" = "ABSTRACT-B-1" ] || [ "$BETTER_PATH" = "ABSTRACT-B-2" ] ||
         CURRENT_STAGE="translate-en-fa"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/translate-mbart.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/translate-mbart.sh \
              ${DOCKER_IMAGE_PREFIX}-translator:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -110,7 +110,7 @@ if [ "$BETTER_PATH" = "ABSTRACT-B-1" ] || [ "$BETTER_PATH" = "ABSTRACT-B-2" ] ||
         CURRENT_STAGE="postprocess-train-data"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/postprocess-projections.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/postprocess-projections.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -120,7 +120,7 @@ if [ "$BETTER_PATH" = "ABSTRACT-B-1" ] || [ "$BETTER_PATH" = "ABSTRACT-B-2" ] ||
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/detect-abstract-farsi-triggers.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/detect-abstract-farsi-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -130,7 +130,7 @@ if [ "$BETTER_PATH" = "ABSTRACT-B-1" ] || [ "$BETTER_PATH" = "ABSTRACT-B-2" ] ||
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/abstract-attach-arguments.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/abstract-attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -140,7 +140,7 @@ if [ "$BETTER_PATH" = "ABSTRACT-B-1" ] || [ "$BETTER_PATH" = "ABSTRACT-B-2" ] ||
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/postprocess.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -181,7 +181,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-1" ]; then
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/detect-basic-farsi-triggers.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/detect-basic-farsi-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -191,7 +191,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-1" ]; then
         CURRENT_STAGE="extract-event-event-relations"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -201,7 +201,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-1" ]; then
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -211,7 +211,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-1" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/postprocess.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -242,7 +242,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-2" ]; then
         CURRENT_STAGE="translate-en-fa"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/translate-mbart.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/translate-mbart.sh \
              ${DOCKER_IMAGE_PREFIX}-translator:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -263,7 +263,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-2" ]; then
         CURRENT_STAGE="postprocess-train-data"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/postprocess-projections.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/postprocess-projections.sh \
              ${DOCKER_IMAGE_PREFIX}-t-phrase:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -273,7 +273,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-2" ]; then
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/detect-basic-farsi-triggers.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/detect-basic-farsi-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -283,7 +283,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-2" ]; then
         CURRENT_STAGE="extract-event-event-relations"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -293,7 +293,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-2" ]; then
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -303,7 +303,7 @@ elif [ "$BETTER_PATH" = "BASIC-B-2" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/postprocess.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -345,7 +345,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-1" ]; then
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/detect-basic-farsi-triggers.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/detect-basic-farsi-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -355,7 +355,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-1" ]; then
         CURRENT_STAGE="extract-event-event-relations"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -365,7 +365,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-1" ]; then
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
@@ -375,7 +375,7 @@ elif [ "$BETTER_PATH" = "BASIC-E-1" ]; then
         CURRENT_STAGE="postprocess"
         STARTED="true"
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
-             --gpus 1 --entrypoint $ISI_HOME/scripts/postprocess.sh \
+             --gpus 2 --entrypoint $ISI_HOME/scripts/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
     fi
