@@ -517,6 +517,7 @@ public class QueryManager {
         logger.info("Executing request queries for " + tasks.getTaskList().size());
         tasks.getTaskList().parallelStream().forEach(t ->  {
             String theRunFileName = Pathnames.runFileLocation + key + ".TASK." + t.taskNum + ".out";
+            runFiles.add(theRunFileName);
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
 
             String taskLevelKey = tasks.getMode() + ".Task."
