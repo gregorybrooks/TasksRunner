@@ -107,7 +107,7 @@ public class QueryManager {
                     + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
                     + " --env QLANG=en --env DLANG=" + Pathnames.targetLanguage
                     + " --env RUNFILE_MASK='" + mode + ".[req-num].REQUESTHITS.events.json'"
-                    + " --env NUM_CPU=8 --env TOPK=1000"
+                    + " --env NUM_CPU=8 --env TOPK=100"
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
