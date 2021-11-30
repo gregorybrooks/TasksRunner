@@ -3,17 +3,23 @@ set -ve
 
 # Extract events from the example documents
 
-cp ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.EXAMPLES.json ${APP_DIR}/test_data.bp.json
-cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE
-cp ${APP_DIR}TEST-tasks-IE.json ${APP_DIR}/tasks.json
+#SINCE NO ONE IS USING THE EVENTS, JUST COPY THE FILE TO THE EXPECTED NAME:
+cp ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.EXAMPLES.json ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.EXAMPLES.json.results.json
 
-echo `date`
-MODELS_BASE_DIR=${MODELS_BASE_DIR_ENGLISH} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E-1 ./run.sh.FARSI
+#THIS IS WHAT IT WAS WHEN WE WERE CALLING THE EVENT ANNOTATOR:
 
-# move the output of the event extractor to where the clear-ir program expects it
-mv ${APP_DIR}/results.json ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.EXAMPLES.results.json
+#cp ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.EXAMPLES.json ${APP_DIR}/test_data.bp.json
+#cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE
+#cp tasks-ie.json ${APP_DIR}/tasks.json
 
-cp ${APP_DIR}/tasks.json.SAVE ${APP_DIR}tasks.json
+#echo `date`
+#MODELS_BASE_DIR=${MODELS_BASE_DIR_ENGLISH} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E ./run.sh.FARSI
 
-echo `date`
+## move the output of the event extractor to where the clear-ir program expects it
+#mv ${APP_DIR}/results.json ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.EXAMPLES.results.json
+
+
+#cp ${APP_DIR}/tasks.json.SAVE ${APP_DIR}tasks.json
+
+#echo `date`
 

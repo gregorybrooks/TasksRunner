@@ -13,12 +13,12 @@ cp ${APP_DIR}/ir-tasks.json ${APP_DIR}/train_ir_data.json
 echo `date`
 
 cp english_dummy_test_data.bp.json ${APP_DIR}/test_data.bp.json
-MODELS_BASE_DIR=${MODELS_BASE_DIR_ENGLISH} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E-1 ./run.sh
+MODELS_BASE_DIR=${MODELS_BASE_DIR_ENGLISH} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E ./run.sh
 
 echo `date`
 
 cp farsi_dummy_test_data.bp.json ${APP_DIR}/test_data.bp.json
-MODELS_BASE_DIR=${MODELS_BASE_DIR_FARSI} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-B-1 ./run.sh
+MODELS_BASE_DIR=${MODELS_BASE_DIR_FARSI} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-A ./run.sh
 
 echo `date`
 

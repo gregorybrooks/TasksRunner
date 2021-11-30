@@ -1,5 +1,4 @@
 package edu.umass.ciir;
-import com.sun.java.accessibility.util.Translator;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -20,12 +19,12 @@ public class Document {
     private static Map<String,String> docMap = new ConcurrentHashMap<>();
     private static Map<String,String> arabicDocMap = new ConcurrentHashMap<>();
     private static Map<String,List<SentenceRange>> arabicDocSentencesMap = new ConcurrentHashMap<>();
-    private static Map<String,List<SentenceRange>> endlishDocSentencesMap = new ConcurrentHashMap<>();
+    private static Map<String,List<SentenceRange>> englishDocSentencesMap = new ConcurrentHashMap<>();
 
     public static void buildDocMap(Set<String> uniqueDocIDs) {
         if (!Pathnames.englishCorpusFileName.isEmpty()) {
             String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
-            buildDocMap(uniqueDocIDs, corpus, docMap, endlishDocSentencesMap);
+            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap);
         }
     }
 
@@ -190,7 +189,7 @@ public class Document {
     }
 
     public static List<SentenceRange> getDocumentSentences (String docid) {
-        return endlishDocSentencesMap.get(docid);
+        return englishDocSentencesMap.get(docid);
     }
 
     public static List<SentenceRange> getArabicDocumentSentences (String docid) {

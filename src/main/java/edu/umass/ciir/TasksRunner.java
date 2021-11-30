@@ -61,15 +61,41 @@ public class TasksRunner {
             JSONObject topLevelJSON = (JSONObject) parser.parse(reader);
             String testIDJSON = (String) topLevelJSON.get("test-id");
             JSONObject taskSetJSON = (JSONObject) topLevelJSON.get("task-set");
-            if (taskSetJSON.containsKey("extract-basic-events")) {
+
+            System.out.println("skipPretrain: " + Pathnames.skipPretrain);
+            System.out.println("skipPhase1: " + Pathnames.skipPhase1);
+            System.out.println("skipIndexBuild: " + Pathnames.skipIndexBuild);
+            System.out.println("skipRequestDocAnnotation: " + Pathnames.skipRequestDocAnnotation);
+            File f = null;
+            if (Pathnames.skipPretrain) {
+                logger.info("Skipping pre-training");
+                Pathnames.runPreTrain = false;
+            } else {
+                f = new File(Pathnames.MODELS_BASE_DIR_ENGLISH);
+                if (!f.exists()) {
+                    logger.info(Pathnames.MODELS_BASE_DIR_ENGLISH + " does not exist, so we will run PRE-TRAINING");
+                    Pathnames.runPreTrain = true;
+                } else {
+                    Pathnames.runPreTrain = false;
+                }
+            }
+
+            f = new File(Pathnames.targetIndexLocation);
+            if (!f.exists()) {
+                logger.info("Target index " + Pathnames.targetIndexLocation + " does not exist, so we will build the target index");
+                Pathnames.runIndexBuild = true;
+            } else {
+                Pathnames.runIndexBuild = false;
+	        }
+
+            Pathnames.runEnglishIndexBuild = false;  // no need for a Galago index on the English corpus
+
+	        if (taskSetJSON.containsKey("extract-basic-events")) {
                 JSONObject extractBasicEventsJSON = (JSONObject) taskSetJSON.get("extract-basic-events");
                 Boolean perform = (Boolean) extractBasicEventsJSON.get("perform?");
                 if (perform) {
                     logger.info("tasks.json says this is IE mode");
                     Pathnames.runIEPhase = true;
-                    Pathnames.runPreTrain = false;
-                    Pathnames.runIndexBuild = false;
-                    Pathnames.runEnglishIndexBuild = false;
                     Pathnames.runIRPhase1 = false;
                     Pathnames.runIRPhase2 = false;
                     Pathnames.runIRPhase3 = false;
@@ -84,20 +110,20 @@ public class TasksRunner {
                     String corpusLocationJSON = (String) findRelevantDocsAutomaticJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsAutomaticJSON.get("scratch-location");
                     Pathnames.mode = "AUTO";
-                    Pathnames.runPreTrain = false;
-                    if (!Pathnames.skipIndexBuild) {
-                        Pathnames.runIndexBuild = true;
+                    if (Pathnames.skipPhase1) {
+                        logger.info("Skipping phase 1");
+                        Pathnames.runIRPhase1 = false;
                     } else {
-                        logger.info("Skipping the index build");
-                        Pathnames.runIndexBuild = false;
+                        Pathnames.runIRPhase1 = true;
                     }
-                    Pathnames.runEnglishIndexBuild = false;
-/* For development, allow these to be controlled in eval.env:
-                    Pathnames.runIRPhase1 = true;
-                    Pathnames.runIRPhase2 = true;
+                    if (Pathnames.skipPhase2) {
+                        logger.info("Skipping phase 2");
+                        Pathnames.runIRPhase2 = false;
+                    } else {
+                        Pathnames.runIRPhase2 = true;
+                    }
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
-*/
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
@@ -109,19 +135,24 @@ public class TasksRunner {
                     String corpusLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("scratch-location");
                     Pathnames.mode = "AUTO-HITL";
-                    Pathnames.runPreTrain = false;
-                    Pathnames.runIndexBuild = false;
-                    Pathnames.runEnglishIndexBuild = false;
-/* For development, allow these to be controlled in eval.env:
-                    Pathnames.runIRPhase1 = true;
-                    Pathnames.runIRPhase2 = true;
+                    if (Pathnames.skipPhase1) {
+                        logger.info("Skipping phase 1");
+                        Pathnames.runIRPhase1 = false;
+                    } else {
+                        Pathnames.runIRPhase1 = true;
+                    }
+                    if (Pathnames.skipPhase2) {
+                        logger.info("Skipping phase 2");
+                        Pathnames.runIRPhase2 = false;
+                    } else {
+                        Pathnames.runIRPhase2 = true;
+                    }
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
-*/
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
-            if (taskSetJSON.containsKey("find-relevant-docs.hitl")) {
+	        if (taskSetJSON.containsKey("find-relevant-docs.hitl")) {
                 JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
                 boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
                 if (perform) {
@@ -129,15 +160,20 @@ public class TasksRunner {
                     String corpusLocationJSON = (String) findRelevantDocsHitlJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsHitlJSON.get("scratch-location");
                     Pathnames.mode = "HITL";
-                    Pathnames.runPreTrain = false;
-                    Pathnames.runIndexBuild = false;
-                    Pathnames.runEnglishIndexBuild = false;
-                    /* For development, allow these to be controlled in eval.env:
-                    Pathnames.runIRPhase1 = true;
-                    Pathnames.runIRPhase2 = true;
+                    if (Pathnames.skipPhase1) {
+                        logger.info("Skipping phase 1");
+                        Pathnames.runIRPhase1 = false;
+                    } else {
+                        Pathnames.runIRPhase1 = true;
+                    }
+                    if (Pathnames.skipPhase2) {
+                        logger.info("Skipping phase 2");
+                        Pathnames.runIRPhase2 = false;
+                    } else {
+                        Pathnames.runIRPhase2 = true;
+                    }
                     Pathnames.runIRPhase3 = true;
                     Pathnames.runIEPhase = false;
-                    */
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
