@@ -1,0 +1,17 @@
+#!/bin/bash
+set -v
+
+rm -f /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_MITRE_FARSI/app/results.json
+rm -f /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_MITRE_FARSI/app/test_data.bp.json
+
+cp /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_MITRE_FARSI/app/TEST-ir-AUTO-HITL-eval-tasks.json /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_MITRE_FARSI/app/ir-tasks.json
+cp /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_MITRE_FARSI/app/TEST-tasks-AUTO-HITL.json /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_MITRE_FARSI/app/tasks.json
+
+docker pull gregorybrooks/tasks-runner:3.0.2
+
+docker pull gregorybrooks/better-query-builder-ngram:2.1.0-AUTO-HITL
+
+docker pull gregorybrooks/better-query-builder-1:3.0.0
+
+docker pull gregorybrooks/better-reranker-z1:3.0.0
+
