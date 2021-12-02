@@ -86,6 +86,7 @@ public class Pathnames {
     public static String analyticTasksFileFormat = "BETTER";
     public static boolean sudoNeeded = true;
     public static String gpuDevice = "";
+    public static String rerankerDevice = "";
     public static String MODELS_BASE_DIR_ENGLISH = "";
     public static String MODELS_BASE_DIR_FARSI = "";
     public static String MODELS_BASE_DIR_ARABIC = "";
@@ -315,6 +316,7 @@ public class Pathnames {
                 Required.REQUIRED));
         sudoNeeded = (getFromEnv("sudoNeeded", "true").equals("true"));
         gpuDevice = getFromEnv("gpuDevice", "");
+        rerankerDevice = getFromEnv("rerankerDevice", "cpu");
         MODELS_BASE_DIR = getFromEnv("MODELS_BASE_DIR", MODELS_BASE_DIR);
         MODELS_BASE_DIR_ENGLISH = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_ENGLISH);
         MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_FARSI", MODELS_BASE_DIR_FARSI);
