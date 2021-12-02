@@ -58,7 +58,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/" + phase + ".docker-program.out";
+            String logFile = Pathnames.logFileLocation + mode + "/" + phase + ".query-formulator.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);
