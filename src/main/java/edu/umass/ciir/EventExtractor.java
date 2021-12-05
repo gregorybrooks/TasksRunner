@@ -685,6 +685,7 @@ public class EventExtractor {
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " CORPUS_DIR=" + Pathnames.corpusFileLocation
                     + " ./pretrain.sh"
+                    + " " + Pathnames.preTrainSizeParm
                     + " >& " + logFile;
             logger.info("Executing this command: " + tempCommand);
 

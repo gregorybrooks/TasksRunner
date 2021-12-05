@@ -20,6 +20,7 @@ public class Pathnames {
 
     private static Map<String, String> env = System.getenv();
 
+    public static String preTrainSizeParm = "FULL";    // or "SMALL"
     public static int REQUEST_HITS_DETAILED = 100;  // number of hits to get full text and event details
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
@@ -198,6 +199,8 @@ public class Pathnames {
 
     static {
 
+        preTrainSizeParm = getFromEnv("preTrainSizeParm",
+                "FULL");
         REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "1000"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
