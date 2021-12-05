@@ -71,9 +71,9 @@ public class TasksRunner {
                 logger.info("Skipping pre-training");
                 Pathnames.runPreTrain = false;
             } else {
-                f = new File(Pathnames.MODELS_BASE_DIR_ENGLISH);
+                f = new File(Pathnames.MODELS_BASE_DIR_FARSI);
                 if (!f.exists()) {
-                    logger.info(Pathnames.MODELS_BASE_DIR_ENGLISH + " does not exist, so we will run PRE-TRAINING");
+                    logger.info(Pathnames.MODELS_BASE_DIR_FARSI + " does not exist, so we will run PRE-TRAINING");
                     Pathnames.runPreTrain = true;
                 } else {
                     Pathnames.runPreTrain = false;
