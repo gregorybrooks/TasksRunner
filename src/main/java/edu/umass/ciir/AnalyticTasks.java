@@ -180,6 +180,8 @@ public class AnalyticTasks {
                 addRelevantDocsToTasks();
             }
 
+            writeJSONVersion();  // DEBUG
+
             /* Make a map of requestID-to-request object for convenience */
             buildRequestMap();
 
@@ -479,7 +481,8 @@ public class AnalyticTasks {
         for (Map.Entry<RelevanceJudgmentKey, RelevanceJudgment> entry : relevanceJudgments.entrySet()) {
             RelevanceJudgmentKey k = entry.getKey();
             RelevanceJudgment j = entry.getValue();
-            if (k.requestID.substring(0,5).equals(taskID)) {
+            String tid = parseTaskIDFromRequestID(k.requestID);
+            if (tid.equals(taskID)) {
                 if (j.judgment.isRelevant() ) { /* Don't include judgments of "not relevant" */
                     if (!judgments.contains(k.docid )) {
                         judgments.add(k.docid);
@@ -503,7 +506,8 @@ public class AnalyticTasks {
         for (Map.Entry<RelevanceJudgmentKey, RelevanceJudgment> entry : relevanceJudgments.entrySet()) {
             RelevanceJudgmentKey k = entry.getKey();
             RelevanceJudgment j = entry.getValue();
-            if (k.requestID.substring(0,5).equals(taskID)) {
+            String tid = parseTaskIDFromRequestID(k.requestID);
+            if (tid.equals(taskID)) {
                 if (j.judgment.isRelevant() ) { /* Don't include judgments of "not relevant" */
                     judgments.add(k.docid);
                 }
@@ -605,7 +609,7 @@ public class AnalyticTasks {
             if (k.requestID.equals(requestID)
                     && (j.judgment.isRelevant())) {
                 /* Omit the example docs from the relevant docs, like we omit them from run results */
-                String taskID = requestID.substring(0,5);
+                String taskID = parseTaskIDFromRequestID(requestID);
                 Task t = findTask(taskID);
                 if (t != null &&  !t.isInExampleDocs(k.docid)) {
                     docids.add(k.docid);
@@ -635,7 +639,7 @@ public class AnalyticTasks {
                     || (j.judgment == RelevanceJudgment.RelevanceJudgmentType.DIRECT_ANSWER)
                     || (j.judgment == RelevanceJudgment.RelevanceJudgmentType.DECISIONAL))) {
                 /* Omit the example docs from the relevant docs, like we omit them from run results */
-                String taskID = requestID.substring(0,5);
+                String taskID = parseTaskIDFromRequestID(requestID);
                 Task t = findTask(taskID);
                 if (t != null &&  !t.isInExampleDocs(k.docid)) {
                     docids.add(k.docid);
@@ -661,7 +665,7 @@ public class AnalyticTasks {
         return taskList;
     }
 
-    public void writeJSONVersion() {
+    public void writeJSONVersion()  {
         try {
             JSONArray targetTopArray = new JSONArray();
             for (Map.Entry<String,Task> entry : tasks.entrySet()) {
@@ -861,6 +865,15 @@ public class AnalyticTasks {
         return (t != null &&  t.isInExampleDocs(docid));
     }
 
+    private String parseTaskIDFromRequestID(String requestID) {
+        String[] parts = requestID.split("-");
+        if (parts.length != 3) {
+            throw new TasksRunnerException("Bad request ID: " + requestID);
+        }
+        String taskID = parts[0] + "-" + parts[1];
+        return taskID;
+    }
+
     /**
      * Returns the request object identified by the given request ID.
      * This version does not require a task ID.
@@ -868,7 +881,8 @@ public class AnalyticTasks {
      * @return the request object identified by the given request ID
      */
     public Request findRequest(String requestID) {
-        Task t = findTask(requestID.substring(0, 5));
+        String taskID = parseTaskIDFromRequestID(requestID);
+        Task t = findTask(taskID);
         return t.requests.get(requestID);
     }
 

@@ -32,7 +32,7 @@ public class EventExtractor {
     public class SimpleHit {
         String taskID;
         String taskTitle;
-        String TaskStmt;
+        String taskStmt;
         String taskNarr;
         String reqNum;
         String reqText;
@@ -43,12 +43,13 @@ public class EventExtractor {
         String query;
 
         SimpleHit(String docid, String docText, String score, String query, String taskID, String taskTitle, String taskNarr,
-                  String reqNum, String reqText) {
+                  String taskStmt, String reqNum, String reqText) {
             this.docid = docid;
             this.docText = docText;
             this.score = score;
             this.taskID = taskID;
             this.taskTitle = taskTitle;
+            this.taskStmt = taskStmt;
             this.taskNarr = taskNarr;
             this.reqNum = reqNum;
             this.reqText = reqText;
@@ -157,6 +158,7 @@ public class EventExtractor {
                 docEntry.put("task-num", hit.taskID);
                 docEntry.put("task-title", hit.taskTitle);
                 docEntry.put("task-narr", hit.taskNarr);
+                docEntry.put("task-stmt", hit.taskStmt);
                 docEntry.put("req-num", hit.reqNum);
                 docEntry.put("req-text", hit.reqText);
 
@@ -393,6 +395,13 @@ public class EventExtractor {
         Map<String,String> queries = qf.getQueries();
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
+                logger.info("Request text for " + r.reqNum + " is: " + r.reqText);  // DEBUG
+                if (r.reqText == null) {
+                    logger.info("Request text is null");
+                }
+                if (r.reqText == null || r.reqText.equals("")) {
+                    continue;     // only include the 2 requests with extra HITL info
+                }
                 List<String> hits = qf.getDocids(r.reqNum, 10);
                 simpleEntries.clear();
                 for (String td : hits) {
@@ -401,12 +410,12 @@ public class EventExtractor {
                     String docText = Document.getArabicDocumentWithMap(td);
                     String query = queries.get(r.reqNum);
                     simpleEntries.put(docid, new SimpleHit(docid, docText, score, query,
-                            t.taskNum, t.taskTitle, t.taskNarr, r.reqNum, r.reqText));
+                            t.taskNum, t.taskTitle, t.taskNarr, t.taskStmt, r.reqNum, r.reqText));
                 }
                 if (simpleEntries.size() > 0) {
                     String fileForEventExtractor = constructRequestLevelSimpleFileName(r);
                     writeInputFileSimpleFormat(simpleEntries, fileForEventExtractor);
-                    logger.info("Simple entries generated for " + r.reqNum);
+                    logger.info("Simple entries generated this day for " + r.reqNum);
                 }
             }
         }
@@ -438,6 +447,9 @@ public class EventExtractor {
         Map<String,String> queries = qf.getQueries();
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
+                if (r.reqText.length() == 0) {
+                    continue;     // only include the 2 requests with extra HITL info
+                }
                 List<String> hits = qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
                 simpleEntries.clear();
                 String query = queries.get(r.reqNum);
@@ -729,7 +741,7 @@ public class EventExtractor {
         createInputForEventExtractorFromExampleDocs(fileForEventExtractor);
     }
 
-    public void extractExampleEventsPart2() {
+    public void extractExampleEventsPart2()  {
         String fileFromEventExtractor = constructExampleFileFromEventExtractorFileName();
 
         List<Hit> hits = readEventFile(fileFromEventExtractor, -1);
@@ -738,7 +750,6 @@ public class EventExtractor {
             updateSentenceIDs(hit);
             updateTaskOrRequest(hit);
         }
-        tasks.writeJSONVersion();
     }
 
     public void getSentencesFromDocs() {
@@ -925,7 +936,8 @@ public class EventExtractor {
     }
 
     private void updateTaskOrRequest(Hit hit) {
-        String groupType = hit.taskID.length() > 5 ? "R" : "T";
+//        logger.info("In updateTaskOrRequest, hit.taskID is " + hit.taskID + ", length is " + hit.taskID.length());
+        String groupType = hit.taskID.length() > 6 ? "R" : "T";
         if (groupType.equals("T")) {
             String taskID = hit.taskID;
             String docid = hit.docid;
@@ -938,6 +950,8 @@ public class EventExtractor {
         } else {
             String requestID = hit.taskID;
             String docid = hit.docid;
+//            logger.info("docid is " + docid);  // DEBUG
+//            logger.info("Looking for request " + requestID);  // DEBUG
             Request r = tasks.findRequest(requestID);
             for (ExampleDocument d : r.reqExampleDocs) {
                 if (d.getDocid().equals(docid)) {
