@@ -42,6 +42,6 @@ scratchFileLocation=$SCRATCH_DIR/clear_ir
 appFileLocation=${APP_DIR}
 EVENT_EXTRACTOR_FILE_DIRECTORY=${SCRATCH_DIR}/clear_ir/eventextractorfiles
 
-docker run -it --rm --env-file=$ENV_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $APP_DIR:$APP_DIR -v $CORPUS_DIR:$CORPUS_DIR -v $SCRATCH_DIR:$SCRATCH_DIR --env MODELS_BASE_DIR_ENGLISH=$MODELS_BASE_DIR_ENGLISH --env MODELS_BASE_DIR_FARSI=$MODELS_BASE_DIR_FARSI --env corpusFileLocation=$corpusFileLocation --env scratchFileLocation=$scratchFileLocation --env appFileLocation=$appFileLocation --env EVENT_EXTRACTOR_FILE_DIRECTORY=$EVENT_EXTRACTOR_FILE_DIRECTORY --env targetCorpusFileName=$targetCorpusFileName --env englishCorpusFileName=$englishCorpusFileName gregorybrooks/tasks-runner:3.0.2 sh
+docker run -it --rm --env-file=$ENV_FILE -v /var/run/docker.sock:/var/run/docker.sock -v $APP_DIR:$APP_DIR -v $CORPUS_DIR:$CORPUS_DIR -v $SCRATCH_DIR:$SCRATCH_DIR --env MODELS_BASE_DIR_ENGLISH=$MODELS_BASE_DIR_ENGLISH --env MODELS_BASE_DIR_FARSI=$MODELS_BASE_DIR_FARSI --env corpusFileLocation=$corpusFileLocation --env scratchFileLocation=$scratchFileLocation --env appFileLocation=$appFileLocation --env EVENT_EXTRACTOR_FILE_DIRECTORY=$EVENT_EXTRACTOR_FILE_DIRECTORY --env targetCorpusFileName=$targetCorpusFileName --env englishCorpusFileName=$englishCorpusFileName gregorybrooks/tasks-runner:3.1.0 sh
 
 echo `date`

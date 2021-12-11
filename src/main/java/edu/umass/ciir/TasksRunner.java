@@ -555,7 +555,6 @@ public class TasksRunner {
             throw new TasksRunnerException(errorMessage);
         }
 
-
         TasksRunner betterIR = new TasksRunner();
         if (Pathnames.useTaskSetFile) {
             /* This must be done before setupLogging() because that func uses mode,

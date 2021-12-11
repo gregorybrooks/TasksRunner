@@ -130,7 +130,7 @@ public class AnalyticTasks {
     private void openFiles() {
         try {
             tasksAndRequestsFile = Pathnames.appFileLocation + taskFileName;
-            supplementalFile = Pathnames.scratchFileLocation + Pathnames.supplementalFileName;
+            supplementalFile = "/home/tasksrunner/scripts/supplemental_info.json";
             logger.info("Opening task definition file " + tasksAndRequestsFile);
 
             /* Get task and request definitions */
@@ -180,8 +180,6 @@ public class AnalyticTasks {
                 addRelevantDocsToTasks();
             }
 
-            writeJSONVersion();  // DEBUG
-
             /* Make a map of requestID-to-request object for convenience */
             buildRequestMap();
 
@@ -223,9 +221,9 @@ public class AnalyticTasks {
     private void addSupplementalDocsToRequests() {
         for (SupplementalExampleDocument supDoc : supplementalExampleDocs) {
             long score = supDoc.getScore();
-            if (score == 1 || score == 2) {
+            if (score == 3) {
                 addSupplementalDocToTask(supDoc);
-            } else if (score == 3 || score == 5) {
+            } else if (score == 4 || score == 5) {
                 addSupplementalDocToRequest(supDoc);
             }
         }
