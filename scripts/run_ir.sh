@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ve
 
-cd target && java -jar tasks-runner-3.1.0.jar
+cd target && java -jar tasks-runner-3.1.0-TEST.jar
 
 chmod a+rw ${appFileLocation}/results.json
