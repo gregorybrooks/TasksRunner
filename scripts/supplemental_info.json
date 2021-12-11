@@ -4,473 +4,650 @@
             "task-type": "umass",
             "task-num": "IR-T1",
             "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--d03451fe-4555-4fe3-94d4-d89871e0c49b",
-            "score": 5,
-            "highlights": [
-                "More than 150 have been hospitalized for pulmonary complications and other medical issues resulting from a dust cloud that descended over Kerman and Sistan and Baluchistan"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--a4fa50db-0cbb-4087-b5ba-63e012564b9f",
+            "doc-id": "RequestLevelHit--IR-T1-r1--6cac9e20dc110718e43bf98257f4c736",
             "score": 3,
             "highlights": [
-                "More than 80 people were hospitalized on Saturday, suffering respiratory problems, Shahnavazi said."
+                "The unrest was sparked last November by a plan to expand the capital into Oromia. This led to fears that farmers from the Oromo ethnic group, the largest in Ethiopia, would be displaced."
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T1",
             "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--98d88ce1-9731-45f7-b4c9-77e5c5a7f0d8",
+            "doc-id": "RequestLevelHit--IR-T1-r1--ecab6181dc07e30c66dd9abc3a13f3ea",
+            "score": 5,
+            "highlights": [
+                "Mass protests erupted in Ethiopia's populous Oromia region - home to the Oromo, Ethiopia's largest ethno-national group - in 2015 after a master plan was unveiled to expand the boundaries of the capital, Addis Ababa."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T1",
+            "req-num": "IR-T1-r1",
+            "doc-id": "RequestLevelHit--IR-T1-r1--139ebe78aa52123641c70353eafe2ae2",
+            "score": 5,
+            "highlights": [
+                "The protests, which initially began over land rights but later broadened to include calls for greater political representation at the national level, were met with a harsh government response."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T1",
+            "req-num": "IR-T1-r1",
+            "doc-id": "RequestLevelHit--IR-T1-r1--6e20153628a140aa42d1969ec178ef84",
             "score": 4,
             "highlights": [
-                "95 people were taken to hospitals after suffering breathing problems during a sand-and-dust storm in the southeastern province of Sistan and Baluchistan."
+                "Ethiopia's cabinet on Friday cited deaths, ethnic attacks and mass displacement as reasons for the latest state of emergency. The announcement followed crippling protests in towns across the restive Oromia region on Monday and Tuesday that called for the release of political prisoners and urged the government to carry out rapid reforms"
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T1",
             "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--04a241ad-ee8f-4aa1-ae2e-d8ebdd87920b",
+            "doc-id": "RequestLevelHit--IR-T1-r1--86031307e7604111c6bd08af878d7130",
             "score": 3,
             "highlights": [
-                "Some 48 people were sent to hospitals and health centers on Sunday"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--c3dc8e1a-deb3-45a9-a94e-9a22c901fcde",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--5b20a644-5857-4677-9c27-7ba4b9859f2d",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T8",
-            "req-num": "IR-T8-r1",
-            "doc-id": "RequestLevelHit--IR-T8-r1--991ee974-2ca8-4adb-84f4-6fb4e7e7396b",
-            "score": 5,
-            "highlights": [
-                "the January 12 earthquake, which killed more than 250,000 people"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T8",
-            "req-num": "IR-T8-r1",
-            "doc-id": "RequestLevelHit--IR-T8-r1--dcbe19ef-8f92-42ba-b621-a5577cfe10b2",
-            "score": 5,
-            "highlights": [
-                "More than 250,000 people died in the January 12 earthquake"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T8",
-            "req-num": "IR-T8-r1",
-            "doc-id": "RequestLevelHit--IR-T8-r1--47ba40c9-96bc-4a76-a442-9571e4cc5118",
-            "score": 5,
-            "highlights": [
-                "We can speak today of more than 150,000 dead"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T9",
-            "req-num": "IR-T9-r1",
-            "doc-id": "RequestLevelHit--IR-T9-r1--d8e209ad-9dfa-4c40-b520-a68307599405",
-            "score": 4,
-            "highlights": [
-                "Syrian kids told them ending up in the \"Jungle\" was by far the worst part of their gruelling journey\n\nHundreds of migrants, mainly from Eritrea and Sudan\n\nMany of those who decided to stay inside the \"Jungle\" and defy that order to evacuate are the Afghan migrants."
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--d03451fe-4555-4fe3-94d4-d89871e0c49b",
-            "score": 5,
-            "highlights": [
-                "More than 150 have been hospitalized for pulmonary complications and other medical issues resulting from a dust cloud that descended over Kerman and Sistan and Baluchistan"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--a4fa50db-0cbb-4087-b5ba-63e012564b9f",
-            "score": 3,
-            "highlights": [
-                "More than 80 people were hospitalized on Saturday, suffering respiratory problems, Shahnavazi said."
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--98d88ce1-9731-45f7-b4c9-77e5c5a7f0d8",
-            "score": 4,
-            "highlights": [
-                "95 people were taken to hospitals after suffering breathing problems during a sand-and-dust storm in the southeastern province of Sistan and Baluchistan."
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--04a241ad-ee8f-4aa1-ae2e-d8ebdd87920b",
-            "score": 3,
-            "highlights": [
-                "Some 48 people were sent to hospitals and health centers on Sunday"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--c3dc8e1a-deb3-45a9-a94e-9a22c901fcde",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--5b20a644-5857-4677-9c27-7ba4b9859f2d",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--fd0193cc-9446-4757-8b20-ab67cafd5ab4",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--3e046193-4c2d-49c0-92c6-70297d7f4340",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--95db4791-a8de-48a3-8f3e-ea39c4603436",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r1",
-            "doc-id": "RequestLevelHit--IR-T1-r1--b8c9f574-e888-4ce0-b795-648231a6f2de",
-            "score": 1,
-            "highlights": []
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T1",
-            "req-num": "IR-T1-r2",
-            "doc-id": "RequestLevelHit--IR-T1-r2--c3dc8e1a-deb3-45a9-a94e-9a22c901fcde",
-            "score": 4,
-            "highlights": [
-                "prompted officials to release \\xe2\\x80\\x9cred alert\\xe2\\x80\\x9d warnings as the concentration of dust and particles in the air has soared above safe levels"
+                "Anger about a development scheme for the capital turned into broader anti-government demonstrations over politics and human rights abuses as the government promotes Ethiopia as one of Africa\u2019s top-performing economies."
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T2",
             "req-num": "IR-T2-r1",
-            "doc-id": "RequestLevelHit--IR-T2-r1--31945027-184f-4a8b-ae31-eb86aaf341b1",
-            "score": 5,
+            "doc-id": "RequestLevelHit--IR-T2-r1--afb35f548223d1920ff1c3aec10f67a6",
+            "score": 4,
             "highlights": [
-                "Teams from the United States, United Kingdom and China arrived here to assist in searching for missing residents. "
+                "On Saturday evening, about 200 protesters in the Red Sea city of Suez were met with police officers firing rubber bullets, according to posts on social media and a witness."
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T2",
             "req-num": "IR-T2-r1",
-            "doc-id": "RequestLevelHit--IR-T2-r1--07a6ecd8-1b3d-47e2-8681-5e95e6ea7e1a",
-            "score": 5,
-            "highlights": [
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--4d56511f-c520-472a-9a04-fffeec81c5a5",
-            "score": 5,
-            "highlights": [
-                "Italy rescuers search for quake survivors 25 Aug 201625 Aug 2016 I'll si"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--31d0002a-82e5-4925-844c-5d22c93bd1c0",
-            "score": 5,
-            "highlights": [
-                "An injured man was rescued from the rubble of a collapsed building in Amatrice, Italy, on Wednesday after a 6.2-magnitude earthquake.CreditCreditMassimo Percossi/European Pressphoto Agency By Elisabetta Povoledo Aug. 24, 2016 A"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--7d7c2d13-d6a7-42ac-8cce-fa254ab6eaea",
-            "score": 5,
-            "highlights": [
-                ". The magnitude 6.2 quake struck at 3:36 am (0136 GMT) and was felt across a broad swathe of central Italy, including Rome where residents felt a long swaying followed by aftershocks. [Alessandra Tarantino/AP] 24 Aug 2016 At least 38 "
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--c873f090-3958-40e6-9983-23626d467556",
-            "score": 5,
-            "highlights": [
-                "An injured man was rescued from the rubble of a collapsed building in Amatrice, Italy, on Wednesday after a 6.2-magnitude earthquake.Credit...Massimo Percossi/European Pressphoto Agency By Elisabetta Povoledo Aug. 24, 2016 "
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--e16477b2-9cb6-42f7-a12a-b5749ce3a862",
-            "score": 5,
-            "highlights": [
-                " 25 Aug 2016 04:46 GMT At least 247 people have died after a powerful earthquake struck central Italy, destroying dozens of villages, the"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--1c57aa7b-50c4-41c3-9895-7a01841bc39f",
-            "score": 5,
-            "highlights": [
-                " Updated Aug. 27, 2016 at 4:44 PM Italy earthquake: Death toll rises to 291, funeral proceedings begin By Daniel Uria (0) Italians sit next to the rubble and debris after an earthquake in the central Italian town of Amatrice on Saturda"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--f34c21db-25db-4d28-a885-c0a4a84e7de2",
-            "score": 5,
-            "highlights": [
-                "25 Aug 2016 At least 247 people have died after a powerful earthquake struck central Italy, destroying dozens of villages, the country\\"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--532bdb09-16d4-4b95-a636-aa2597408d50",
-            "score": 5,
-            "highlights": [
-                " Thursday\\'s developments At least 241 people killed and 264 injured in 6.2 magnitude quake Girl pulled out alive from rubble Italians queue to give blood Matthew Weaver (now) and Paul Farrell Thu 25 Aug 2016 10.11"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--cc3cea1f-7b14-4b06-9eab-e2a01d538540",
-            "score": 5,
-            "highlights": [
-                "Firefighters walk past Norcia\\xe2\\x80\\x99s damaged town hall and basilica the day after the earthquake hit central Italy, on 31 October 2016. P"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T3",
-            "req-num": "IR-T3-r1",
-            "doc-id": "RequestLevelHit--IR-T3-r1--11d93255-5260-49ff-ba73-ab0072f8f095",
-            "score": 5,
-            "highlights": [
-                "At least 296 people died in the violent shaking on Aug 24."
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--4a259dfb-c2fe-4687-938e-fac7a6ee7750",
-            "score": 5,
-            "highlights": [
-                "Fate of Stateless Rohingya Muslims Is in Antagonistic Hands "
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--3630007d-d0d5-4cb7-9460-0b2393dd9a11",
-            "score": 5,
-            "highlights": [
-                "Rohingya Refugees From Myanmar Have Been Persecuted for Decades"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--f97b03b7-09b3-40af-9f75-30cad5362344",
-            "score": 5,
-            "highlights": [
-                "For these men, ethnic Rohingya Muslim refugees from Myanmar, there is certainly nothing back across the water. H"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--93628973-cafc-44aa-a9b1-2809bd163dca",
-            "score": 5,
-            "highlights": [
-                " Over 10,000 more Rohingya refugees fleeing a military crackdown at home in Myanmar\\x"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--de2b1cda-0701-4bcf-b0d1-167ec4e625e9",
-            "score": 5,
-            "highlights": [
-                "The gradual repatriation of more than 650,000 Rohingya Muslim refugees to Myanmar from Bangladesh has been postponed amid widespread fears that refugees would be forced to return against their will, "
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--66268f5c-be72-4884-a45e-32eb82468687",
-            "score": 5,
-            "highlights": [
-                "he policy, accompanied by a wave of decrees and legislation, has made life for the Rohingya, a long-persecuted Muslim minority, ever more desperate, spurring the biggest flow of Rohingya refugees since a major exodus two years ago. "
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--2d946c56-22fc-4140-9e65-b12374f541a2",
-            "score": 5,
-            "highlights": [
-                "Rohingya refugees turn down second Myanmar repatriation effort This article is more than 1 year old Bangladeshi official says potential returnees fear for their safety in Rakhine state Rohingya refugees at the Nayapara refugee camp "
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T4",
-            "req-num": "IR-T4-r1",
-            "doc-id": "RequestLevelHit--IR-T4-r1--2775972e-047d-4d0f-8ad2-7f0db61e4bec",
-            "score": 5,
-            "highlights": [
-                " Rohingya refugees at the Pauktaw camp in west Burma. Pho"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T5",
-            "req-num": "IR-T5-r1",
-            "doc-id": "RequestLevelHit--IR-T5-r1--0080c12b-6fb4-4c62-b766-13d16488a509",
+            "doc-id": "RequestLevelHit--IR-T2-r1--33c86214a0e4c140f5a6fa9c8c9aef34",
             "score": 4,
             "highlights": [
-                " Floods clogged water treatment plants with rocks and debris, forcing authorities to restrict water use in Lima and Arequipa, Peru"
+                "Hundreds of Egyptians filled Tahrir Square in Cairo - a key site of the 2011 Egyptian Revolution - demanding his resignation."
             ]
         },
         {
             "task-type": "umass",
-            "task-num": "IR-T5",
-            "req-num": "IR-T5-r1",
-            "doc-id": "RequestLevelHit--IR-T5-r1--e2648c5a-09ab-4899-8b75-3100495599f6",
-            "score": 3,
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--3539910451c3d4eb87a7cb76bf95ee41",
+            "score": 4,
             "highlights": [
-                "out half of Peru has been declared in emergency to expedite resources to the hardest hit areas, mostly in the north where rainfall has broken records in several districts"
+                "The Egyptian Commission for Rights and Freedoms (ECRF), a Cairo-based NGO, reported on Sunday that at least 220 people had been arrested since protests began on Friday night. The organisation said it had set up an \u201cemergency room\u201d to deal with the spike in arrests, and that at least 100 more people were likely to have been detained after protests in Suez, Alexandria and Giza. Another NGO, the Egyptian Centre for Economic & Social Rights, stated it had recorded at least 274 arrests since the demonstrations began.\n\n\u201cWe\u2019re continuing to get cases around the clock,\u201d said Mohamed Lotfy of ECRF. \u201cI think the riot police and the ministry of the interior didn\u2019t expect this size of protests.\u201d ECRF recorded arrests in at least 12 locations, including Cairo, Giza, Alexandria, Suez, and towns such as Dakahlia, Qalyubia and Kafr el-Sheikh.\n\nOn Friday protesters had taken to the streets across Egypt "
             ]
         },
         {
             "task-type": "umass",
-            "task-num": "IR-T5",
-            "req-num": "IR-T5-r1",
-            "doc-id": "RequestLevelHit--IR-T5-r1--6eb31946-73ef-4f27-bdff-86ff2bd3ca07",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--cec290838e36aa29b6edd56b2078c61a",
+            "score": 4,
+            "highlights": [
+                "Egyptian security forces clashed with hundreds of anti-government protesters in the seaport city of Suez on Saturday, firing tear gas and live rounds, said several residents who participated in the demonstrations, reported the Middle East Eye."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--b288a7984cfac082843f4378fb6961c5",
+            "score": 4,
+            "highlights": [
+                "Hundreds of citizens took to the streets late Friday to protest, chanting slogans including \u201cLeave, Sissi!\u201d and holding up placards.\n\nAt least 74 were arrested overnight, a security source told AFP, with plain-clothed police patrolling sidestreets of downtown Cairo.\n"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--44c6c0dab1ccbc921c715f9224b80c7c",
+            "score": 4,
+            "highlights": [
+                "The arrest campaign by Egyptian security forces against political activists, party and trade union leaders, and opposition forces has continued in a number of Egyptian governorates and cities, coinciding with calls to take to the streets and public squares in a large rally expected to reach one million protesters, on Friday 27 September, to demand the overthrow of the regime of General Abdel Fattah Al-Sisi.\n\nThe Egyptian authorities have launched a mass arrest campaign as Sisi attempts to crackdown on calls for his ousting. At least 1,300 Egyptians have been detained since Friday as Cairo continues its crackdown on protests against the rule of President Abdel Fattah al-Sisi."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--ee097060c9a8aa58c5ebf26b6b1ccf43",
             "score": 3,
             "highlights": [
-                ". People cross a flooded street after a massive landslide and flood in the Huachipa district of Lima, Peru."
+                "Egyptian police quashed a few small protests across the country on Friday and arrested hundreds of protesters as calls for an uprising against rising prices largely went unheeded.\nPolice rounded up at least 325 protesters across the country, a security official said.\nIn Cairo, where police had deployed in force in anticipation of protests, 70 alleged demonstrators were arrested.\nPolice also quickly scattered several dozen protesters who assembled in the port city of Suez."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--7b2ffb007a47199aba20613f780b358b",
+            "score": 5,
+            "highlights": [
+                "TUESDAY, JANUARY 25\n\nAs many as 20,000 protesters spill into the streets of Cairo in an unprecedented display of anti-government rage inspired in part by the Tunisian revolt. "
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r1",
+            "doc-id": "RequestLevelHit--IR-T2-r1--f65115f76dc51111d6ce8d6cf95b348c",
+            "score": 5,
+            "highlights": [
+                "In late September, protests erupted throughout Egypt in response to the widespread and systemic corruption of the regime of Abdel Fattah al-Sisi."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--44c6c0dab1ccbc921c715f9224b80c7c",
+            "score": 5,
+            "highlights": [
+                NaN
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--afb35f548223d1920ff1c3aec10f67a6",
+            "score": 5,
+            "highlights": [
+                "\nOn Saturday evening, about 200 protesters in the Red Sea city of Suez were met with police officers firing rubber bullets, according to posts on social media and a witness."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--a16801145034abf839898edf73996026",
+            "score": 3,
+            "highlights": [
+                NaN
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--33c86214a0e4c140f5a6fa9c8c9aef34",
+            "score": 4,
+            "highlights": [
+                NaN
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--3539910451c3d4eb87a7cb76bf95ee41",
+            "score": 5,
+            "highlights": [
+                "The Egyptian Commission for Rights and Freedoms (ECRF), a Cairo-based NGO, reported on Sunday that at least 220 people had been arrested since protests began on Friday night. The organisation said it had set up an \u201cemergency room\u201d to deal with the spike in arrests, and that at least 100 more people were likely to have been detained after protests in Suez, Alexandria and Giza. Another NGO, the Egyptian Centre for Economic & Social Rights, stated it had recorded at least 274 arrests since the demonstrations began."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--f65115f76dc51111d6ce8d6cf95b348c",
+            "score": 3,
+            "highlights": [
+                "The first protests in Cairo, Alexandria, and Suez had a cascading effect that in turn gave way to more protests. The protesters numbered in the hundreds and thousands, not quite the size of the demonstrations that pushed out Egypt\u2019s longtime dictator Hosni Mubarak, but significant enough to provoke a draconian response from Sisi. Most of those detained were not actively protesting; rather, the regime has used the unrest to simply sweep up anyone deemed part of the opposition, in an attempt to intimidate broader political challenges to the regime."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T2",
+            "req-num": "IR-T2-r2",
+            "doc-id": "RequestLevelHit--IR-T2-r2--43870a2af986c4bc4351ed0f368f0dc8",
+            "score": 3,
+            "highlights": [
+                "Yet hundreds of people did demonstrate in cities including Cairo, Suez and Alexandria last week. "
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--375f097a17b76a05dfdc9d1d69bc97ae",
+            "score": 5,
+            "highlights": [
+                "Tens of thousands of Lebanese took to the streets for a fourth day on Sunday to protest political stasis and corruption, as the government was rocked by the resignation of a coalition partner.\n\nDemonstrations began spontaneously on Thursday in response to a proposed tax on calls via WhatsApp and other messaging services."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--6fcf331c8ee573d4b0ad0b9870ee4c1a",
+            "score": 5,
+            "highlights": [
+                "Anti-government protesters have been holding demonstrations since Oct. 17, demanding an end to widespread corruption and mismanagement by the political class that has ruled the country for three decades. The protesters have paralyzed Lebanon by closing roads inside cities as well as major highways."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--d9f8ad366e2cd1eff4538112beabd44f",
+            "score": 5,
+            "highlights": [
+                "The incident occurred late Thursday night when protesters closed the Biddawi road near the northern city of Tripoli. They were protesting electricity cuts that can last for hours each day. Lebanese troops detained some of the protesters who had blocked the road.\n\nLater in the evening, more demonstrators came to the protest site to demand the detainees\u2019 release. They then attacked troops with Molotov cocktails and hurled stones, injuring 14 soldiers, the army said, adding eight protesters were detained in those clashes."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--5d760f192f7ef826b6189c17634a0488",
+            "score": 5,
+            "highlights": [
+                "Lebanese Prime Minister Saad Hariri submitted his resignation on Tuesday, succumbing to nearly two weeks of unprecedented nationwide protests against corruption and sectarianism."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--2a8fee9399989593345d568a1eabb8af",
+            "score": 5,
+            "highlights": [
+                "Demonstrators sit together during a protest over deteriorating economic situation, in the city of Jounieh, north of Beirut, Lebanon October 18, 2019. (Reuters)"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--1b839c2e0e66c49fade9a9415093974a",
+            "score": 4,
+            "highlights": [
+                "\nBut on Monday demonstrators battled on, vowing to keep up their street movement until all their demands are met, including the formation of a technocratic government."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r1",
+            "doc-id": "RequestLevelHit--IR-T3-r1--c89f08300078b44428c89d9116332ca8",
+            "score": 4,
+            "highlights": [
+                "\nTension has mounted in recent days between security forces and protesters, who are blocking roads and bringing the country to a standstill to press their demands for a complete overhaul of the political system."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T3",
+            "req-num": "IR-T3-r2",
+            "doc-id": "RequestLevelHit--IR-T3-r2--375f097a17b76a05dfdc9d1d69bc97ae",
+            "score": 4,
+            "highlights": [
+                "\n Tens of thousands of Lebanese took to the streets for a fourth day on Sunday to protest political stasis and corruption, as the government was rocked by the resignation of a coalition partner.\n\nDemonstrations began spontaneously on Thursday in response to a proposed tax on calls via WhatsApp and other messaging services."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--1630fdd5168e11054789e1ae3074eff8",
+            "score": 4,
+            "highlights": [
+                "BEIRUT: Thousands of protesters rallying against the Lebanese political elite blocked roads in central Beirut on Tuesday, preventing lawmakers from reaching the parliament and forcing the postponement of a legislative session.\nThe session had been scheduled even though the country is still without a Cabinet following the prime minister\u2019s resignation amid unprecedented demonstrations that have gripped Lebanon since mid-October.\n\nThe protesters scuffled with riot police as they closed all roads leading to the parliament building in Beirut."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--66489346a6bab951445f68512dcd57e0",
+            "score": 3,
+            "highlights": [
+                "BEIRUT: Anger, frustration, and the hope for a better Lebanon are what systematized Wednesday\u2019s students and academics\u2019 protests.\n\nIn reaction to some universities\u2019 primary decision to resume normal classes, a number of students from various universities gathered to peacefully block the streets of Beirut at 6:30 am."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--cb8cdc27711a7c5f3fa6501e99d581ac",
+            "score": 5,
+            "highlights": [
+                "A placard held by a demonstrator at a rally in Beirut on October 20, 2019 reads, \u2018When we say all of you (should leave), we mean all of you. You (the political class) are sectarian. We are for coexistence\u2019. (Reuters)"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--a4ef0a9d33259108692e4120d479a41c",
+            "score": 4,
+            "highlights": [
+                "BEIRUT: Lebanese protesters returned to the streets Tuesday following a brief weekslong lull, blocking several roads around the capital, Beirut, and other areas of the country. The renewed rallies were held against a ruling elite who protesters say have failed to address the economy\u2019s downward spiral.                                                               Rabie al-Zain, an activist protesting in Jal el-Dib, north of Beirut, said the rallies are a reminder to the rulers that the reasons for their protests are still here. \u201cToday we add the students to the revolution \u2014 those who will handle the country when the current rulers will go to the dustbin of history,\u201d he said.\n\nIn downtown Beirut, dozens rallied outside the Central Bank, chanting against the governor and his financial policies. Security forces separated the protesters from the bank\u2019s entrance.\n\nIn the northern city of Tripoli and in Akkar province, protesters sat in the streets and blocked several roads with bricks or burning tires. In Sidon, thousands of protesters rallied in a central square of the southern city. In the eastern city of Zahle, hundreds rallied by nightfall against the current political class."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--5d760f192f7ef826b6189c17634a0488",
+            "score": 3,
+            "highlights": [
+                "\nLebanese Prime Minister Saad Hariri submitted his resignation on Tuesday, succumbing to nearly two weeks of unprecedented nationwide protests against corruption and sectarianism.\n\nHariri's express and somber televised address was met by cheers from crowds of protesters who have remained mobilized since October 17, crippling the country to press their demands."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--21d0895909f9df1b4593740ba80890f8",
+            "score": 5,
+            "highlights": [
+                "Anti-government protesters chant slogans against the Lebanese government, in Beirut, Lebanon, Sunday, Nov. 3, 2019. AP"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--5afcdb0641a986ef90a02839628cb396",
+            "score": 3,
+            "highlights": [
+                "At sunset, protesters poured through the villages and towns of Lebanon\u2019s south, north and east as well as the capital Beirut. No political leader, Muslim or Christian, was spared their wrath."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--1b839c2e0e66c49fade9a9415093974a",
+            "score": 4,
+            "highlights": [
+                "Protesters blocked roads in Beirut and other parts of Lebanon on Monday. (AFP file photo)  But on Monday demonstrators battled on, vowing to keep up their street movement until all their demands are met, including the formation of a technocratic government.\n\nNationwide cross-sectarian rallies have gripped Lebanon since October 17, demanding a complete overhaul of a political system deemed inefficient and corrupt.    \"The people in power are not serious\" about forming a new government, said Aadi, a 30-year-old demonstrator blocking a road that connects the capital to the southern city of Sidon."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--f1bd8d9cd5617779ffa0320f5cd19272",
+            "score": 4,
+            "highlights": [
+                "From early morning, hundreds of noisy demonstrators and riot police had faced off and at times scuffled outside the assembly in Beirut, with activists also trying to block MPs' convoys.  \nLebanon, its economy in turmoil, has since October 17 been rocked by an unprecedented wave of popular street revolts that have cut across sectarian lines."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r1",
+            "doc-id": "RequestLevelHit--IR-T4-r1--c89f08300078b44428c89d9116332ca8",
+            "score": 5,
+            "highlights": [
+                "Lebanese protesters hold hands to form a human chain along the coast from north to south, Beirut, Oct. 27, 2019. AFP Photo  Demonstrators joined hands from Tripoli to Tyre, a 170-kilometer chain running through the main protest hub in Beirut, as part of an unprecedented cross-sectarian mobilization."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r2",
+            "doc-id": "RequestLevelHit--IR-T4-r2--23f2f4ca41c0481f3b35d7968d325e63",
+            "score": 5,
+            "highlights": [
+                "Meanwhile, hundreds of protesters marched toward central Beirut amid a deepening economic crisis."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r2",
+            "doc-id": "RequestLevelHit--IR-T4-r2--21d0895909f9df1b4593740ba80890f8",
+            "score": 5,
+            "highlights": [
+                "Tens of thousands of Lebanese packed on Sunday into central Beirut for an anti-government demonstration hours after a rally was held in support of President Michel Aoun."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T4",
+            "req-num": "IR-T4-r2",
+            "doc-id": "RequestLevelHit--IR-T4-r2--cb8cdc27711a7c5f3fa6501e99d581ac",
+            "score": 4,
+            "highlights": [
+                "Since mass demonstrations started on Thursday, the chortles of tens of thousands have rung out across the country, until the late hours of the night."
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T6",
             "req-num": "IR-T6-r1",
-            "doc-id": "RequestLevelHit--IR-T6-r1--4a69e153-da02-448f-b491-75a7fc854ce5",
-            "score": 3,
+            "doc-id": "RequestLevelHit--IR-T6-r1--5b2e59956f8a7c8e3b9635380014b20b",
+            "score": 5,
             "highlights": [
-                "New dengue virus confirmed in India This story is from November 1, 2017 New dengue virus confirmed in India Umesh Isalkar "
+                "Tens of thousands resumed mass demonstrations to demand an end to endemic corruption and economic hardships, which they blame on the current system of government."
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T6",
             "req-num": "IR-T6-r1",
-            "doc-id": "RequestLevelHit--IR-T6-r1--ccbfe26e-19ee-4594-8021-3d8d8080ffd2",
-            "score": 3,
+            "doc-id": "RequestLevelHit--IR-T6-r1--dc628f77c26c359de1f4c17580258929",
+            "score": 5,
             "highlights": [
-                "This article is more than 1 year old Philippines declares epidemic after dengue fever kills more than 600"
+                "In the southern port city of Basra, around 800 students returned to camp outside the provincial government headquarters days after they had been pushed out by riot police."
             ]
         },
         {
             "task-type": "umass",
-            "task-num": "IR-T7",
-            "req-num": "IR-T7-r1",
-            "doc-id": "RequestLevelHit--IR-T7-r1--3e046193-4c2d-49c0-92c6-70297d7f4340",
+            "task-num": "IR-T6",
+            "req-num": "IR-T6-r1",
+            "doc-id": "RequestLevelHit--IR-T6-r1--2dda40a22768f8d48eb15aa6f819d17d",
             "score": 4,
             "highlights": [
-                "Meanwhile, in Iranshahr, 11 bridges have been destroyed, the road to Bam is blocked,"
+                "a few dozen demonstrators returned to the capital\u2019s central Tahrir Square in the morning."
             ]
         },
         {
             "task-type": "umass",
             "task-num": "IR-T7",
             "req-num": "IR-T7-r1",
-            "doc-id": "RequestLevelHit--IR-T7-r1--4d82a4bd-db28-4718-a1e3-94a78bf54bcf",
-            "score": 3,
-            "highlights": [
-                "floodwaters into villages and towns which killed at least 76 people and caused an estimated $2.5 billion in damage to roads, bridges, homes and farmland, according to Interior Ministe"
-            ]
-        },
-        {
-            "task-type": "umass",
-            "task-num": "IR-T7",
-            "req-num": "IR-T7-r1",
-            "doc-id": "RequestLevelHit--IR-T7-r1--c50588e0-cc70-4521-b54d-0ef0757ed711",
+            "doc-id": "RequestLevelHit--IR-T7-r1--d8254ee6a1c069f413c03cb88095136c",
             "score": 4,
             "highlights": [
-                "he flood also has destroyed roads, bridges and many urban infrastructures."
+                "BASRA/ERBIL, Iraq (Reuters) - Civil unrest fueled by anger against perceived corruption and misrule by Iraq\u2019s political elite intensified across the south of the country on Friday, as protesters stormed the Iranian consulate in Basra while others briefly took workers hostage at a nearby oilfield."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--725ad87f809175b2d946c80fe6e1c5c4",
+            "score": 4,
+            "highlights": [
+                "Shell evacuates foreign staff from Iraq's Basra Gas project - executives BASRA, Iraq Royal Dutch Shell evacuated some 60 foreign staff from Iraq's Basra Gas Company as a security measure following a protest over delayed pay, company officials said on Thursday, adding production was unaffected."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--44f3f2646ecf3a936d8fcf191c8868fc",
+            "score": 4,
+            "highlights": [
+                "BASRA/ERBIL, Iraq (Reuters) - Basra airport was attacked with rockets on Saturday after another night of protests against Iraq\u2019s political elite, during which demonstrators set fire to the Iranian consulate and briefly took oilfield workers hostage."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--574c0dcf38d15bb308effe4f8df678cc",
+            "score": 4,
+            "highlights": [
+                "A ship is docked at Khor al-Zubair commodities port after demonstrators block the entrance during the ongoing anti-government protests, near Basra, Iraq November 19, 2019. REUTERS/Essam al-Sudani"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--f3e2f908884612af2d9b1e4b0317fbaa",
+            "score": 4,
+            "highlights": [
+                "BASRA, Iraq (Reuters) - Hundreds of Iraqis stormed the airport and halted air traffic in the Shi\u2019ite holy city of Najaf on Friday, extending protests"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--7b6763805ccb1bde115550b077241285",
+            "score": 4,
+            "highlights": [
+                "On Tuesday protesters blocked the entrance to the Gulf port and prevented trucks from entering, as part of the biggest wave of anti-government demonstrations in the country in decades."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--e4e7707214643b0ffa11aded864788e0",
+            "score": 4,
+            "highlights": [
+                " Iraqi security forces killed at least five people when they opened fire on protesters in Baghdad on Monday, a Reuters witness said, as thousands took part in the largest wave of anti-government protests for decades."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--2332eb0c5790817f515b6bc71a6fb5e0",
+            "score": 4,
+            "highlights": [
+                " Iraqi security forces shot dead at least six anti-government protesters in Baghdad on Thursday and killed four others as they broke up a sit-in in the southern city of Basra, police and medical sources said."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--5c323ea9f3dbc9468de294374fbe7e29",
+            "score": 4,
+            "highlights": [
+                "Ten people have been killed in Basra as Iraqi security forces continued their repression of anti-corruption protests, "
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r1",
+            "doc-id": "RequestLevelHit--IR-T7-r1--8c80fc5bec4dcba501beb18ad4a74625",
+            "score": 4,
+            "highlights": [
+                "Protests in Iraq shut down the country\u2019s key port at Umm Qasr on Wednesday morning, as demonstrators took control of entrances into the facility days after thousands successfully blocked off the highway leading to the port."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r2",
+            "doc-id": "RequestLevelHit--IR-T7-r2--d8254ee6a1c069f413c03cb88095136c",
+            "score": 4,
+            "highlights": [
+                "Iraq\u2019s Foreign Ministry said the storming of the consulate, which it deeply regretted, had nothing to do with protesters\u2019 demands."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r2",
+            "doc-id": "RequestLevelHit--IR-T7-r2--f3e2f908884612af2d9b1e4b0317fbaa",
+            "score": 4,
+            "highlights": [
+                "\nIraq\u2019s top Shi\u2019ite cleric, Grand Ayatollah Ali al-Sistani, expressed solidarity with protesters, saying they faced an \u201cextreme lack of public services\u201d such as electricity in the suffocating summer heat."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T7",
+            "req-num": "IR-T7-r2",
+            "doc-id": "RequestLevelHit--IR-T7-r2--44f3f2646ecf3a936d8fcf191c8868fc",
+            "score": 4,
+            "highlights": [
+                "Related Coverage Iraqi officials lift curfew in Basra"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--26fc63546001f83f5df90abe6b7a58ae",
+            "score": 4,
+            "highlights": [
+                "Prime Minister Ali Larayedh condemned his assassination, but said: \"We are against all calls to dissolve the government to create a [power] vacuum.\""
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--55fd9600e8e76a6eba0609671cf0e666",
+            "score": 4,
+            "highlights": [
+                "Tunisia has designated the hardline Salafist Ansar al-Sharia movement a \"terrorist group\", blaming it for the killing of two secular politicians."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--666079cc579594a9582c20f60732ca0f",
+            "score": 4,
+            "highlights": [
+                "The government blamed Belaid\u2019s assassination, also carried out by assailants on a motorcycle, on an unidentified group of Salafi militants, saying six of them were still on the run."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--66d39c39d09255ecf1ec5ba796bdd710",
+            "score": 4,
+            "highlights": [
+                "Ghannouchi has denounced Thursday\u2019s assassination as an attack on the country\u2019s tumultuous process of transition from autocratic regime to democratic state."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--ece88010b08c488a8e482c2d8a277532",
+            "score": 4,
+            "highlights": [
+                "2013 December - After months of wrangling, Ennahda and mainly secular opposition agree on appointment of Mehdi Jomaa as head of interim government."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--39bf4b9454554e40d7c340964e6ce3fd",
+            "score": 4,
+            "highlights": [
+                "About 60 members of the National Constituent Assembly (ANC) withdrew in protest at the killings and organised a sit-in outside its headquarters in the capital, Tunis."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T8",
+            "req-num": "IR-T8-r1",
+            "doc-id": "RequestLevelHit--IR-T8-r1--adb1a2915898741ea44e7912bba3330d",
+            "score": 4,
+            "highlights": [
+                "The quartet brought opposing sides together but was ultimately created to calm the streets. Their critics say its impact lost momentum long ago."
             ]
         }
     ]
