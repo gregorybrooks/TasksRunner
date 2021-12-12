@@ -29,6 +29,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
                     + " --env PHASE=" + phase
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
                     + " --env QUERYFILE=" + queryFileNameKey
+                    + " --env useAnnotationFiles=" + Pathnames.useAnnotationFiles
                     /* For each directory that we want to share between this parent docker container (TasksRunner)
                      and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
                      in an environment variable, and we make that path a bind-volume so the child container

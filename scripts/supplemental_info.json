@@ -646,6 +646,56 @@
             "highlights": [
                 "The quartet brought opposing sides together but was ultimately created to calm the streets. Their critics say its impact lost momentum long ago."
             ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T5",
+            "req-num": "IR-T5-r1",
+            "doc-id": "RequestLevelHit--IR-T5-r1--0b3d964d1740e292c3e97869c1f23716",
+            "score": 5,
+            "highlights": [
+                "about 1,000 protesters in Tatouine province\n\nProtests have also broken out in another southern province, Kebili, and on Wednesday police fired tear gas to break up rioting in a town west of Tunis"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T5",
+            "req-num": "IR-T5-r1",
+            "doc-id": "RequestLevelHit--IR-T5-r1--9b152e5a490389d5fe26d55da5f48fd2",
+            "score": 5,
+            "highlights": [
+                "Activists and opposition politicians appealed for fresh demonstrations in the capital, Tunis\n\nOn Thursday, unrest was limited to sporadic clashes in the northern city of Siliana, in Sidi Bouzid in central Tunisia and Douz in the south of the North African country. On Friday it was mostly quiet with just 200 people protesting peacefully in the capital, a witness said."
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T5",
+            "req-num": "IR-T5-r1",
+            "doc-id": "RequestLevelHit--IR-T5-r1--2db8c0660032f821a10c9fdf66210b64",
+            "score": 5,
+            "highlights": [
+                "Unrest in Tatatouine province have escalated into violence after protesters targeted oil and gas facilities"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T5",
+            "req-num": "IR-T5-r1",
+            "doc-id": "RequestLevelHit--IR-T5-r1--a55b5208d228abb4b844750648d4e6b8",
+            "score": 5,
+            "highlights": [
+                "Tunisia on Tuesday declared a curfew in the city of Kasserine after clashes between the police and more than 1,000 young protesters"
+            ]
+        },
+        {
+            "task-type": "umass",
+            "task-num": "IR-T5",
+            "req-num": "IR-T5-r1",
+            "doc-id": "RequestLevelHit--IR-T5-r1--c33d2f21c988c0de49def49b24cd869e",
+            "score": 5,
+            "highlights": [
+                "Ettadamen district of Tunis\n\nWitnesses told Reuters that violent protests were also taking place in Kram district in the capital.\n\nProtesters in Feriana city near the Algerian border"
+            ]
         }
     ]
 }

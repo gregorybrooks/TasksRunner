@@ -161,8 +161,12 @@ public class AnalyticTasks {
 
             if (!sparse) {
                 if (mode.equals("HITL")) {
-                    logger.info("Opening supplemental task definition file " + supplementalFile);
-                    readSupplementalFile();
+                    if (Pathnames.useSupplementalFile) {
+                        logger.info("Opening supplemental task definition file " + supplementalFile);
+                        readSupplementalFile();
+                    } else {
+                        logger.info("Not using the supplemental task definition file");
+                    }
                 }
 
                 /* Get relevance judgments for these requests.

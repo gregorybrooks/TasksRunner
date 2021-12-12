@@ -24,6 +24,8 @@ public class Pathnames {
     public static String preTrainSizeParm = "FULL";    // or "SMALL"
     public static int REQUEST_HITS_DETAILED = 100;  // number of hits to get full text and event details
     public static boolean useTaskSetFile = false;
+    public static boolean useSupplementalFile = true;
+    public static boolean useAnnotationFiles = true;
     public static int RESULTS_CAP = 1000;
     public static boolean skipPhase1 = false;
     public static boolean skipPhase2 = false;
@@ -211,6 +213,8 @@ public class Pathnames {
         skipPhase2 = (getFromEnv("skipPhase2", "false").equals("true"));
         skipRequestDocAnnotation = (getFromEnv("skipRequestDocAnnotation", "false").equals("true"));
         useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
+        useSupplementalFile = (getFromEnv("useSupplementalFile", "true").equals("true"));
+        useAnnotationFiles = (getFromEnv("useAnnotationFiles", "true").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
         runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
         runEnglishIndexBuild = (getFromEnv("runEnglishIndexBuild", "false").equals("true"));
