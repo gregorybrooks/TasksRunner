@@ -270,7 +270,9 @@ public class QueryManager {
         if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
             thisTaskID = requestID;
         } else {
-            thisTaskID = requestID.substring(0, 5);
+//            thisTaskID = requestID.substring(0, 5);
+            int x = requestID.lastIndexOf('-');
+            thisTaskID = requestID.substring(0, x);
         }
         return thisTaskID;
     }
@@ -1313,8 +1315,7 @@ public class QueryManager {
                     String requestID = tokens[0];
                     String docid = tokens[2];
                     String score = tokens[4];
-                    int x = requestID.lastIndexOf('-');
-                    String taskID = requestID.substring(0, x);
+                    String taskID = getTaskIDFromRequestID(requestID);
                     Hit hit = new Hit(docid, score);
                     if (tasks.containsKey(taskID)) {
                         Map<String, List<Hit>> requests = tasks.get(taskID);
