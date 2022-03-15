@@ -824,7 +824,7 @@ public class AnalyticTasks {
     /**
      * Returns the task object identified by the given task ID.
      * @param taskNum the task ID
-     * @return the task object identified by the given task ID
+     * @return the task object identified by the given task ID, or null
      */
     public Task findTask(String taskNum) {
         return tasks.get(taskNum);
@@ -878,11 +878,14 @@ public class AnalyticTasks {
      * Returns the request object identified by the given request ID.
      * This version does not require a task ID.
      * @param requestID the request ID
-     * @return the request object identified by the given request ID
+     * @return the request object identified by the given request ID, or null
      */
     public Request findRequest(String requestID) {
         String taskID = parseTaskIDFromRequestID(requestID);
         Task t = findTask(taskID);
+        if (t == null) {
+            return null;
+        }
         return t.requests.get(requestID);
     }
 

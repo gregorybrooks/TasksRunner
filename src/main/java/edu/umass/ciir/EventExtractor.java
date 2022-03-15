@@ -942,9 +942,11 @@ public class EventExtractor {
             String taskID = hit.taskID;
             String docid = hit.docid;
             Task t = tasks.findTask(taskID);
-            for (ExampleDocument d : t.taskExampleDocs) {
-                if (d.getDocid().equals(docid)) {
-                    d.setEvents(hit.events);
+            if (t != null) {
+                for (ExampleDocument d : t.taskExampleDocs) {
+                    if (d.getDocid().equals(docid)) {
+                        d.setEvents(hit.events);
+                    }
                 }
             }
         } else {
@@ -953,9 +955,11 @@ public class EventExtractor {
 //            logger.info("docid is " + docid);  // DEBUG
 //            logger.info("Looking for request " + requestID);  // DEBUG
             Request r = tasks.findRequest(requestID);
-            for (ExampleDocument d : r.reqExampleDocs) {
-                if (d.getDocid().equals(docid)) {
-                    d.setEvents(hit.events);
+            if (r != null) {
+                for (ExampleDocument d : r.reqExampleDocs) {
+                    if (d.getDocid().equals(docid)) {
+                        d.setEvents(hit.events);
+                    }
                 }
             }
         }

@@ -62,18 +62,13 @@ public class TasksRunner {
             String testIDJSON = (String) topLevelJSON.get("test-id");
             JSONObject taskSetJSON = (JSONObject) topLevelJSON.get("task-set");
 
-            System.out.println("skipPretrain: " + Pathnames.skipPretrain);
-            System.out.println("skipPhase1: " + Pathnames.skipPhase1);
-            System.out.println("skipIndexBuild: " + Pathnames.skipIndexBuild);
-            System.out.println("skipRequestDocAnnotation: " + Pathnames.skipRequestDocAnnotation);
             File f = null;
             if (Pathnames.skipPretrain) {
-                logger.info("Skipping pre-training");
                 Pathnames.runPreTrain = false;
             } else {
                 f = new File(Pathnames.MODELS_BASE_DIR_ENGLISH);
                 if (!f.exists()) {
-                    logger.info(Pathnames.MODELS_BASE_DIR_ENGLISH + " does not exist, so we will run PRE-TRAINING");
+//                    logger.info(Pathnames.MODELS_BASE_DIR_ENGLISH + " does not exist, so we will run PRE-TRAINING");
                     Pathnames.runPreTrain = true;
                 } else {
                     Pathnames.runPreTrain = false;
@@ -82,7 +77,7 @@ public class TasksRunner {
 
             f = new File(Pathnames.targetIndexLocation);
             if (!f.exists()) {
-                logger.info("Target index " + Pathnames.targetIndexLocation + " does not exist, so we will build the target index");
+//              logger.info("Target index " + Pathnames.targetIndexLocation + " does not exist, so we will build the target index");
                 Pathnames.runIndexBuild = true;
             } else {
                 Pathnames.runIndexBuild = false;
@@ -94,7 +89,6 @@ public class TasksRunner {
                 JSONObject extractBasicEventsJSON = (JSONObject) taskSetJSON.get("extract-basic-events");
                 Boolean perform = (Boolean) extractBasicEventsJSON.get("perform?");
                 if (perform) {
-                    logger.info("tasks.json says this is IE mode");
                     Pathnames.runIEPhase = true;
                     Pathnames.runIRPhase1 = false;
                     Pathnames.runIRPhase2 = false;
@@ -106,18 +100,15 @@ public class TasksRunner {
                 JSONObject findRelevantDocsAutomaticJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.automatic");
                 boolean perform = (boolean) findRelevantDocsAutomaticJSON.get("perform?");
                 if (perform) {
-                    logger.info("tasks.json says this is AUTO mode");
                     String corpusLocationJSON = (String) findRelevantDocsAutomaticJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsAutomaticJSON.get("scratch-location");
                     Pathnames.mode = "AUTO";
                     if (Pathnames.skipPhase1) {
-                        logger.info("Skipping phase 1");
                         Pathnames.runIRPhase1 = false;
                     } else {
                         Pathnames.runIRPhase1 = true;
                     }
                     if (Pathnames.skipPhase2) {
-                        logger.info("Skipping phase 2");
                         Pathnames.runIRPhase2 = false;
                     } else {
                         Pathnames.runIRPhase2 = true;
@@ -131,18 +122,15 @@ public class TasksRunner {
                 JSONObject findRelevantDocsAutoHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.auto-hitl");
                 boolean perform = (boolean) findRelevantDocsAutoHitlJSON.get("perform?");
                 if (perform) {
-                    logger.info("tasks.json says this is AUTO-HITL mode");
                     String corpusLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("scratch-location");
                     Pathnames.mode = "AUTO-HITL";
                     if (Pathnames.skipPhase1) {
-                        logger.info("Skipping phase 1");
                         Pathnames.runIRPhase1 = false;
                     } else {
                         Pathnames.runIRPhase1 = true;
                     }
                     if (Pathnames.skipPhase2) {
-                        logger.info("Skipping phase 2");
                         Pathnames.runIRPhase2 = false;
                     } else {
                         Pathnames.runIRPhase2 = true;
@@ -156,18 +144,15 @@ public class TasksRunner {
                 JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
                 boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
                 if (perform) {
-                    logger.info("tasks.json says this is HITL mode");
                     String corpusLocationJSON = (String) findRelevantDocsHitlJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsHitlJSON.get("scratch-location");
                     Pathnames.mode = "HITL";
                     if (Pathnames.skipPhase1) {
-                        logger.info("Skipping phase 1");
                         Pathnames.runIRPhase1 = false;
                     } else {
                         Pathnames.runIRPhase1 = true;
                     }
                     if (Pathnames.skipPhase2) {
-                        logger.info("Skipping phase 2");
                         Pathnames.runIRPhase2 = false;
                     } else {
                         Pathnames.runIRPhase2 = true;
@@ -380,6 +365,11 @@ public class TasksRunner {
      */
     void process()  {
 
+        logger.info("skipPretrain: " + Pathnames.skipPretrain);
+        logger.info("skipPhase1: " + Pathnames.skipPhase1);
+        logger.info("skipIndexBuild: " + Pathnames.skipIndexBuild);
+        logger.info("skipRequestDocAnnotation: " + Pathnames.skipRequestDocAnnotation);
+
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks();
 
@@ -406,7 +396,7 @@ public class TasksRunner {
             logger.info("Calling event annotator for test_data.bp.json file");
             eventExtractor.annotateProvidedFileEvents();
         } else {
-            System.out.println("Skipping IE on provided file");
+            logger.info("Skipping IE on provided file operation");
         }
 
         if (Pathnames.runEnglishIndexBuild) {
@@ -414,7 +404,7 @@ public class TasksRunner {
             index.preprocess();
             index.buildIndex();
         } else {
-            System.out.println("Skipping English index building");
+            logger.info("Skipping English index building");
         }
 
         if (Pathnames.runIndexBuild) {
@@ -422,11 +412,11 @@ public class TasksRunner {
             index.preprocess();
             index.buildIndex();
         } else {
-            System.out.println("Skipping target language index building");
+            logger.info("Skipping target language index building");
         }
 
         if (!Pathnames.runPreTrain) {
-            System.out.println("Skipping event annotator pre-training");
+            logger.info("Skipping event annotator pre-training");
         } else {
             logger.info("PRE-TRAINING: Pre-training the event annotator");
             eventExtractor.preTrainEventAnnotator();
@@ -434,7 +424,7 @@ public class TasksRunner {
         }
 
         if (!Pathnames.runIRPhase1) {
-            System.out.println("Skipping phase 1");
+            logger.info("Skipping phase 1");
         } else {
             logger.info("PHASE 1: Preparing a file of the example docs for the event annotator");
             eventExtractor.extractExampleEventsPart1();
@@ -443,7 +433,7 @@ public class TasksRunner {
     	}
 
         if (!Pathnames.runIRPhase2) {
-            System.out.println("Skipping phase 2");
+            logger.info("Skipping phase 2");
         } else {
             logger.info("PHASE 2: Retrieving the file of example doc events created by the event annotator");
             eventExtractor.extractExampleEventsPart2();
@@ -473,7 +463,7 @@ public class TasksRunner {
         } 
 
 	    if (!Pathnames.runIRPhase3) {
-	        System.out.println("Skipping phase 3");
+            logger.info("Skipping phase 3");
 	    } else {
 	        phase = "Request";
             String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
