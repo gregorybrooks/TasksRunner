@@ -130,7 +130,7 @@ public class AnalyticTasks {
     private void openFiles() {
         try {
             tasksAndRequestsFile = Pathnames.appFileLocation + taskFileName;
-            supplementalFile = Pathnames.scratchFileLocation + Pathnames.supplementalFileName;
+            supplementalFile = "/home/tasksrunner/scripts/supplemental_info.json";
             logger.info("Opening task definition file " + tasksAndRequestsFile);
 
             /* Get task and request definitions */
@@ -161,9 +161,11 @@ public class AnalyticTasks {
 
             if (!sparse) {
                 if (mode.equals("HITL")) {
-                    logger.info("Opening supplemental task definition file " + supplementalFile);
-                    readSupplementalFile();
+//                    logger.info("Opening supplemental task definition file " + supplementalFile);
+//                    readSupplementalFile();
+                      logger.info("Not using the supplemental task definition file");
                 }
+
 
                 /* Get relevance judgments for these requests.
                  * Unless there are no relevance judgments available for this analytic task file / corpus
@@ -221,9 +223,9 @@ public class AnalyticTasks {
     private void addSupplementalDocsToRequests() {
         for (SupplementalExampleDocument supDoc : supplementalExampleDocs) {
             long score = supDoc.getScore();
-            if (score == 1 || score == 2) {
+            if (score == 3) {
                 addSupplementalDocToTask(supDoc);
-            } else if (score == 3 || score == 5) {
+            } else if (score == 4 || score == 5) {
                 addSupplementalDocToRequest(supDoc);
             }
         }
@@ -822,7 +824,7 @@ public class AnalyticTasks {
     /**
      * Returns the task object identified by the given task ID.
      * @param taskNum the task ID
-     * @return the task object identified by the given task ID
+     * @return the task object identified by the given task ID, or null
      */
     public Task findTask(String taskNum) {
         return tasks.get(taskNum);
@@ -876,11 +878,14 @@ public class AnalyticTasks {
      * Returns the request object identified by the given request ID.
      * This version does not require a task ID.
      * @param requestID the request ID
-     * @return the request object identified by the given request ID
+     * @return the request object identified by the given request ID, or null
      */
     public Request findRequest(String requestID) {
         String taskID = parseTaskIDFromRequestID(requestID);
         Task t = findTask(taskID);
+        if (t == null) {
+            return null;
+        }
         return t.requests.get(requestID);
     }
 

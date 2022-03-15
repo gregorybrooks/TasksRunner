@@ -4,9 +4,8 @@ set -v
 rm -f /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/results.json
 rm -f /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/test_data.bp.json
 
-
-cp /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/TEST-ir-AUTO-HITL-eval-tasks.json /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/ir-tasks.json
-cp /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/TEST-tasks-AUTO-HITL.json /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/tasks.json
+cp /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/TEST-ir-HITL-eval-tasks.json /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/ir-tasks.json
+cp /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/TEST-tasks-HITL.json /mnt/scratch/glbrooks/BETTER_TEST_ENVIRONMENTS/BETTER_EVAL_PHASE2_HITL/app/tasks.json
 
 docker pull gregorybrooks/tasks-runner:3.1.1
 
