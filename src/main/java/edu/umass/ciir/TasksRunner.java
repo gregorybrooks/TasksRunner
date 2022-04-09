@@ -113,7 +113,7 @@ public class TasksRunner {
                     } else {
                         Pathnames.runIRPhase2 = true;
                     }
-                    Pathnames.runIRPhase3 = true;
+                    Pathnames.runIRPhase3 = Pathnames.skipPhase3 ? false : true;
                     Pathnames.runIEPhase = false;
                     return;    // EARLY EXIT FROM FUNCTION
                 }
@@ -135,7 +135,7 @@ public class TasksRunner {
                     } else {
                         Pathnames.runIRPhase2 = true;
                     }
-                    Pathnames.runIRPhase3 = true;
+                    Pathnames.runIRPhase3 = Pathnames.skipPhase3 ? false : true;
                     Pathnames.runIEPhase = false;
                     return;    // EARLY EXIT FROM FUNCTION
                 }
@@ -157,7 +157,7 @@ public class TasksRunner {
                     } else {
                         Pathnames.runIRPhase2 = true;
                     }
-                    Pathnames.runIRPhase3 = true;
+                    Pathnames.runIRPhase3 = Pathnames.skipPhase3 ? false : true;
                     Pathnames.runIEPhase = false;
                     return;    // EARLY EXIT FROM FUNCTION
                 }
