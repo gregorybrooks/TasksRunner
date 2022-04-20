@@ -1,2 +1,2 @@
 set -v
-java -jar target/tasks-runner-3.2.0.jar
+java -jar target/tasks-runner-4.0.0.jar

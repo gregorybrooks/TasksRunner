@@ -147,17 +147,11 @@ public class TasksRunner {
                     String corpusLocationJSON = (String) findRelevantDocsHitlJSON.get("corpus-location");
                     String scratchLocationJSON = (String) findRelevantDocsHitlJSON.get("scratch-location");
                     Pathnames.mode = "HITL";
-                    if (Pathnames.skipPhase1) {
-                        Pathnames.runIRPhase1 = false;
-                    } else {
-                        Pathnames.runIRPhase1 = true;
-                    }
-                    if (Pathnames.skipPhase2) {
-                        Pathnames.runIRPhase2 = false;
-                    } else {
-                        Pathnames.runIRPhase2 = true;
-                    }
+                    Pathnames.runIRPhase1 = Pathnames.skipPhase1 ? false : true;
+                    Pathnames.runIRPhase2 = Pathnames.skipPhase2 ? false : true;
                     Pathnames.runIRPhase3 = Pathnames.skipPhase3 ? false : true;
+                    System.out.println("runIRPhase3 is " + Pathnames.runIRPhase3);
+
                     Pathnames.runIEPhase = false;
                     return;    // EARLY EXIT FROM FUNCTION
                 }
@@ -367,6 +361,8 @@ public class TasksRunner {
 
         logger.info("skipPretrain: " + Pathnames.skipPretrain);
         logger.info("skipPhase1: " + Pathnames.skipPhase1);
+        logger.info("skipPhase2: " + Pathnames.skipPhase2);
+        logger.info("skipPhase3: " + Pathnames.skipPhase3);
         logger.info("skipIndexBuild: " + Pathnames.skipIndexBuild);
         logger.info("skipRequestDocAnnotation: " + Pathnames.skipRequestDocAnnotation);
 
@@ -475,9 +471,11 @@ public class TasksRunner {
             //logger.info("PHASE 3: Building file with doc text and events for task hits, for experiments");
             //eventExtractor.retrieveEventsFromTaskHits(qf);
 
-            logger.info("PHASE 3: Reranking");
-            qf.rerank();
-    
+            if (!Pathnames.skipReranker) {
+                logger.info("PHASE 3: Reranking");
+                qf.rerank();
+            }
+
             //NOT NEEDED eventExtractor.writeFileForHITL(qf);  // writes top 10 hits for HITL to judge
     
             // Evaluate the request-level results (they are saved into a file as a side effect)

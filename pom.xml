@@ -6,6 +6,8 @@
 
     <groupId>edu.umass.ciir</groupId>
     <artifactId>tasks-runner</artifactId>
+    <!-- If you change the version, also change scripts/run_ir.sh and rebuild_docker.sh and run_all-HITL.sh
+         and reset_HITL in the task-runner-api-PROD director -->
     <version>4.0.0</version>
     <packaging>jar</packaging>
 
@@ -53,86 +55,6 @@
                                     </excludes>
                                 </filter>
                             </filters>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <!-- Remove existing image from local repo -->
-                    <execution>
-                        <id>docker-clean-1</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>docker</executable>
-                            <workingDirectory>${project.basedir}</workingDirectory>
-                            <arguments>
-                                <argument>rmi</argument>
-                                <argument>gregorybrooks/${project.artifactId}:${project.version}</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-
-                    <!--
-                      Create new docker image using Dockerfile which must be present in current working directory.
-                    -->
-                    <execution>
-                        <id>docker-build</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>docker</executable>
-                            <workingDirectory>${project.basedir}</workingDirectory>
-                            <arguments>
-                                <argument>build</argument>
-                                <argument>-t</argument>
-                                <argument>gregorybrooks/${project.artifactId}:${project.version}</argument>
-                                <argument>.</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-
-                    <!-- Login and Push the image to a docker repo. -->
-                    <execution>
-                        <id>docker-login</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>docker</executable>
-                            <workingDirectory>${project.basedir}</workingDirectory>
-                            <arguments>
-                                <argument>login</argument>
-                                <argument>-u</argument>
-                                <argument>gregorybrooks</argument>
-                                <argument>-p</argument>
-                                <argument>${docker.password}</argument>
-                                <argument>${docker.url}</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>docker-push</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>docker</executable>
-                            <workingDirectory>${project.basedir}</workingDirectory>
-                            <arguments>
-                                <argument>push</argument>
-                                <argument>gregorybrooks/${project.artifactId}:${project.version}</argument>
-                            </arguments>
                         </configuration>
                     </execution>
                 </executions>

@@ -28,6 +28,7 @@ public class Pathnames {
     public static boolean skipPhase1 = false;
     public static boolean skipPhase2 = false;
     public static boolean skipPhase3 = false;
+    public static boolean skipReranker = false;
     public static boolean skipPretrain = false;
     public static boolean skipIndexBuild = false;
     public static boolean skipRequestDocAnnotation = false;
@@ -211,6 +212,7 @@ public class Pathnames {
         skipPhase1 = (getFromEnv("skipPhase1", "false").equals("true"));
         skipPhase2 = (getFromEnv("skipPhase2", "false").equals("true"));
         skipPhase3 = (getFromEnv("skipPhase3", "false").equals("true"));
+        skipReranker = (getFromEnv("skipReranker", "false").equals("true"));
         skipRequestDocAnnotation = (getFromEnv("skipRequestDocAnnotation", "false").equals("true"));
         useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
