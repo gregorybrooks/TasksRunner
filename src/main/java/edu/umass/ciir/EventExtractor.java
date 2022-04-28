@@ -262,8 +262,15 @@ public class EventExtractor {
     private void createInputFileEntriesFromHits(String docSetType, String taskOrRequestID,
                                                 List<String> hits, Map<String,SimpleHit> m) {
         for (String td : hits) {
-            List<SentenceRange> sentences = Document.getArabicDocumentSentences(td);
-            String docText = Document.getArabicDocumentWithMap(td);
+            List<SentenceRange> sentences = null;
+            String docText;
+            if (Pathnames.targetLanguageIsEnglish) {
+                sentences = Document.getDocumentSentences(td);
+                docText = Document.getDocumentWithMap(td);
+            } else {
+                sentences = Document.getArabicDocumentSentences(td);
+                docText = Document.getArabicDocumentWithMap(td);
+            }
             SimpleHit hit = new SimpleHit(td, docText, "", sentences);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
@@ -274,58 +281,21 @@ public class EventExtractor {
      */
     private final int TASK_HITS_DETAILED = 1000;
 
-    /**
-     * Creates an input file to give to the event extractor, of the top hits for each task.
-     */
-    public void createInputForEventExtractorFromTaskHits(QueryManager qf) {
-        Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
-        Map<String, String> entries = new LinkedHashMap<>();
-        List<Task> taskList = tasks.getTaskList();
-
-        // Load the document text map in one pass through the corpus file:
-        Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
-                .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
-                .collect(Collectors.toSet()));
-        /* First, the simple version we used during development, to give to ISI */
-        /**
-         Map<String,String> queries = qf.getQueries();
-         for (Task task : taskList) {
-         List<String> hits = qf.getDocids(task.taskNum, 500);
-         simpleEntries.clear();
-         for (String td : hits) {
-         String score = qf.getScore(task.taskNum, td);
-         String docid = "TaskLevelHit--" + task.taskNum + "--" + td;
-         String docText = Document.getArabicDocumentWithMap(td);
-         String query = queries.get(task.taskNum);
-         simpleEntries.put(docid, new SimpleHit(docid, docText, score, query,
-         task.taskNum, task.taskTitle, task.taskNarr, null, null));
-         }
-         if (simpleEntries.size() > 0) {
-         String fileForEventExtractor = constructTaskLevelSimpleFileName(task);
-         writeInputFileSimpleFormatTask(simpleEntries, fileForEventExtractor);
-         }
-         }
-         **/
-
-        /* Create the file to give to the ISI event extractor */
-        for (Task task : taskList) {
-            List<String> hits = qf.getDocids(task.taskNum, TASK_HITS_DETAILED);
-            simpleEntries.clear();
-            createInputFileEntriesFromHits("TaskLevelHit", task.taskNum, hits, simpleEntries);
-            if (simpleEntries.size() > 0) {
-                String fileForEventExtractor = constructTaskLevelFileFromEventExtractorFileName(task);
-                writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
-            }
-        }
-    }
 
     public void retrieveEventsFromTaskHits(QueryManager qf) {
         /* Get the document texts and sentences for each hit mentioned in the event files */
         /* (which is a side effect of loading the document text map with those docs) */
-        Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
-                .flatMap(t -> readEventFile(constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
-                .map(hit -> hit.docid)
-                .collect(Collectors.toSet()));
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> readEventFile(constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> readEventFile(constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        }
 
         // To be able to get the hits we need the qf to open the runfile
         String theRunFileName = Pathnames.runFileLocation + qf.getKey() + ".out";
@@ -379,18 +349,58 @@ public class EventExtractor {
     }
 
     /**
+     * Creates an input file to give to the event extractor, of the top hits for each task.
+     */
+    public void createInputForEventExtractorFromTaskHits(QueryManager qf) {
+        Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
+        Map<String, String> entries = new LinkedHashMap<>();
+        List<Task> taskList = tasks.getTaskList();
+
+        // Load the document text map in one pass through the corpus file:
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(tasks.getTaskList().parallelStream()
+                .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
+                .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        }
+        /* Create the file to give to the ISI event extractor */
+        for (Task task : taskList) {
+            List<String> hits = qf.getDocids(task.taskNum, TASK_HITS_DETAILED);
+            simpleEntries.clear();
+            createInputFileEntriesFromHits("TaskLevelHit", task.taskNum, hits, simpleEntries);
+            if (simpleEntries.size() > 0) {
+                String fileForEventExtractor = constructTaskLevelFileFromEventExtractorFileName(task);
+                writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+            }
+        }
+    }
+
+    /**
      * Creates an input file to give to the event extractor, of the top hits for each request.
      */
     public void createInputForEventExtractorFromRequestHits(QueryManager qf) {
         Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
         Map<String, String> entries = new LinkedHashMap<>();
         List<Request> requestList = tasks.getRequests();
+        for (Request r : requestList) {
+            logger.info("tasks.getRequests() returned " + r.reqNum);
+            logger.info("which has this many docids: " + qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED));
+        }
 
         // Load the document text map in one pass through the corpus file:
-        Document.buildArabicDocMap(requestList.parallelStream()
-                .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
-                .collect(Collectors.toSet()));
-
+        if (Pathnames.targetLanguageIsEnglish) {
+            logger.info("createInputForEventExtractorFromRequestHits: getting doc texts");
+            Document.buildDocMap(requestList.parallelStream()
+                    .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(requestList.parallelStream()
+                    .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        }
         /* First, build the file to give to the HITL person */
         Map<String,String> queries = qf.getQueries();
         for (Task t : tasks.getTaskList()) {
@@ -399,15 +409,24 @@ public class EventExtractor {
                 if (r.reqText == null) {
                     logger.info("Request text is null");
                 }
+                /* When getting candidate example documents at the Task level, we use a dummy Request
+                 * which has an empty reqText, so disable this for now:
+
                 if (r.reqText == null || r.reqText.equals("")) {
                     continue;     // only include the 2 requests with extra HITL info
                 }
+                 */
                 List<String> hits = qf.getDocids(r.reqNum, 10);
                 simpleEntries.clear();
                 for (String td : hits) {
                     String score = qf.getScore(r.reqNum, td);
                     String docid = "RequestLevelHit--" + r.reqNum + "--" + td;
-                    String docText = Document.getArabicDocumentWithMap(td);
+                    String docText = "";
+                    if (Pathnames.targetLanguageIsEnglish) {
+                        docText = Document.getDocumentWithMap(td);
+                    } else {
+                        docText = Document.getArabicDocumentWithMap(td);
+                    }
                     String query = queries.get(r.reqNum);
                     simpleEntries.put(docid, new SimpleHit(docid, docText, score, query,
                             t.taskNum, t.taskTitle, t.taskNarr, t.taskStmt, r.reqNum, r.reqText));
@@ -423,8 +442,10 @@ public class EventExtractor {
         /* Create the file to give to the ISI event extractor */
         for (Request r : requestList) {
             List<String> hits = qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
+            logger.info("qf.getDocids for reqNum " + r.reqNum + " returned " + hits.size() + " entries");
             simpleEntries.clear();
             createInputFileEntriesFromHits("RequestLevelHit", r.reqNum, hits, simpleEntries);
+            logger.info("createInputFileEntriesFromHits returned " + simpleEntries.size() + " entries");
             if (simpleEntries.size() > 0) {
                 String fileForEventExtractor = constructRequestLevelToEventExtractorFileName(r);
                 writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
@@ -440,11 +461,17 @@ public class EventExtractor {
         List<Request> requestList = tasks.getRequests();
 
         // Load the document text map in one pass through the corpus file:
-        Document.buildArabicDocMap(requestList.parallelStream()
-                .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
-                .collect(Collectors.toSet()));
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(requestList.parallelStream()
+                    .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(requestList.parallelStream()
+                    .flatMap(r -> qf.getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        }
 
-        Map<String,String> queries = qf.getQueries();
+        Map<String, String> queries = qf.getQueries();
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
                 if (r.reqText.length() == 0) {
@@ -455,7 +482,12 @@ public class EventExtractor {
                 String query = queries.get(r.reqNum);
                 for (String td : hits) {
                     String score = qf.getScore(r.reqNum, td);
-                    String docText = Document.getArabicDocumentWithMap(td);
+                    String docText;
+                    if (Pathnames.targetLanguageIsEnglish) {
+                        docText = Document.getDocumentWithMap(td);
+                    } else {
+                        docText = Document.getArabicDocumentWithMap(td);
+                    }
                     simpleEntries.put(td, new SimpleHit(td, docText, score, ""));
                 }
                 if (simpleEntries.size() > 0) {
@@ -464,7 +496,6 @@ public class EventExtractor {
                 }
             }
         }
-
     }
 
     private List<Hit> mergeHits (String reqNum, List<Hit> hits, List<String> docids) {
@@ -487,13 +518,22 @@ public class EventExtractor {
 
     public void retrieveEventsFromRequestHits(QueryManager qf) {
         // Load the document text map in one pass through the corpus file:
-        Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
-                .flatMap(t -> t.getRequests().values().stream())
-                .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
-                .map(hit -> hit.docid)
-                .collect(Collectors.toSet()));
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> t.getRequests().values().stream())
+                    .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> t.getRequests().values().stream())
+                    .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        }
 
         String theRunFileName = Pathnames.runFileLocation + qf.getKey() + ".out";
+        logger.info("Setting run file to " + theRunFileName);
         qf.setRun(theRunFileName);
 
         for (Task t : tasks.getTaskList()) {
@@ -503,6 +543,7 @@ public class EventExtractor {
                 List<Hit> hits = readEventFile(fileFromEventExtractor, -1);
                 List<Hit> mergedHits = mergeHits(r.reqNum, hits, qf.getDocids(r.reqNum, 1000));
                 writeEventsAsJson(mergedHits, "REQUESTHITS", requestHitsEventFileName);
+                logger.info(requestHitsEventFileName + " written");
             }
         }
     }
@@ -635,6 +676,9 @@ public class EventExtractor {
         if (Pathnames.targetLanguage.toString().equals("ARABIC")) {
             script = "./annotate_request_docs.sh.ARABIC";
             trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
+        } else if (Pathnames.targetLanguageIsEnglish) {
+            script = "./annotate_request_docs.sh.ENGLISH";
+            trainingDirs = "";
         }
         try {
             String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_request_docs.log";
@@ -680,6 +724,66 @@ public class EventExtractor {
             if (exitVal != 0) {
                 logger.log(Level.SEVERE, "Unexpected ERROR from annotate_request_docs, exit value is: " + exitVal);
                 throw new TasksRunnerException("Unexpected ERROR from annotate_request_docs, exit value is: " + exitVal);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void annotateTaskDocEvents() {
+        String script = "./annotate_task_docs.sh.FARSI";
+        String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
+        if (Pathnames.targetLanguage.toString().equals("ARABIC")) {
+            script = "./annotate_task_docs.sh.ARABIC";
+            trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
+        } else if (Pathnames.targetLanguageIsEnglish) {
+            script = "./annotate_task_docs.sh.ENGLISH";
+            trainingDirs = "";
+        }
+        try {
+            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_task_docs.log";
+            String tempCommand = "cd /home/tasksrunner/scripts && "
+                    + " sudo"
+                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                    + " " + trainingDirs
+                    + " MODE=" + Pathnames.mode
+                    + " APP_DIR=" + Pathnames.appFileLocation
+                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                    + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                    + " " + script
+                    + " >& " + logFile;
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                ;
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing annotate_task_docs execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("annotate_task_docs output:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_task_docs, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from annotate_task_docs, exit value is: " + exitVal);
             }
         } catch (Exception e) {
             throw new TasksRunnerException(e);
@@ -859,7 +963,12 @@ public class EventExtractor {
                     hit.put("docText", h.docText);
 
                     JSONArray segmentSections = new JSONArray();
-                    List<SentenceRange> sentences = Document.getArabicDocumentSentences(h.docid);
+                    List<SentenceRange> sentences = null;
+                    if (Pathnames.targetLanguageIsEnglish) {
+                        sentences = Document.getDocumentSentences(h.docid);
+                    } else {
+                        sentences = Document.getArabicDocumentSentences(h.docid);
+                    }
                     if (sentences == null) {
                         System.out.println("Should not happen");
                     } else {
@@ -932,6 +1041,7 @@ public class EventExtractor {
                     d.setEvents(events);
                 }
             }
+
         }
     }
 

@@ -1,23 +1,15 @@
 package edu.umass.ciir;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.*;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public class TasksRunner {
 
@@ -46,7 +38,13 @@ public class TasksRunner {
       "perform?": true,
       "corpus-location": "/corpus",
       "scratch-storage": "/scratch"
+    },
+    "find-candidate-docs.hitl": {
+      "perform?": true,
+      "corpus-location": "/corpus",
+      "scratch-storage": "/scratch"
     }
+
 }
 */
     /**
@@ -83,12 +81,21 @@ public class TasksRunner {
                 Pathnames.runIndexBuild = false;
 	        }
 
-            Pathnames.runEnglishIndexBuild = false;  // no need for a Galago index on the English corpus
+            f = new File(Pathnames.englishIndexLocation);
+            if (!f.exists()) {
+                logger.info("English index " + Pathnames.englishIndexLocation + " does not exist, so we will build the English index");
+                Pathnames.runEnglishIndexBuild = true;
+            } else {
+                logger.info("English index " + Pathnames.englishIndexLocation + " exists, so we will not build the English index");
+                Pathnames.runEnglishIndexBuild = false;
+            }
 
 	        if (taskSetJSON.containsKey("extract-basic-events")) {
+	            logger.info("extract-basic-events found");
                 JSONObject extractBasicEventsJSON = (JSONObject) taskSetJSON.get("extract-basic-events");
                 Boolean perform = (Boolean) extractBasicEventsJSON.get("perform?");
                 if (perform) {
+                    logger.info("extract-basic-events perform true");
                     Pathnames.runIEPhase = true;
                     Pathnames.runIRPhase1 = false;
                     Pathnames.runIRPhase2 = false;
@@ -100,8 +107,6 @@ public class TasksRunner {
                 JSONObject findRelevantDocsAutomaticJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.automatic");
                 boolean perform = (boolean) findRelevantDocsAutomaticJSON.get("perform?");
                 if (perform) {
-                    String corpusLocationJSON = (String) findRelevantDocsAutomaticJSON.get("corpus-location");
-                    String scratchLocationJSON = (String) findRelevantDocsAutomaticJSON.get("scratch-location");
                     Pathnames.mode = "AUTO";
                     if (Pathnames.skipPhase1) {
                         Pathnames.runIRPhase1 = false;
@@ -122,8 +127,6 @@ public class TasksRunner {
                 JSONObject findRelevantDocsAutoHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.auto-hitl");
                 boolean perform = (boolean) findRelevantDocsAutoHitlJSON.get("perform?");
                 if (perform) {
-                    String corpusLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("corpus-location");
-                    String scratchLocationJSON = (String) findRelevantDocsAutoHitlJSON.get("scratch-location");
                     Pathnames.mode = "AUTO-HITL";
                     if (Pathnames.skipPhase1) {
                         Pathnames.runIRPhase1 = false;
@@ -141,11 +144,12 @@ public class TasksRunner {
                 }
             }
 	        if (taskSetJSON.containsKey("find-relevant-docs.hitl")) {
+	            logger.info("find-relevant-docs.hit found");
                 JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
                 boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
                 if (perform) {
-                    String corpusLocationJSON = (String) findRelevantDocsHitlJSON.get("corpus-location");
-                    String scratchLocationJSON = (String) findRelevantDocsHitlJSON.get("scratch-location");
+                    logger.info("find-relevant-docs.hit perform true");
+
                     Pathnames.mode = "HITL";
                     Pathnames.runIRPhase1 = Pathnames.skipPhase1 ? false : true;
                     Pathnames.runIRPhase2 = Pathnames.skipPhase2 ? false : true;
@@ -156,10 +160,30 @@ public class TasksRunner {
                     return;    // EARLY EXIT FROM FUNCTION
                 }
             }
+            if (taskSetJSON.containsKey("find-candidate-docs.hitl")) {
+                logger.info("find-candidate-docs.hitl found");
+                JSONObject findTaskExampleDocsHitlJSON = (JSONObject) taskSetJSON.get("find-candidate-docs.hitl");
+                boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
+                if (perform) {
+                    logger.info("find-candidate-docs.hitl perform true");
+                    Pathnames.mode = "HITL";
+                    Pathnames.runGetCandidateDocs = true;
+                    Pathnames.runIRPhase1 = Pathnames.skipPhase1 ? false : true;
+                    Pathnames.runIRPhase2 = Pathnames.skipPhase2 ? false : true;
+                    Pathnames.runIRPhase3 = Pathnames.skipPhase3 ? false : true;
+                    Pathnames.runIEPhase = false;
+                    Pathnames.isTargetEnglish = "true";
+                    Pathnames.targetLanguageIsEnglish = true;
+                    Pathnames.targetLanguage = Pathnames.Language.ENGLISH;
+                    Pathnames.processingModel = Pathnames.ProcessingModel.GET_CANDIDATE_DOCS;
+
+                    return;    // EARLY EXIT FROM FUNCTION
+                }
+            }
         } catch (Exception e) {
             String msg = "ERROR: Exception reading tasks.json file " + taskSetFile;
             System.out.println(msg);
-            throw new TasksRunnerException(msg);
+            throw new TasksRunnerException(e);
 
         }
         String msg = "ERROR: tasks.json says to perform NOTHING!";
@@ -211,7 +235,7 @@ public class TasksRunner {
 
         logger.info("PHASE 2: Building task-level queries");
         QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
-        queryFormulator.buildQueries(phase, qf.getKey());
+        queryFormulator.buildQueries(phase, Pathnames.processingModel, qf.getKey());
 
         qf.readQueryFile();
 
@@ -242,7 +266,7 @@ public class TasksRunner {
         QueryFormulator requestQueryFormulator = NewQueryFormulatorFactory(tasks);
 //        requestQueryFormulator.buildQueries(phase, qf.getQueryFileNameOnly());
         String key = qf.getKey();
-        requestQueryFormulator.buildQueries(phase, key);
+        requestQueryFormulator.buildQueries(phase, Pathnames.processingModel, key);
 
         String queryFileDirectory = Pathnames.queryFileLocation;
 
@@ -259,6 +283,15 @@ public class TasksRunner {
         } catch (IOException cause) {
             throw new TasksRunnerException(cause);
         }
+        if (!Pathnames.skipRequestDocAnnotation) {
+            logger.info("PHASE 2: Calling the ISI event annotators for the request hits");
+            eventExtractor.annotateRequestDocEvents();
+        } else {
+            logger.info("PHASE 2: SKIPPING the ISI event annotators for the request hits");
+        }
+
+        eventExtractor.retrieveEventsFromRequestHits(qf);
+
         logger.info("PHASE 2: Execution of all request queries complete.");
     }
 
@@ -289,6 +322,7 @@ public class TasksRunner {
         /* Extract events from the request-level hits, to use when re-ranking the request-level results */
         logger.info("Extracting events from the top request-level hits");
 
+        logger.info("Building file with doc text and events for request hits, for reranker and REST API");
         eventExtractor.createInputForEventExtractorFromRequestHits(qf);
 
         // Create the input file for my Galago reranker project:
@@ -305,18 +339,14 @@ public class TasksRunner {
 
         QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase);
         qf.readQueryFile();
-        qf.execute(1000);
+        qf.execute_single_thread_english(10);
         if (Pathnames.doRequestLevelEvaluation) {
             Map<String, Double> rstats = qf.evaluate("RAW");
             logger.info(newQueryFormulationName + " TOTAL nDCG: " + String.format("%.4f", rstats.get("TOTAL")));
         }
         /* Extract events from the request-level hits, to use when re-ranking the request-level results */
-        // To save time, temporarily skipping this:
         // logger.info("Extracting events from the top request-level hits");
         eventExtractor.createInputForEventExtractorFromRequestHits(qf);
-
-        // Create the input file for my Galago reranker project:
-        // eventExtractor.createInputForRerankerFromRequestHits(qf);
     }
 
 
@@ -324,13 +354,10 @@ public class TasksRunner {
         logger.info("PHASE 2: NEURAL PROCESSING MODE: Building and executing queries");
         NeuralQueryProcessorDocker docker = new NeuralQueryProcessorDocker(tasks);
         docker.callDockerImage();
-
     }
 
-    private void oneStepProcessingModel() {
-        /* These are used in the file names */
-        String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
-        phase = "Request";
+    private void oneStepProcessingModel(String requestLevelFormulator) {
+        phase = "Request";  // used in the file names
 
         QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase);
         qf.resetQueries();  // Clears any existing queries read in from an old file
@@ -338,19 +365,31 @@ public class TasksRunner {
         logger.info("PHASE 2: Building queries");
         QueryFormulator queryFormulator = NewQueryFormulatorFactory(tasks);
         String key = qf.getKey();
-        queryFormulator.buildQueries(phase, key);
+        queryFormulator.buildQueries(phase, Pathnames.processingModel, key);
 
         String queryFileDirectory = Pathnames.queryFileLocation;
-        List<Path> files = new ArrayList<>();
+
+        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(queryFileDirectory + key)
+                && (!file.toString().startsWith(queryFileDirectory + key + ".TASK."))
+                && (!file.toString().contains(".PRETTY."))
+                && (!file.toString().contains(".NON_TRANSLATED.")));
+
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
                 Paths.get(Pathnames.queryFileLocation),
-                qf.getKey() + "*.queries.json")) {
-            dirStream.forEach(path -> files.add(path)
-            );
+                filter)) {
+            dirStream.forEach(path -> oneStepExecuteOne(path, key, queryFileDirectory, requestLevelFormulator));
         } catch (IOException cause) {
             throw new TasksRunnerException(cause);
         }
-        files.parallelStream().forEach(path -> oneStepExecuteOne(path, key, queryFileDirectory, requestLevelFormulator));
+        if (!Pathnames.skipRequestDocAnnotation) {
+            logger.info("Calling the ISI event annotators for the request hits");
+            eventExtractor.annotateRequestDocEvents();
+        } else {
+            logger.info("SKIPPING the ISI event annotators for the request hits");
+        }
+
+        logger.info("Building file with doc text and events for request hits, for reranker and REST API");
+        eventExtractor.retrieveEventsFromRequestHits(qf);
     }
 
     /**
@@ -441,53 +480,46 @@ public class TasksRunner {
             if (Pathnames.processingModel == Pathnames.ProcessingModel.TWO_STEP) {
                 twoStepProcessingModel();
             } else if (Pathnames.processingModel == Pathnames.ProcessingModel.ONE_STEP) {
-                oneStepProcessingModel();
+                oneStepProcessingModel(Pathnames.requestLevelQueryFormulatorDockerImage);
+            } else if (Pathnames.processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS) {
+                oneStepProcessingModel(Pathnames.getCandidateDocsQueryFormulatorDockerImage);
             } else if (Pathnames.processingModel == Pathnames.ProcessingModel.NEURAL) {
                 neuralProcessingModel();
             } else {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
 
-            if (!Pathnames.skipRequestDocAnnotation) {
-                logger.info("PHASE 2: Calling the ISI event annotators for the request hits");
-                eventExtractor.annotateRequestDocEvents();
-            } else {
-                logger.info("PHASE 2: SKIPPING the ISI event annotators for the request hits");
-            }
-
-            logger.info("PHASE 2 COMPLETE");
-        } 
-
-	    if (!Pathnames.runIRPhase3) {
-            logger.info("Skipping phase 3");
-	    } else {
-	        phase = "Request";
-            String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
-            QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase);
-    
-            logger.info("PHASE 3: Building file with doc text and events for request hits, for reranker");
-            eventExtractor.retrieveEventsFromRequestHits(qf);
-
             //logger.info("PHASE 3: Building file with doc text and events for task hits, for experiments");
             //eventExtractor.retrieveEventsFromTaskHits(qf);
 
             if (!Pathnames.skipReranker) {
-                logger.info("PHASE 3: Reranking");
+                phase = "Request";
+                String requestLevelFormulator = Pathnames.processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS ?
+                    Pathnames.getCandidateDocsQueryFormulatorDockerImage :
+                    Pathnames.requestLevelQueryFormulatorDockerImage;
+                QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase);
+
+                logger.info("Reranking");
                 qf.rerank();
+
+                // Evaluate the request-level results (they are saved into a file as a side effect)
+                if (Pathnames.doRequestLevelEvaluation) {
+                    Map<String, Double> rstats = qf.evaluate("RERANKED");
+                    logger.info("Evaluation of request-level hits complete");
+                }
+                logger.info("Merging IR and IE results");
+                qf.writeFinalResultsFile();  // Combined IR and IE results
+
+                //NOT NEEDED eventExtractor.writeFileForHITL(qf);  // writes top 10 hits for HITL to judge
+
+                // Evaluate the request-level results (they are saved into a file as a side effect)
+                if (Pathnames.doRequestLevelEvaluation) {
+                    Map<String, Double> rstats = qf.evaluate("RERANKED");
+                    logger.info("PHASE 3: Evaluation of request-level hits complete");
+                }
             }
 
-            //NOT NEEDED eventExtractor.writeFileForHITL(qf);  // writes top 10 hits for HITL to judge
-    
-            // Evaluate the request-level results (they are saved into a file as a side effect)
-	        if (Pathnames.doRequestLevelEvaluation) {
-                Map<String, Double> rstats = qf.evaluate("RERANKED");
-                logger.info("PHASE 3: Evaluation of request-level hits complete");
-            }
-
-            logger.info("PHASE 3: Merging IR and IE results");
-            qf.writeFinalResultsFile();  // Combined IR and IE results
-    
-            logger.info("PHASE 3 COMPLETE");
+            logger.info("PROCESSING COMPLETE");
 	    }
     }
 

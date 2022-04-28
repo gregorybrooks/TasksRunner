@@ -45,6 +45,7 @@ public class Pathnames {
     public static boolean runIRPhase2 = true;
     public static boolean runIRPhase3 = true;
     public static boolean runIEPhase = false;
+    public static boolean runGetCandidateDocs = false;
     public static ProcessingModel processingModel = ProcessingModel.TWO_STEP;
 
     public static String scratchFileLocation = "/mnt/scratch/BETTER_DRY_RUN/scratch/clear_ir/";
@@ -53,6 +54,7 @@ public class Pathnames {
     public static String requestLevelQueryFormulatorDockerImage = "";
     public static String taskLevelQueryFormulatorDockerImage = "";
     public static String neuralQueryProcessorDockerImage = "";
+    public static String getCandidateDocsQueryFormulatorDockerImage = "";
     public static String rerankerDockerImage = "";
 
     public static String tempFileLocation = scratchFileLocation + "tmp/";
@@ -167,7 +169,8 @@ public class Pathnames {
     public enum ProcessingModel {
         TWO_STEP,
         ONE_STEP,
-        NEURAL
+        NEURAL,
+        GET_CANDIDATE_DOCS
     }
 
     public enum Language {
@@ -252,6 +255,12 @@ public class Pathnames {
             checkDockerImage(taskLevelQueryFormulatorDockerImage);
         }
 
+        getCandidateDocsQueryFormulatorDockerImage = getFromEnv("getCandidateDocsQueryFormulatorDockerImage",
+                "MISSING ENV VAR: getCandidateDocsQueryFormulatorDockerImage");
+        if (processingModel == ProcessingModel.GET_CANDIDATE_DOCS) {
+            checkDockerImage(getCandidateDocsQueryFormulatorDockerImage);
+        }
+
         neuralQueryProcessorDockerImage = getFromEnv("neuralQueryProcessorDockerImage",
                 "MISSING ENV VAR: neuralQueryProcessorDockerImage");
         if (processingModel == ProcessingModel.NEURAL) {
@@ -278,8 +287,8 @@ public class Pathnames {
                 "MISSING ENV VAR: targetIndexName", Required.REQUIRED);
         targetIndexLocation = getFromEnv("targetIndexLocation",
                 indexLocation + targetIndexName);
-        // Currently the index on the English training data is not used
-        englishIndexName = getFromEnv("englishIndexName", "NOT_USED");
+        englishIndexName = getFromEnv("englishIndexName", "MISSING ENV VAR: englishIndexName",
+                Required.REQUIRED);
         englishIndexLocation = getFromEnv("englishIndexLocation",
                 indexLocation + englishIndexName);
 

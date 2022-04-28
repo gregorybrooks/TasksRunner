@@ -367,6 +367,8 @@ public class QueryManager {
         public List<MissingDoc> missingDocs;
 
         RequestRun(String requestID, List<String> docids, List<Hit> hits) {
+            logger.info("Adding a RequestRun for Request " + requestID);
+            logger.info(docids.size() + " docids");
             this.requestID = requestID;
             this.docids = docids;
             this.missingDocs = null;
@@ -546,6 +548,10 @@ public class QueryManager {
      */
     public void execute(int N) {
         execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
+    }
+
+    public void execute_single_thread_english(int N) {
+        execute(1, N, queryFileName, runFileName, Pathnames.englishIndexLocation);
     }
 
     /**

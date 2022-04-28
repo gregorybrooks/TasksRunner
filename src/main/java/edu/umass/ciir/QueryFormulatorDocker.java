@@ -103,21 +103,23 @@ public class QueryFormulatorDocker extends QueryFormulator {
      * Constructs the queries from the Tasks, writes the Galago-ready query file
      *
      **/
-    public void buildQueries(String phase, String queryFileNameKey) {
+    public void buildQueries(String phase, Pathnames.ProcessingModel processingModel, String queryFileNameKey) {
         String language = Pathnames.targetLanguage.toString();
 //        if (Pathnames.targetLanguageIsEnglish) {
 //            language = "en";
 //        } else {
 //            language = "ar";
 //        }
-
         String dockerImageName;
-        if (phase.equals("Request")) {
-            dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
+        if (processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS) {
+            dockerImageName = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
         } else {
-            dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
+            if (phase.equals("Task")) {
+                dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
+            } else {
+                dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
+            }
         }
-
         callDockerImage(queryFileNameKey, language, phase, dockerImageName);
     }
 }

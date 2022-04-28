@@ -20,5 +20,5 @@ public class QueryFormulator {
         this.mode = tasks.getMode();
     }
 
-    protected void buildQueries(String phase, String queryFileName) {}
+    protected void buildQueries(String phase, Pathnames.ProcessingModel processingModel, String queryFileName) {}
 }

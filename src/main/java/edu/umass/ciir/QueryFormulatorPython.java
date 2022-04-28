@@ -75,7 +75,7 @@ public class QueryFormulatorPython extends QueryFormulator {
      * Constructs the queries from the Tasks, writes the Galago-ready query file
      *
      **/
-    public void buildQueries(String phase, String queryFileName) {
+    public void buildQueries(String phase, Pathnames.ProcessingModel processingModel, String queryFileName) {
         String language;
 
         if (Pathnames.targetLanguageIsEnglish) {

@@ -33,15 +33,16 @@ public class Document {
         buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap);
     }
 
-    public static String getArabicDocumentWithGrep (String docid) {
+    public static void getEnglishDocumentWithGrep (String docid, String corpus, Map<String,String> map,
+                                                    Map<String,List<SentenceRange>> sentenceMap) {
         String command = "grep";
+        String grepText = "\"id\": \"" + docid + "\"";
         ProcessBuilder processBuilder = new ProcessBuilder(
-                command, docid,
-                Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
+                command, grepText,
+                corpus);
         int exitVal = 0;
-        String docText = "";
+        logger.info("Calling " + command + " " + grepText + " " + corpus);
         try {
-            JSONParser parser = new JSONParser();
             Process process = processBuilder.start();
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream()));
@@ -50,8 +51,7 @@ public class Document {
                 if (line.length() == 0) {
                     continue;
                 }
-                JSONObject json = (JSONObject) parser.parse(line);
-                docText = (String) json.get("text");
+                doALine(line, map, sentenceMap);
             }
             exitVal = process.waitFor();
         } catch (Exception e) {
@@ -60,7 +60,6 @@ public class Document {
         if (exitVal != 0) {
             throw new TasksRunnerException("Unexpected ERROR while executing grep. Exit value is " + exitVal);
         }
-        return docText;
     }
 
     private static boolean getGoodOnes(String line, Set<String> uniqueDocIDs) {
@@ -88,60 +87,20 @@ public class Document {
 //        AtomicInteger idx = new AtomicInteger(0);
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
-        try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
-            stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
-                    .forEach(line -> {
-//                if ((idx.incrementAndGet() % 10000) == 0) {
-//                    System.out.println(idx);  // TEMP
-//                }
-                        JSONParser parser = new JSONParser();
-                        JSONObject json = null;
-                        try {
-                            json = (JSONObject) parser.parse(line);
-                        } catch (ParseException e) {
-                            throw new TasksRunnerException(e);
-                        }
-                        String uuid;
-                        String text;
-                        List<SentenceRange> sentences = new ArrayList<>();
-                        if (json.containsKey("uuid")) {
-                            // OLD STYLE
-                            uuid = (String) json.get("uuid");
-                            text = (String) json.get("text");
-                            getSentenceRangesFromText(text, sentences);
-                        } else {
-                            JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
-                            uuid = (String) derived_metadata.get("id");
-                            text = (String) derived_metadata.get("text");
-                            if (derived_metadata.containsKey("segment-sections")) {
-                                JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
-                                int id = 0;
-                                for (Object oSection : segment_sections) {
-                                    ++id;
-                                    JSONObject segment_section = (JSONObject) oSection;
-                                    long start = (long) segment_section.get("start");
-                                    long end = (long) segment_section.get("end");
-                                    String sentenceText = "";
-                                    try {
-                                        sentenceText = text.substring((int) start, (int) end);
-                                    } catch (IndexOutOfBoundsException e) {
-                                        System.out.println("ERROR: sentence boundaries not right");
-                                        System.out.println("Start: " + start + ", End: " + end);
-                                        System.out.println("Length of text: " + text.length());
-                                        System.out.println(text);
-                                    }
-                                    SentenceRange sentence = new SentenceRange(id, (int) start, (int) end, sentenceText);
-                                    sentences.add(sentence);
-                                }
-                            } else {
-                                getSentenceRangesFromText(text, sentences);
-                            }
-                        }
-                        map.put(uuid, text);
-                        sentenceMap.put(uuid, sentences);
-                    } );
-        } catch (IOException e) {
-            throw new TasksRunnerException(e);
+        if (uniqueDocIDs.size() < 25) {
+            logger.info("Using grep approach");
+            for (String docid :uniqueDocIDs) {
+                getEnglishDocumentWithGrep(docid, corpus, map, sentenceMap);
+            }
+        } else {
+            try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
+                stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
+                        .forEach(line -> {
+                            doALine(line, map, sentenceMap);
+                        });
+            } catch (IOException e) {
+                throw new TasksRunnerException(e);
+            }
         }
         List<String> missingDocids = new ArrayList<>();
         for (String d : uniqueDocIDs) {
@@ -153,6 +112,55 @@ public class Document {
             throw new TasksRunnerException("Requested docids not found in corpus file: "
                     + String.join(", ", missingDocids));
         }
+    }
+
+    private static void doALine(String line, Map<String,String> map,
+                         Map<String,List<SentenceRange>> sentenceMap) {
+        JSONParser parser = new JSONParser();
+        JSONObject json = null;
+        try {
+            json = (JSONObject) parser.parse(line);
+        } catch (ParseException e) {
+            throw new TasksRunnerException(e);
+        }
+        String uuid;
+        String text;
+        List<SentenceRange> sentences = new ArrayList<>();
+        if (json.containsKey("uuid")) {
+            // OLD STYLE
+            uuid = (String) json.get("uuid");
+            text = (String) json.get("text");
+            getSentenceRangesFromText(text, sentences);
+        } else {
+            JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
+            uuid = (String) derived_metadata.get("id");
+            text = (String) derived_metadata.get("text");
+            if (derived_metadata.containsKey("segment-sections")) {
+                JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
+                int id = 0;
+                for (Object oSection : segment_sections) {
+                    ++id;
+                    JSONObject segment_section = (JSONObject) oSection;
+                    long start = (long) segment_section.get("start");
+                    long end = (long) segment_section.get("end");
+                    String sentenceText = "";
+                    try {
+                        sentenceText = text.substring((int) start, (int) end);
+                    } catch (IndexOutOfBoundsException e) {
+                        System.out.println("ERROR: sentence boundaries not right");
+                        System.out.println("Start: " + start + ", End: " + end);
+                        System.out.println("Length of text: " + text.length());
+                        System.out.println(text);
+                    }
+                    SentenceRange sentence = new SentenceRange(id, (int) start, (int) end, sentenceText);
+                    sentences.add(sentence);
+                }
+            } else {
+                getSentenceRangesFromText(text, sentences);
+            }
+        }
+        map.put(uuid, text);
+        sentenceMap.put(uuid, sentences);
     }
 
     private static List<String> callSpacy(String s) {
