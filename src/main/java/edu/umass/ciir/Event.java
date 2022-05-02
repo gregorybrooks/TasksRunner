@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class Event implements JSONAware {
+public class Event /*implements JSONAware*/ {
     private static final Logger logger = Logger.getLogger("TasksRunner");
     String entryKey;
     String docSetType;
@@ -40,6 +40,7 @@ public class Event implements JSONAware {
         this.sentenceID = id;
     }
 
+    /*
     @Override
     public String toJSONString() {
         StringBuilder sb = new StringBuilder();
@@ -78,6 +79,8 @@ public class Event implements JSONAware {
         sb.append("} ");
         return sb.toString();
     }
+
+     */
 
     public static JSONArray getEventsJSON(List<Event> events) {
         JSONArray eventsArray = new JSONArray();

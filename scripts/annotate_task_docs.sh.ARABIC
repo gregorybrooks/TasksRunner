@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ve
 
-# Extract events from the top hits for each request and create the 
+# Extract events from the top scoredHits for each request and create the
 #   merged results.json file.
 
 cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE

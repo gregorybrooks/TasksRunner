@@ -11,9 +11,26 @@ import java.util.stream.Stream;
 public class QueryFormulatorDocker extends QueryFormulator {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
+    String dockerImageName;
+    String language;
+    String phase;
+    String queryFileNameKey;
 
-    QueryFormulatorDocker(AnalyticTasks tasks) {
-        super(tasks);
+    QueryFormulatorDocker(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
+                          String queryFileNameKey) {
+        super(tasks, phase, processingModel, queryFileNameKey);
+        this.phase = phase;
+        this.queryFileNameKey = queryFileNameKey;
+        language = Pathnames.targetLanguage.toString();
+        if (processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS) {
+            dockerImageName = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
+        } else {
+            if (phase.equals("Task")) {
+                dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
+            } else {
+                dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
+            }
+        }
     }
 
     private void callDockerImage(String queryFileNameKey, String outLang, String phase, String dockerImageName) {
@@ -103,23 +120,12 @@ public class QueryFormulatorDocker extends QueryFormulator {
      * Constructs the queries from the Tasks, writes the Galago-ready query file
      *
      **/
-    public void buildQueries(String phase, Pathnames.ProcessingModel processingModel, String queryFileNameKey) {
-        String language = Pathnames.targetLanguage.toString();
+    public void buildQueries() {
 //        if (Pathnames.targetLanguageIsEnglish) {
 //            language = "en";
 //        } else {
 //            language = "ar";
 //        }
-        String dockerImageName;
-        if (processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS) {
-            dockerImageName = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
-        } else {
-            if (phase.equals("Task")) {
-                dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
-            } else {
-                dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
-            }
-        }
         callDockerImage(queryFileNameKey, language, phase, dockerImageName);
     }
 }

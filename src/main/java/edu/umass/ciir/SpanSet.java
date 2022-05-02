@@ -5,7 +5,7 @@ import org.json.simple.JSONAware;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SpanSet implements JSONAware {
+public class SpanSet /*implements JSONAware*/ {
     String docid;
     String ssid;
     List<Span> spans;
@@ -19,6 +19,7 @@ public class SpanSet implements JSONAware {
         this.ssid = other.ssid;
         this.spans = new ArrayList<Span>(other.spans);
     }
+    /*
     @Override
     public String toJSONString() {
         StringBuilder sb = new StringBuilder();
@@ -29,4 +30,6 @@ public class SpanSet implements JSONAware {
         sb.append("] ");
         return sb.toString();
     }
+
+     */
 }

@@ -22,7 +22,7 @@ public class Pathnames {
     private static Map<String, String> env = System.getenv();
 
     public static String preTrainSizeParm = "FULL";    // or "SMALL"
-    public static int REQUEST_HITS_DETAILED = 100;  // number of hits to get full text and event details
+    public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
     public static boolean skipPhase1 = false;

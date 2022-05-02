@@ -3,7 +3,7 @@ package edu.umass.ciir;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
-public class Span implements JSONAware {
+public class Span /*implements JSONAware*/ {
     String synclass;
     String string;
     long start;
@@ -30,6 +30,7 @@ public class Span implements JSONAware {
         this.hend = other.hend;
 
     }
+    /*
     @Override
     public String toJSONString() {
         StringBuilder sb = new StringBuilder();
@@ -71,4 +72,6 @@ public class Span implements JSONAware {
         sb.append("} ");
         return sb.toString();
     }
+
+     */
 }

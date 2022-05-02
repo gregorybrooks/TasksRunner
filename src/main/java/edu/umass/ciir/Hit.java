@@ -5,17 +5,24 @@ import org.json.simple.JSONObject;
 
 import java.util.List;
 
-public class Hit implements JSONAware {
+
+public class Hit /*implements JSONAware*/ {
+
+    HitLevel hitLevel;
     String taskID;
     String docid;
     String docText;
     List<Event> events;
-    Hit(String taskID, String docid, String docText, List<Event> events) {
+
+    Hit(HitLevel hitLevel, String taskID, String docid, String docText, List<Event> events) {
+        this.hitLevel = hitLevel;
         this.taskID = taskID;
         this.docid = docid;
         this.docText = docText;
         this.events = events;
     }
+
+    /*
     @Override
     public String toJSONString() {
         StringBuilder sb = new StringBuilder();
@@ -44,4 +51,6 @@ public class Hit implements JSONAware {
         sb.append(" ] } ");
         return sb.toString();
     }
+
+     */
 }

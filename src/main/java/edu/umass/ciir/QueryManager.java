@@ -14,11 +14,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import static java.nio.file.StandardCopyOption.*;
 
 public class QueryManager {
-    private static final int MAX_DOCIDS = 100000;  // max number of hits to look at
+    private static final int MAX_DOCIDS = 100000;  // max number of scoredHits to look at
     public Map<String, String> queries;
     public Map<String, String> nonTranslatedQueries;
 
@@ -35,12 +36,14 @@ public class QueryManager {
     private long runTime = 0;
     private String rerankedRunFile;
     private String phase;
+    private EventExtractor eventExtractor;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    public QueryManager(AnalyticTasks tasks, String queryFormulationName, String phase) {
+    public QueryManager(AnalyticTasks tasks, String queryFormulationName, String phase, EventExtractor eventExtractor) {
         try {
             this.tasks = tasks;
             this.phase = phase;
+            this.eventExtractor = eventExtractor;
             taskFileNameGeneric = tasks.getTaskFileName();
             // When the query formulation name is a Docker image name, it might be qualified
             // with the owner's name and a "/", which confuses things when the formulation name
@@ -62,6 +65,11 @@ public class QueryManager {
         } catch (Exception e) {
             throw new TasksRunnerException(e.getMessage());
         }
+    }
+
+    public void buildQueries() {
+        QueryFormulator queryFormulator = new QueryFormulatorDocker(tasks, phase, Pathnames.processingModel, getKey());
+        queryFormulator.buildQueries();
     }
 
     public void readQueryFile() {
@@ -206,6 +214,351 @@ public class QueryManager {
 
     }
 
+    private int findSentence(long start, List<SentenceRange> sentences) {
+        for (SentenceRange sentence : sentences) {
+            if (start >= sentence.start && start <= sentence.end) {
+                return sentence.id;
+            }
+        }
+        return -1;
+    }
+
+    private void updateSentenceIDs (Hit d) {
+        List<Event> events = d.events;
+        for (Event event : events) {
+            String docid = d.docid;
+            long start = (long) event.anchorSpan.start;
+            List<SentenceRange> sentences = Document.getDocumentSentences(docid);
+            int statementID = findSentence(start, sentences);
+            event.sentenceID = statementID;
+        }
+    }
+
+    private void updateTaskOrRequest(Hit hit) {
+//        logger.info("In updateTaskOrRequest, hit.taskID is " + hit.taskID + ", length is " + hit.taskID.length());
+        String groupType = hit.hitLevel == HitLevel.REQUEST_LEVEL ? "R" : "T";
+        if (groupType.equals("T")) {
+            String taskID = hit.taskID;
+            String docid = hit.docid;
+            Task t = tasks.findTask(taskID);
+            if (t != null) {
+                for (ExampleDocument d : t.taskExampleDocs) {
+                    if (d.getDocid().equals(docid)) {
+                        d.setEvents(hit.events);
+                    }
+                }
+            }
+        } else {
+            String requestID = hit.taskID;
+            String docid = hit.docid;
+//            logger.info("docid is " + docid);  // DEBUG
+//            logger.info("Looking for request " + requestID);  // DEBUG
+            Request r = tasks.findRequest(requestID);
+            if (r != null) {
+                for (ExampleDocument d : r.reqExampleDocs) {
+                    if (d.getDocid().equals(docid)) {
+                        d.setEvents(hit.events);
+                    }
+                }
+            }
+        }
+    }
+
+
+    public void annotateExampleDocs() {
+        logger.info("PHASE 1: Preparing a file of the example docs for the event annotator");
+
+        if (!Pathnames.runIRPhase1) {
+            logger.info("Skipping example doc event annotation");
+        } else {
+            String fileForEventExtractor = eventExtractor.constructExampleToEventExtractorFileName();
+            Map<String, SimpleHit> entries = new HashMap<>();
+
+            for (Task task : tasks.getTaskList()) {
+                eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
+            }
+
+            eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
+
+            eventExtractor.annotateExampleDocEvents();
+        }
+
+        logger.info("Retrieving the file of example doc events created by the event annotator");
+
+        String fileFromEventExtractor = eventExtractor.constructExampleFileFromEventExtractorFileName();
+
+        List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
+
+        for (Hit hit : hits) {
+            updateSentenceIDs(hit);
+            updateTaskOrRequest(hit);
+        }
+
+    }
+
+    public void createInputFileEntriesFromHits(String docSetType, String taskOrRequestID,
+                                               List<String> hits, Map<String,SimpleHit> m) {
+        for (String td : hits) {
+            List<SentenceRange> sentences = null;
+            String docText;
+            if (Pathnames.targetLanguageIsEnglish) {
+                sentences = Document.getDocumentSentences(td);
+                docText = Document.getDocumentWithMap(td);
+            } else {
+                sentences = Document.getArabicDocumentSentences(td);
+                docText = Document.getArabicDocumentWithMap(td);
+            }
+            SimpleHit hit = new SimpleHit(td, docText, "", sentences);
+            m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
+        }
+    }
+
+    private List<Hit> mergeHits (HitLevel hitLevel, String reqNum, List<Hit> hits, List<String> docids) {
+        Map<String, Hit> eventsAdded = new HashMap<>();
+        for (Hit hit : hits) {
+            // updateSentenceIDs(hit);
+            eventsAdded.put(hit.docid, hit);
+        }
+        List<Hit> finalList = new ArrayList<>();
+        for (String docid : docids) {
+            if (eventsAdded.containsKey(docid)) {
+                finalList.add(eventsAdded.get(docid));
+            } else {
+                Hit hit = new Hit(hitLevel, reqNum, docid, "", new ArrayList<Event>());
+                finalList.add(hit);
+            }
+        }
+        return finalList;
+    }
+
+
+
+    public void retrieveEventsFromRequestHits() {
+        // Load the document text map in one pass through the corpus file:
+        // (Needed only if you run Phase 3 without Phase 2)
+/*
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> t.getRequests().values().stream())
+                    .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> t.getRequests().values().stream())
+                    .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        }
+*/
+
+        String theRunFileName = Pathnames.runFileLocation + getKey() + ".out";
+        logger.info("Setting run file to " + theRunFileName);
+        setRun(theRunFileName);
+
+        for (Task t : tasks.getTaskList()) {
+            for (Request r : t.getRequests().values()) {
+                String fileFromEventExtractor = eventExtractor.constructRequestLevelFileFromEventExtractorFileName(r);
+                String requestHitsEventFileName = eventExtractor.constructRequestLevelEventFileName(r);
+                List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
+                List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum, hits, getDocids(r.reqNum, Pathnames.RESULTS_CAP));
+                eventExtractor.writeEventsAsJson(mergedHits, "REQUESTHITS", requestHitsEventFileName);
+                logger.info(requestHitsEventFileName + " written");
+            }
+        }
+    }
+
+
+    /**
+     * Number of scoredHits to have full event details.
+     */
+    private final int TASK_HITS_DETAILED = Pathnames.RESULTS_CAP;
+
+    /**
+     * Creates an input file to give to the event extractor, of the top scoredHits for each task.
+     * Keep this method in case we ever want to do this:
+     */
+    public void createInputForEventExtractorFromTaskHits(QueryManager qf) {
+        Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
+        Map<String, String> entries = new LinkedHashMap<>();
+        List<Task> taskList = tasks.getTaskList();
+
+        // Load the document text map in one pass through the corpus file:
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        }
+        /* Create the file to give to the ISI event extractor */
+        for (Task task : taskList) {
+            List<String> hits = qf.getDocids(task.taskNum, TASK_HITS_DETAILED);
+            simpleEntries.clear();
+            createInputFileEntriesFromHits("TaskLevelHit", task.taskNum, hits, simpleEntries);
+            if (simpleEntries.size() > 0) {
+                String fileForEventExtractor = eventExtractor.constructTaskLevelFileFromEventExtractorFileName(task);
+                eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+            }
+        }
+    }
+
+
+    /**
+     * Creates an input file to give to the event extractor, of the top scoredHits for each request.
+     */
+    public void createInputFileForEventExtractorFromRequestHits() {
+        Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
+        Map<String, String> entries = new LinkedHashMap<>();
+        List<Request> requestList = tasks.getRequests();
+        for (Request r : requestList) {
+            logger.info("tasks.getRequests() returned " + r.reqNum);
+            logger.info("which has this many docids: " + getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED));
+        }
+
+        // Load the document text map in one pass through the corpus file:
+        if (Pathnames.targetLanguageIsEnglish) {
+            logger.info("createInputFileForEventExtractorFromRequestHits: getting doc texts");
+            Document.buildDocMap(requestList.parallelStream()
+                    .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(requestList.parallelStream()
+                    .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        }
+        /* First, build the file to give to the HITL person */
+        Map<String,String> queries = getQueries();
+        for (Task t : tasks.getTaskList()) {
+            for (Request r : t.getRequests().values()) {
+                logger.info("Request text for " + r.reqNum + " is: " + r.reqText);  // DEBUG
+                if (r.reqText == null) {
+                    logger.info("Request text is null");
+                }
+                /* When getting candidate example documents at the Task level, we use a dummy Request
+                 * which has an empty reqText, so disable this for now:
+
+                if (r.reqText == null || r.reqText.equals("")) {
+                    continue;     // only include the 2 requests with extra HITL info
+                }
+                 */
+                List<String> hits = getDocids(r.reqNum, 10);
+                simpleEntries.clear();
+                for (String td : hits) {
+                    String score = getScore(r.reqNum, td);
+                    String docid = "RequestLevelHit--" + r.reqNum + "--" + td;
+                    String docText = "";
+                    if (Pathnames.targetLanguageIsEnglish) {
+                        docText = Document.getDocumentWithMap(td);
+                    } else {
+                        docText = Document.getArabicDocumentWithMap(td);
+                    }
+                    String query = queries.get(r.reqNum);
+                    simpleEntries.put(docid, new SimpleHit(docid, docText, score, query,
+                            t.taskNum, t.taskTitle, t.taskNarr, t.taskStmt, r.reqNum, r.reqText));
+                }
+                if (simpleEntries.size() > 0) {
+                    String fileForEventExtractor = eventExtractor.constructRequestLevelSimpleFileName(r);
+                    eventExtractor.writeInputFileSimpleFormat(simpleEntries, fileForEventExtractor);
+                    logger.info("Simple entries generated this day for " + r.reqNum);
+                }
+            }
+        }
+
+        /* Create the file to give to the ISI event extractor */
+        for (Request r : requestList) {
+            List<String> hits = getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
+            logger.info("qf.getDocids for reqNum " + r.reqNum + " returned " + hits.size() + " entries");
+            simpleEntries.clear();
+            eventExtractor.createInputFileEntriesFromHits("RequestLevelHit", r.reqNum, hits, simpleEntries);
+            logger.info("createInputFileEntriesFromHits returned " + simpleEntries.size() + " entries");
+            if (simpleEntries.size() > 0) {
+                String fileForEventExtractor = eventExtractor.constructRequestLevelToEventExtractorFileName(r);
+                eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+            }
+        }
+    }
+
+    /**
+     * Creates an input file to give to the event extractor, of the top scoredHits for each request.
+     * This is for my Galago re-ranker project.
+     */
+    public void createInputForRerankerFromRequestHits() {
+        Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
+        List<Request> requestList = tasks.getRequests();
+
+        // Load the document text map in one pass through the corpus file:
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(requestList.parallelStream()
+                    .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(requestList.parallelStream()
+                    .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
+                    .collect(Collectors.toSet()));
+        }
+
+        Map<String, String> queries = getQueries();
+        for (Task t : tasks.getTaskList()) {
+            for (Request r : t.getRequests().values()) {
+                if (r.reqText.length() == 0) {
+                    continue;     // only include the 2 requests with extra HITL info
+                }
+                List<String> hits = getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
+                simpleEntries.clear();
+                String query = queries.get(r.reqNum);
+                for (String td : hits) {
+                    String score = getScore(r.reqNum, td);
+                    String docText;
+                    if (Pathnames.targetLanguageIsEnglish) {
+                        docText = Document.getDocumentWithMap(td);
+                    } else {
+                        docText = Document.getArabicDocumentWithMap(td);
+                    }
+                    simpleEntries.put(td, new SimpleHit(td, docText, score, ""));
+                }
+                if (simpleEntries.size() > 0) {
+                    String fileName = eventExtractor.constructRequestLevelRerankerFileName(r);
+                    eventExtractor.writeInputFileRerankerFormat(simpleEntries, fileName, query, r.reqNum, "CLEAR");
+                }
+            }
+        }
+    }
+
+
+    /* Keep this method in case we ever want to do this: */
+    public void retrieveEventsFromTaskHits() {
+        /* Get the document texts and sentences for each hit mentioned in the event files */
+        /* (which is a side effect of loading the document text map with those docs) */
+        if (Pathnames.targetLanguageIsEnglish) {
+            Document.buildDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> eventExtractor.readEventFile(eventExtractor.constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        } else {
+            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+                    .flatMap(t -> eventExtractor.readEventFile(eventExtractor.constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
+                    .map(hit -> hit.docid)
+                    .collect(Collectors.toSet()));
+        }
+
+        // To be able to get the scoredHits we need the qf to open the runfile
+        String theRunFileName = Pathnames.runFileLocation + getKey() + ".out";
+        setRun(theRunFileName);
+
+        for (Task t : tasks.getTaskList()) {
+            List<Hit> hits = eventExtractor.readEventFile(eventExtractor.constructTaskLevelFileFromEventExtractorFileName(t), -1);
+            /* Augment the scoredHits for this task with the info from the events file */
+            List<Hit> mergedHits = mergeHits(HitLevel.TASK_LEVEL, t.taskNum, hits, getDocids(t.taskNum, 1000));
+
+            /* Write out a file that has everything about the task scoredHits that is needed by the final re-ranker */
+            String taskHitsEventFileName = eventExtractor.constructTaskLevelEventFileName(t);
+            eventExtractor.writeEventsAsJson(mergedHits, "TASKHITS", taskHitsEventFileName);
+        }
+    }
+
     public void rerank() {
         callReranker(runFileName, rerankedRunFile);
         // Refresh the in-memory runfile data
@@ -335,8 +688,8 @@ public class QueryManager {
     }
 
     public String getScore(String requestID, String docid) {
-        List<Hit> hits = run.requestRuns.get(requestID).hits;
-        for (Hit h : hits) {
+        List<ScoredHit> scoredHits = run.requestRuns.get(requestID).scoredHits;
+        for (ScoredHit h : scoredHits) {
             if (h.docid.equals(docid)) {
                 return h.score;
             }
@@ -344,14 +697,14 @@ public class QueryManager {
         return "";
     }
 
-    public class Hit {
+    public class ScoredHit {
         public String docid;
         public String score;
-        Hit(String docid, String score) {
+        ScoredHit(String docid, String score) {
             this.docid = docid;
             this.score = score;
         }
-        Hit(Hit other) {
+        ScoredHit(ScoredHit other) {
             this.docid = other.docid;
             this.score = other.score;
         }
@@ -363,16 +716,16 @@ public class QueryManager {
     public class RequestRun {
         public String requestID;
         public List<String> docids;
-        public List<Hit> hits;
+        public List<ScoredHit> scoredHits;
         public List<MissingDoc> missingDocs;
 
-        RequestRun(String requestID, List<String> docids, List<Hit> hits) {
+        RequestRun(String requestID, List<String> docids, List<ScoredHit> scoredHits) {
             logger.info("Adding a RequestRun for Request " + requestID);
             logger.info(docids.size() + " docids");
             this.requestID = requestID;
             this.docids = docids;
             this.missingDocs = null;
-            this.hits = hits;
+            this.scoredHits = scoredHits;
         }
     }
 
@@ -386,7 +739,7 @@ public class QueryManager {
         }
         /**
          * Reads in the file that was output from Galago's batch-search function,
-         * which is the top x hits for each of the Requests in the input file.
+         * which is the top x scoredHits for each of the Requests in the input file.
          */
         Run() {
             readFile(runFileName);
@@ -394,14 +747,14 @@ public class QueryManager {
 
         /**
          * Reads in the file that was output from Galago's batch-search function,
-         * which is the top x hits for each of the Requests in the input file.
+         * which is the top x scoredHits for each of the Requests in the input file.
          */
         private void readFile(String theRunFileName) {
             File f = new File(theRunFileName);
             if (f.exists()) {
                 logger.info("Opening run file " + theRunFileName);
                 List<String> docids = new ArrayList<>();
-                List<Hit> hits = new ArrayList<>();
+                List<ScoredHit> scoredHits = new ArrayList<>();
                 try (BufferedReader br = new BufferedReader(new FileReader(theRunFileName))) {
                     String line;
                     String prevQueryID = "NONE";
@@ -413,12 +766,12 @@ public class QueryManager {
                                 // Clone the lists
                                 List<String> cloned_docid_list
                                         = new ArrayList<String>(docids);
-                                List<Hit> cloned_hit_list
-                                        = new ArrayList<Hit>(hits);
-                                RequestRun r = new RequestRun(prevQueryID, cloned_docid_list, cloned_hit_list);
+                                List<ScoredHit> cloned_Scored_hit_list
+                                        = new ArrayList<ScoredHit>(scoredHits);
+                                RequestRun r = new RequestRun(prevQueryID, cloned_docid_list, cloned_Scored_hit_list);
                                 requestRuns.put(prevQueryID, r);
                                 docids.clear();
-                                hits.clear();
+                                scoredHits.clear();
                                 docidsAdded = 0;
                             }
                         }
@@ -428,8 +781,8 @@ public class QueryManager {
                             String docid = tokens[2];
                             String score = tokens[4];
                             docids.add(docid);
-                            Hit h = new Hit(docid, score);
-                            hits.add(h);
+                            ScoredHit h = new ScoredHit(docid, score);
+                            scoredHits.add(h);
                             ++docidsAdded;
                         }
                     }
@@ -437,9 +790,9 @@ public class QueryManager {
                         // Clone the lists
                         List<String> cloned_docid_list
                                 = new ArrayList<String>(docids);
-                        List<Hit> cloned_hit_list
-                                = new ArrayList<Hit>(hits);
-                        RequestRun r = new RequestRun(prevQueryID, cloned_docid_list, cloned_hit_list);
+                        List<ScoredHit> cloned_Scored_hit_list
+                                = new ArrayList<ScoredHit>(scoredHits);
+                        RequestRun r = new RequestRun(prevQueryID, cloned_docid_list, cloned_Scored_hit_list);
                         requestRuns.put(prevQueryID, r);
                     }
                 } catch (IOException e) {
@@ -505,12 +858,12 @@ public class QueryManager {
 
     /**
      * For each task, executes the task's request queryfile with Galago's batch-search,
-     * using a single Galago thread, getting 1000 hits, producing a task-level
-     * runfile, using the task's task-level index built previously from the task's top hits.
-     * Also, it creates an event extractor input file for each task, while the hits
+     * using a single Galago thread, getting 1000 scoredHits, producing a task-level
+     * runfile, using the task's task-level index built previously from the task's top scoredHits.
+     * Also, it creates an event extractor input file for each task, while the scoredHits
      * are in memory.
      */
-    public void executeRequestQueries(String taskLevelFormulationName) {
+    public void executeRequestQueries(String taskLevelFormulationName, int numResults) {
         // When the query formulation name is a Docker image name, it might be qualified
         // with the owner's name and a "/", which confuses things when the formulation name
         // is used in a pathname, so change the "/" to a "-"
@@ -529,7 +882,7 @@ public class QueryManager {
             String indexName = Pathnames.indexLocation + taskLevelKey + "." + t.taskNum + ".PARTIAL";
             logger.info("Executing request queries for task " + t.taskNum);
 
-            executeAgainstPartialIndex(1, 1000, queryFileName, theRunFileName, indexName, t.taskNum);
+            executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName, indexName, t.taskNum);
 
             totalRunTime.getAndAdd(runTime);
         });
@@ -543,21 +896,31 @@ public class QueryManager {
     /**
      * Executes the default queryfile with Galago's batch-search,
      * using the default number of Galago batch threads,
-     * requesting N hits, producing the default runfile, using the Arabic index.
-     * @param N the number of hits to get
+     * requesting N scoredHits, producing the default runfile, using the Arabic index.
+     * @param N the number of scoredHits to get
      */
     public void execute(int N) {
-        execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
+        if (queries.size() == 1) {
+            execute(1, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
+        } else {
+            execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
+        }
     }
 
     public void execute_single_thread_english(int N) {
+        /*
+        Map<String, String> queryMap = getGeneratedQueries(queryFileName);
+        List<String> queries = (List<String>) queryMap.values();
+        String command = "http://128.119.246.139:43635/search?q=" + queries.get(0);
+
+         */
         execute(1, N, queryFileName, runFileName, Pathnames.englishIndexLocation);
     }
 
     /**
      * Executes the specified queryfile with Galago's batch-search,
      * using the specified number of Galago batch threads,
-     * requesting the specified number of hits, producing the specified runfile, using
+     * requesting the specified number of scoredHits, producing the specified runfile, using
      * the specified index.
      *
      * @param threadCount
@@ -626,7 +989,7 @@ public class QueryManager {
     /**
      * Executes the specified queryfile with Galago's batch-search,
      * using the specified number of Galago batch threads,
-     * requesting the specified number of hits, producing the specified runfile, using
+     * requesting the specified number of scoredHits, producing the specified runfile, using
      * the specified PARTIAL index.
      *
      * @param threadCount
@@ -698,14 +1061,14 @@ public class QueryManager {
     }
 
     /**
-     * Builds a Galago index on the top hits for each task.
+     * Builds a Galago index on the top scoredHits for each task.
      */
     public void buildTaskLevelIndexes() {
         tasks.getTaskList().parallelStream().forEach(t ->  buildTaskPartialIndex(t.taskNum));
     }
 
     /**
-     * Creates a file containing the docids from the top hits
+     * Creates a file containing the docids from the top scoredHits
      * for this task, ready to be indexed by Galago.
      * @param taskID the task ID
      */
@@ -725,7 +1088,7 @@ public class QueryManager {
     }
 
     /**
-     * Builds a Galago partial index on the top hits for this task.
+     * Builds a Galago partial index on the top scoredHits for this task.
      * @param taskID the task ID
      */
     public void buildTaskPartialIndex(String taskID) {
@@ -782,7 +1145,7 @@ public class QueryManager {
 
     /**
      * Creates a Galago config file specifying the parameters for building the index
-     * for this task's top hits. This is the version to be used when building a PARTIAL index.
+     * for this task's top scoredHits. This is the version to be used when building a PARTIAL index.
      * @param taskID the task ID
      * @return the name of the Galago config file, specific to this task
      */
@@ -915,7 +1278,7 @@ public class QueryManager {
          * for this request and this ranked set of docs.
          *
          * @param requestID The request, with its relevance judgments available.
-         * @param runDocids The ranked hits.
+         * @param runDocids The ranked scoredHits.
          * @return The calculated nDCG.
          */
 
@@ -945,7 +1308,7 @@ public class QueryManager {
                 }
                 ++index;
             }
-            /* Calculate discounted cumulative gain of the ranked hits */
+            /* Calculate discounted cumulative gain of the ranked scoredHits */
             double DCG = 0.0;
             index = 1;
             for (String docid : runDocids) {
@@ -1285,7 +1648,7 @@ public class QueryManager {
             + requestID + ".REQUESTHITS.json.results.json";
         File f = new File(fileName);
         if (f.exists()) {
-            logger.info("Reading top hits event file " + fileName);
+            logger.info("Reading top scoredHits event file " + fileName);
             int lineCounter = 0;
             try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
                 String line;
@@ -1306,7 +1669,7 @@ public class QueryManager {
     }
 
     public void writeFinalResultsFile() {
-        Map<String, Map<String, List<Hit>>> tasks = new HashMap<>();
+        Map<String, Map<String, List<ScoredHit>>> tasks = new HashMap<>();
         String fileName = rerankedRunFile;
         File f = new File(fileName);
         if (f.exists()) {
@@ -1322,24 +1685,24 @@ public class QueryManager {
                     String docid = tokens[2];
                     String score = tokens[4];
                     String taskID = getTaskIDFromRequestID(requestID);
-                    Hit hit = new Hit(docid, score);
+                    ScoredHit scoredHit = new ScoredHit(docid, score);
                     if (tasks.containsKey(taskID)) {
-                        Map<String, List<Hit>> requests = tasks.get(taskID);
+                        Map<String, List<ScoredHit>> requests = tasks.get(taskID);
                         if (requests.containsKey(requestID)) {
-                            List<Hit> hitlist = requests.get(requestID);
+                            List<ScoredHit> hitlist = requests.get(requestID);
                             if (hitlist.size() < Pathnames.RESULTS_CAP) {
-                                hitlist.add(hit);
+                                hitlist.add(scoredHit);
                             }
                         } else {
-                            List<Hit> requestHits = new ArrayList<>();
-                            requestHits.add(hit);
-                            requests.put(requestID, requestHits);
+                            List<ScoredHit> requestScoredHits = new ArrayList<>();
+                            requestScoredHits.add(scoredHit);
+                            requests.put(requestID, requestScoredHits);
                         }
                     } else {
-                        Map<String, List<Hit>> requests = new HashMap<>();
-                        List<Hit> requestHits = new ArrayList<>();
-                        requestHits.add(hit);
-                        requests.put(requestID, requestHits);
+                        Map<String, List<ScoredHit>> requests = new HashMap<>();
+                        List<ScoredHit> requestScoredHits = new ArrayList<>();
+                        requestScoredHits.add(scoredHit);
+                        requests.put(requestID, requestScoredHits);
                         tasks.put(taskID, requests);
                     }
                 }
@@ -1372,7 +1735,7 @@ public class QueryManager {
                     writer.println("    \"requests\": {");
 
                     JSONObject searchResult = new JSONObject();
-                    Map<String, List<Hit>> requests = tasks.get(taskID);
+                    Map<String, List<ScoredHit>> requests = tasks.get(taskID);
                     JSONObject jsonRequests = new JSONObject();
                     int numRequests = requests.size();
                     int currentRequestIdx = 0;
@@ -1382,21 +1745,21 @@ public class QueryManager {
                         writer.println("        \"request\": \"" + requestID + "\",");
                         writer.println("        \"ranking\": [");
 
-                        List<Hit> hits = requests.get(requestID);
+                        List<ScoredHit> scoredHits = requests.get(requestID);
                         JSONObject jsonRequest = new JSONObject();
                         JSONArray ranking = new JSONArray();
-                        int numHits = hits.size();
+                        int numHits = scoredHits.size();
                         int currentHitIdx = 0;
-                        for (Hit hit : hits) {
+                        for (ScoredHit scoredHit : scoredHits) {
                             ++currentHitIdx;
                             JSONObject jsonHit = new JSONObject();
-                            String hitLine = "          { \"docid\": \"" + hit.docid + "\", \"score\": " + hit.score + " }";
+                            String hitLine = "          { \"docid\": \"" + scoredHit.docid + "\", \"score\": " + scoredHit.score + " }";
                             if (currentHitIdx < numHits) {
                                 hitLine += ",";
                             }
                             writer.println(hitLine);
-                            jsonHit.put("docid", hit.docid);
-                            jsonHit.put("score", hit.score);
+                            jsonHit.put("docid", scoredHit.docid);
+                            jsonHit.put("score", scoredHit.score);
                             ranking.add(jsonHit);
                         }
                         // end of ranking - time for the events

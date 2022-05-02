@@ -12,9 +12,11 @@ public class QueryFormulatorPython extends QueryFormulator {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    QueryFormulatorPython(AnalyticTasks tasks) {
-        super(tasks);
+    QueryFormulatorPython(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
+                          String queryFileNameKey) {
+        super(tasks, phase, processingModel, queryFileNameKey);
     }
+
     String pythonProgramName = "run_multipartiterank_qformulator.py";
 
     private void callPythonProgram(String queryFileName, String outLang, String phase) {
@@ -75,7 +77,7 @@ public class QueryFormulatorPython extends QueryFormulator {
      * Constructs the queries from the Tasks, writes the Galago-ready query file
      *
      **/
-    public void buildQueries(String phase, Pathnames.ProcessingModel processingModel, String queryFileName) {
+    public void buildQueries() {
         String language;
 
         if (Pathnames.targetLanguageIsEnglish) {
@@ -84,6 +86,6 @@ public class QueryFormulatorPython extends QueryFormulator {
             language = "ar";
         }
 
-        callPythonProgram(queryFileName, language, phase);
+        callPythonProgram(queryFileNameKey + ".queries.json", language, phase);
     }
 }

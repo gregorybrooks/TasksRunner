@@ -12,8 +12,9 @@ public class QueryFormulatorJava extends QueryFormulator {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    QueryFormulatorJava(AnalyticTasks tasks) {
-        super(tasks);
+    QueryFormulatorJava(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
+                        String queryFileNameKey) {
+        super(tasks, phase, processingModel, queryFileNameKey);
     }
 
     String javaJarFile = "TaskQueryBuilder1-1.0.0.jar";
@@ -70,7 +71,7 @@ public class QueryFormulatorJava extends QueryFormulator {
      * Constructs the queries from the Tasks, writes the Galago-ready query file
      *
      **/
-    public void buildQueries(String phase, Pathnames.ProcessingModel processingModel, String queryFileName) {
+    public void buildQueries() {
         String language;
 
         if (Pathnames.targetLanguageIsEnglish) {
@@ -79,6 +80,6 @@ public class QueryFormulatorJava extends QueryFormulator {
             language = "ar";
         }
 
-        callJavaProgram(queryFileName, language, phase);
+        callJavaProgram(queryFileNameKey + ".queries.json", language, phase);
     }
 }
