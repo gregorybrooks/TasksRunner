@@ -914,7 +914,10 @@ public class QueryManager {
         String command = "http://128.119.246.139:43635/search?q=" + queries.get(0);
 
          */
-        execute(1, N, queryFileName, runFileName, Pathnames.englishIndexLocation);
+//        execute(1, N, queryFileName, runFileName, Pathnames.englishIndexLocation);
+        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago2.log";
+        Galago galago = new Galago(Pathnames.englishIndexLocation, Pathnames.mode, galagoLogFile, Pathnames.galagoLocation);
+        galago.search(queries, runFileName, N);
     }
 
     /**

@@ -2,6 +2,14 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.lemurproject.galago.core.parse.Document;
+import org.lemurproject.galago.core.retrieval.Results;
+import org.lemurproject.galago.core.retrieval.Retrieval;
+import org.lemurproject.galago.core.retrieval.RetrievalFactory;
+import org.lemurproject.galago.core.retrieval.ScoredDocument;
+import org.lemurproject.galago.core.retrieval.query.Node;
+import org.lemurproject.galago.core.retrieval.query.StructuredQuery;
+import org.lemurproject.galago.utility.Parameters;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +33,41 @@ public class Galago {
         this.mode = mode;
         this.galagoLocation = galagoLocation;
         this.logFileLocation = logFileLocation;
+    }
+
+    public void search(Map<String, String> queries, String runFileName, int N) {
+        try {
+            logger.info("Start Galago search");
+            PrintWriter writer = new PrintWriter(runFileName);
+
+            Parameters queryParams = Parameters.create();
+            queryParams.set ("index", indexLocation);
+            queryParams.set ("requested", N);
+            Retrieval ret = RetrievalFactory.create(queryParams);
+
+            for (Map.Entry entry : queries.entrySet()) {
+                String qid = (String) entry.getKey();
+                String qText = (String) entry.getValue();
+                Node q = StructuredQuery.parse(qText);
+                Node transq = ret.transformQuery(q, Parameters.create());
+                Results results = ret.executeQuery(transq, queryParams);
+                if (results.scoredDocuments.isEmpty()) {
+                    logger.info("Search failed. Nothing retrieved.");
+                } else {
+                    for (ScoredDocument sd : results.scoredDocuments) {
+                        int rank = sd.rank;
+                        double score = sd.score;
+                        String eid = ret.getDocumentName(sd.document); // ID in the text
+                        writer.println(qid + " Q0 " + eid + " " + rank + " " + score + " CLEAR");
+                    }
+                }
+            }
+            writer.close();
+        }
+        catch (Exception ex) {
+            throw new TasksRunnerException(ex);
+        }
+        logger.info("End Galago search");
     }
 
     public long getCollectionDocumentCount() {

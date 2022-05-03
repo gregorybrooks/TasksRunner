@@ -4,6 +4,15 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import org.lemurproject.galago.core.retrieval.Results;
+import org.lemurproject.galago.core.retrieval.Retrieval;
+import org.lemurproject.galago.core.retrieval.RetrievalFactory;
+import org.lemurproject.galago.core.retrieval.ScoredDocument;
+import org.lemurproject.galago.core.retrieval.query.Node;
+import org.lemurproject.galago.core.retrieval.query.StructuredQuery;
+import org.lemurproject.galago.utility.Parameters;
+
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -62,6 +71,36 @@ public class Document {
         }
     }
 
+    public static void getEnglishDocumentWithGalago (String docid, String indexPath, Map<String,String> map,
+                                                   Map<String,List<SentenceRange>> sentenceMap) {
+        try {
+            Parameters queryParams = Parameters.create();
+            queryParams.set ("index", indexPath);
+            queryParams.set ("requested",1000);
+            Retrieval ret = RetrievalFactory.create(queryParams);
+            org.lemurproject.galago.core.parse.Document.DocumentComponents dcs =
+                    new org.lemurproject.galago.core.parse.Document.DocumentComponents(true, false, true);
+            org.lemurproject.galago.core.parse.Document document = ret.getDocument(docid, dcs);
+            String docText = document.text;
+
+            // Strip out the TEXT and EXID fields
+            int x = docText.indexOf("<TEXT>");
+            int y = docText.indexOf("</EXID>");
+            String s = docText.substring(x, y+7);
+            docText = docText.replace(s, "");
+            docText = docText.replace("</TEXT>", "");
+
+            List<SentenceRange> sentences = new ArrayList<>();
+            getSentenceRangesFromText(docText, sentences);
+
+            map.put(docid, docText);
+            sentenceMap.put(docid, sentences);
+        }
+        catch (Exception ex) {
+            throw new TasksRunnerException(ex);
+        }
+    }
+
     private static boolean getGoodOnes(String line, Set<String> uniqueDocIDs) {
         JSONParser parser = new JSONParser();
         JSONObject json = null;
@@ -88,9 +127,11 @@ public class Document {
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
         if (uniqueDocIDs.size() < 25) {
-            logger.info("Using grep approach");
-            for (String docid :uniqueDocIDs) {
-                getEnglishDocumentWithGrep(docid, corpus, map, sentenceMap);
+            for (String docid : uniqueDocIDs) {
+                //logger.info("Using grep method");
+                //getEnglishDocumentWithGrep(docid, corpus, map, sentenceMap);
+                logger.info("Using Galago method");
+                getEnglishDocumentWithGalago(docid, Pathnames.englishIndexLocation, map, sentenceMap);
             }
         } else {
             try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
