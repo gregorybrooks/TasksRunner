@@ -4,12 +4,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import org.lemurproject.galago.core.retrieval.Results;
 import org.lemurproject.galago.core.retrieval.Retrieval;
 import org.lemurproject.galago.core.retrieval.RetrievalFactory;
-import org.lemurproject.galago.core.retrieval.ScoredDocument;
-import org.lemurproject.galago.core.retrieval.query.Node;
-import org.lemurproject.galago.core.retrieval.query.StructuredQuery;
 import org.lemurproject.galago.utility.Parameters;
 
 
@@ -33,19 +29,20 @@ public class Document {
     public static void buildDocMap(Set<String> uniqueDocIDs) {
         if (!Pathnames.englishCorpusFileName.isEmpty()) {
             String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
-            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap);
+            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap, true);
         }
     }
 
     public static void buildArabicDocMap(Set<String> uniqueDocIDs) {
         String corpus = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
-        buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap);
+        buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap, false);
     }
 
-    public static void getEnglishDocumentWithGrep (String docid, String corpus, Map<String,String> map,
+    public static void getDocumentWithGrep (String docid, String corpus, Map<String,String> map,
                                                     Map<String,List<SentenceRange>> sentenceMap) {
         String command = "grep";
-        String grepText = "\"id\": \"" + docid + "\"";
+//        String grepText = "\"id\": \"" + docid + "\"";
+        String grepText = docid;
         ProcessBuilder processBuilder = new ProcessBuilder(
                 command, grepText,
                 corpus);
@@ -71,8 +68,8 @@ public class Document {
         }
     }
 
-    public static void getEnglishDocumentWithGalago (String docid, String indexPath, Map<String,String> map,
-                                                   Map<String,List<SentenceRange>> sentenceMap) {
+    public static void getDocumentWithGalago(String docid, String indexPath, Map<String,String> map,
+                                             Map<String,List<SentenceRange>> sentenceMap, boolean includeSentences) {
         try {
             Parameters queryParams = Parameters.create();
             queryParams.set ("index", indexPath);
@@ -86,12 +83,14 @@ public class Document {
             // Strip out the TEXT and EXID fields
             int x = docText.indexOf("<TEXT>");
             int y = docText.indexOf("</EXID>");
-            String s = docText.substring(x, y+7);
+            String s = docText.substring(x, y + 7);
             docText = docText.replace(s, "");
             docText = docText.replace("</TEXT>", "");
 
             List<SentenceRange> sentences = new ArrayList<>();
-            getSentenceRangesFromText(docText, sentences);
+            if (includeSentences) {
+                getSentenceRangesFromText(docText, sentences);
+            }
 
             map.put(docid, docText);
             sentenceMap.put(docid, sentences);
@@ -122,18 +121,23 @@ public class Document {
     }
 
     private static void buildDocMap(Set<String> uniqueDocIDs, String corpus, Map<String,String> map,
-                                    Map<String,List<SentenceRange>> sentenceMap) {
+                                    Map<String,List<SentenceRange>> sentenceMap, boolean isEnglishCorpus) {
 //        AtomicInteger idx = new AtomicInteger(0);
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
-        if (uniqueDocIDs.size() < 25) {
+        if (uniqueDocIDs.size() <= 25 && isEnglishCorpus) {
+            logger.info("Using Galago method");
             for (String docid : uniqueDocIDs) {
-                //logger.info("Using grep method");
-                //getEnglishDocumentWithGrep(docid, corpus, map, sentenceMap);
-                logger.info("Using Galago method");
-                getEnglishDocumentWithGalago(docid, Pathnames.englishIndexLocation, map, sentenceMap);
+                getDocumentWithGalago(docid, Pathnames.englishIndexLocation, map, sentenceMap, true);
             }
         } else {
+            logger.info("Using Galago method");
+            for (String docid : uniqueDocIDs) {
+                getDocumentWithGalago(docid, isEnglishCorpus ? Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
+                        map, sentenceMap, false);
+            }
+/*
+            logger.info("Using corpus file scan method");
             try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
                 stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
                         .forEach(line -> {
@@ -142,7 +146,9 @@ public class Document {
             } catch (IOException e) {
                 throw new TasksRunnerException(e);
             }
+*/
         }
+        logger.info("Document map complete");
         List<String> missingDocids = new ArrayList<>();
         for (String d : uniqueDocIDs) {
             if (!map.containsKey(d)) {

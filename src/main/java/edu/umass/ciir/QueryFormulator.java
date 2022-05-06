@@ -17,8 +17,7 @@ public class QueryFormulator {
     String phase;
     String queryFileNameKey;
 
-    QueryFormulator(AnalyticTasks tasks,  String phase, Pathnames.ProcessingModel processingModel,
-                    String queryFileNameKey) {
+    QueryFormulator(AnalyticTasks tasks,  String phase, String queryFileNameKey) {
         this.tasks = tasks;
         this.mode = tasks.getMode();
         this.phase = phase;

@@ -67,9 +67,92 @@ public class QueryManager {
         }
     }
 
-    public void buildQueries() {
-        QueryFormulator queryFormulator = new QueryFormulatorDocker(tasks, phase, Pathnames.processingModel, getKey());
-        queryFormulator.buildQueries();
+    private void callQueryFormulator(String dockerImageName) {
+        try {
+            String mode = Pathnames.mode;
+            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
+            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+            // if 4 GPUs, 0 is first one, 1 is second one, etc.
+            String command = sudo + " docker run --rm"
+                    + gpu_parm
+                    + " --env MODE=" + mode
+                    + " --env OUT_LANG=" + Pathnames.targetLanguage.toString()
+                    + " --env PHASE=" + phase
+                    + " --env INPUTFILE=" + analyticTasksInfoFilename
+                    + " --env QUERYFILE=" + getKey()
+                    /* For each directory that we want to share between this parent docker container (TasksRunner)
+                     and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
+                     in an environment variable, and we make that path a bind-volume so the child container
+                     can actually access it.
+                     */
+/*
+                    + " --env eventExtractorFileLocation=$eventExtractorFileLocation"
+                    + " --env queryFileLocation=$queryFileLocation"
+                    + " -v $eventExtractorFileLocation:$eventExtractorFileLocation"
+                    + " -v $queryFileLocation:$queryFileLocation"
+*/
+                    + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
+                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
+                    + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
+                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                    + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
+                    + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
+                    + " --env galagoLocation=" + Pathnames.galagoLocation
+                    // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
+                    + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
+                    + " --env englishIndexLocation=" + Pathnames.englishIndexLocation + "/"
+                    + " -v " + Pathnames.englishIndexLocation + ":" + Pathnames.englishIndexLocation
+                    + " --env targetIndexLocation=" + Pathnames.targetIndexLocation + "/"
+                    + " -v " + Pathnames.targetIndexLocation + ":" + Pathnames.targetIndexLocation
+                    + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
+                    + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
+
+                    + " " + dockerImageName
+                    + " sh -c ./runit.sh";
+            String logFile = Pathnames.logFileLocation + mode + "/" + phase + ".query-formulator.out";
+            String tempCommand = command + " >& " + logFile;
+
+            logger.info("Executing this command: " + tempCommand);
+
+            try {
+                Files.delete(Paths.get(logFile));
+            } catch (IOException ignore) {
+                // do nothing
+            }
+
+            int exitVal = 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                processBuilder.command("bash", "-c", tempCommand);
+                Process process = processBuilder.start();
+
+                exitVal = process.waitFor();
+            } catch (Exception cause) {
+                logger.log(Level.SEVERE, "Exception doing docker image execution", cause);
+                throw new TasksRunnerException(cause);
+            } finally {
+                StringBuilder builder = new StringBuilder();
+                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
+                {
+                    stream.forEach(s -> builder.append(s).append("\n"));
+                    logger.info("Docker container output log:\n" + builder.toString());
+                } catch (IOException ignore) {
+                    // logger.info("IO error trying to read output file. Ignoring it");
+                }
+            }
+            if (exitVal != 0) {
+                logger.log(Level.SEVERE, "Unexpected ERROR from Docker container, exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
+            }
+
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void buildQueries(String queryFormulator) {
+        callQueryFormulator(queryFormulator);
     }
 
     public void readQueryFile() {
@@ -266,9 +349,9 @@ public class QueryManager {
 
 
     public void annotateExampleDocs() {
-        logger.info("PHASE 1: Preparing a file of the example docs for the event annotator");
+        logger.info("Preparing a file of the example docs for the event annotator");
 
-        if (!Pathnames.runIRPhase1) {
+        if (!Pathnames.skipExampleDocAnnotation) {
             logger.info("Skipping example doc event annotation");
         } else {
             String fileForEventExtractor = eventExtractor.constructExampleToEventExtractorFileName();
@@ -413,14 +496,9 @@ public class QueryManager {
         Map<String, SimpleHit> simpleEntries = new LinkedHashMap<>();
         Map<String, String> entries = new LinkedHashMap<>();
         List<Request> requestList = tasks.getRequests();
-        for (Request r : requestList) {
-            logger.info("tasks.getRequests() returned " + r.reqNum);
-            logger.info("which has this many docids: " + getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED));
-        }
 
         // Load the document text map in one pass through the corpus file:
         if (Pathnames.targetLanguageIsEnglish) {
-            logger.info("createInputFileForEventExtractorFromRequestHits: getting doc texts");
             Document.buildDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
@@ -430,20 +508,13 @@ public class QueryManager {
                     .collect(Collectors.toSet()));
         }
         /* First, build the file to give to the HITL person */
+/*
         Map<String,String> queries = getQueries();
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
-                logger.info("Request text for " + r.reqNum + " is: " + r.reqText);  // DEBUG
-                if (r.reqText == null) {
-                    logger.info("Request text is null");
-                }
-                /* When getting candidate example documents at the Task level, we use a dummy Request
-                 * which has an empty reqText, so disable this for now:
-
                 if (r.reqText == null || r.reqText.equals("")) {
                     continue;     // only include the 2 requests with extra HITL info
                 }
-                 */
                 List<String> hits = getDocids(r.reqNum, 10);
                 simpleEntries.clear();
                 for (String td : hits) {
@@ -462,18 +533,17 @@ public class QueryManager {
                 if (simpleEntries.size() > 0) {
                     String fileForEventExtractor = eventExtractor.constructRequestLevelSimpleFileName(r);
                     eventExtractor.writeInputFileSimpleFormat(simpleEntries, fileForEventExtractor);
-                    logger.info("Simple entries generated this day for " + r.reqNum);
                 }
             }
         }
-
+*/
         /* Create the file to give to the ISI event extractor */
         for (Request r : requestList) {
             List<String> hits = getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED);
-            logger.info("qf.getDocids for reqNum " + r.reqNum + " returned " + hits.size() + " entries");
+//            logger.info("qf.getDocids for reqNum " + r.reqNum + " returned " + hits.size() + " entries");
             simpleEntries.clear();
             eventExtractor.createInputFileEntriesFromHits("RequestLevelHit", r.reqNum, hits, simpleEntries);
-            logger.info("createInputFileEntriesFromHits returned " + simpleEntries.size() + " entries");
+//            logger.info("createInputFileEntriesFromHits returned " + simpleEntries.size() + " entries");
             if (simpleEntries.size() > 0) {
                 String fileForEventExtractor = eventExtractor.constructRequestLevelToEventExtractorFileName(r);
                 eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
@@ -900,24 +970,19 @@ public class QueryManager {
      * @param N the number of scoredHits to get
      */
     public void execute(int N) {
+/*
         if (queries.size() == 1) {
             execute(1, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
         } else {
             execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
         }
-    }
-
-    public void execute_single_thread_english(int N) {
-        /*
-        Map<String, String> queryMap = getGeneratedQueries(queryFileName);
-        List<String> queries = (List<String>) queryMap.values();
-        String command = "http://128.119.246.139:43635/search?q=" + queries.get(0);
-
-         */
-//        execute(1, N, queryFileName, runFileName, Pathnames.englishIndexLocation);
+*/
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago2.log";
-        Galago galago = new Galago(Pathnames.englishIndexLocation, Pathnames.mode, galagoLogFile, Pathnames.galagoLocation);
+        Galago galago = new Galago(Pathnames.targetLanguageIsEnglish ? Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
+                Pathnames.mode, galagoLogFile, Pathnames.galagoLocation);
         galago.search(queries, runFileName, N);
+
+        run = new Run(runFileName);  // Get new run file into memory
     }
 
     /**

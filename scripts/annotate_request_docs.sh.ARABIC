@@ -7,12 +7,14 @@ set -ve
 #cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE
 #cp tasks-ie.json ${APP_DIR}/tasks.json
 
+set +e
 for f in ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.*.REQUESTHITS.json; do
 #    cp $f ${APP_DIR}/test_data.bp.json
 #    MODELS_BASE_DIR=${MODELS_BASE_DIR_ARABIC} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-B-BOS ./run.sh.ARABIC
 #    cp ${APP_DIR}/results.json ${f}.results.json
      cp ${f} ${f}.results.json
 done
+set -e
 
 # remove results.json left over from event extractor, so later code
 # can write to that name:

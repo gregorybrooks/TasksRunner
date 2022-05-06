@@ -16,24 +16,15 @@ public class QueryFormulatorDocker extends QueryFormulator {
     String phase;
     String queryFileNameKey;
 
-    QueryFormulatorDocker(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
-                          String queryFileNameKey) {
-        super(tasks, phase, processingModel, queryFileNameKey);
+    QueryFormulatorDocker(AnalyticTasks tasks, String phase, String queryFileNameKey, String dockerImageName) {
+        super(tasks, phase, queryFileNameKey);
         this.phase = phase;
         this.queryFileNameKey = queryFileNameKey;
+        this.dockerImageName = dockerImageName;
         language = Pathnames.targetLanguage.toString();
-        if (processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS) {
-            dockerImageName = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
-        } else {
-            if (phase.equals("Task")) {
-                dockerImageName = Pathnames.taskLevelQueryFormulatorDockerImage;
-            } else {
-                dockerImageName = Pathnames.requestLevelQueryFormulatorDockerImage;
-            }
-        }
     }
 
-    private void callDockerImage(String queryFileNameKey, String outLang, String phase, String dockerImageName) {
+    private void callDockerImage() {
         try {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
@@ -42,7 +33,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
             String command = sudo + " docker run --rm"
                     + gpu_parm
                     + " --env MODE=" + mode
-                    + " --env OUT_LANG=" + outLang
+                    + " --env OUT_LANG=" + language
                     + " --env PHASE=" + phase
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
                     + " --env QUERYFILE=" + queryFileNameKey
@@ -121,11 +112,6 @@ public class QueryFormulatorDocker extends QueryFormulator {
      *
      **/
     public void buildQueries() {
-//        if (Pathnames.targetLanguageIsEnglish) {
-//            language = "en";
-//        } else {
-//            language = "ar";
-//        }
-        callDockerImage(queryFileNameKey, language, phase, dockerImageName);
+        callDockerImage();
     }
 }

@@ -12,12 +12,12 @@ public class QueryFormulatorJava extends QueryFormulator {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    QueryFormulatorJava(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
+    QueryFormulatorJava(AnalyticTasks tasks, String phase,
                         String queryFileNameKey) {
-        super(tasks, phase, processingModel, queryFileNameKey);
+        super(tasks, phase, queryFileNameKey);
     }
 
-    String javaJarFile = "TaskQueryBuilder1-1.0.0.jar";
+    String javaJarFile = "BetterQueryBuilderTaskNounPhrases-2.0.0.jar";
 
     private void callJavaProgram(String queryFileName, String outLang, String phase) {
         try {

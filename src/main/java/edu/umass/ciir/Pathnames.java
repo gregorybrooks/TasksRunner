@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -25,27 +24,25 @@ public class Pathnames {
     public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
-    public static boolean skipPhase1 = false;
-    public static boolean skipPhase2 = false;
-    public static boolean skipPhase3 = false;
+
     public static boolean skipReranker = false;
     public static boolean skipPretrain = false;
     public static boolean skipIndexBuild = false;
-    public static boolean skipRequestDocAnnotation = false;
+    public static boolean skipExampleDocAnnotation = false;
+
     public static boolean includeEventsInFinalResults = false;
     public static boolean checkForSudo = true;
     public static boolean doTaskLevelEvaluation = false;
     public static boolean doRequestLevelEvaluation = false;
-    public static boolean runEnglishPreprocess = false;
     public static boolean runEnglishIndexBuild = false;
     public static boolean runPreTrain = false;
-    public static boolean runPreprocess = false;
     public static boolean runIndexBuild = false;
-    public static boolean runIRPhase1 = true;
-    public static boolean runIRPhase2 = true;
-    public static boolean runIRPhase3 = true;
-    public static boolean runIEPhase = false;
+
+    public static boolean runGetIEFromFile = false;
+    public static boolean runSearch = false;
     public static boolean runGetCandidateDocs = false;
+    public static boolean runGetPhrases = false;
+
     public static ProcessingModel processingModel = ProcessingModel.TWO_STEP;
 
     public static String scratchFileLocation = "/mnt/scratch/BETTER_DRY_RUN/scratch/clear_ir/";
@@ -55,6 +52,7 @@ public class Pathnames {
     public static String taskLevelQueryFormulatorDockerImage = "";
     public static String neuralQueryProcessorDockerImage = "";
     public static String getCandidateDocsQueryFormulatorDockerImage = "";
+    public static String getPhrasesQueryFormulatorDockerImage = "";
     public static String rerankerDockerImage = "";
 
     public static String tempFileLocation = scratchFileLocation + "tmp/";
@@ -205,32 +203,22 @@ public class Pathnames {
 
     static {
 
-        preTrainSizeParm = getFromEnv("preTrainSizeParm",
-                "FULL");
+        preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
         REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "1000"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
+        skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
         skipPretrain = (getFromEnv("skipPretrain", "true").equals("true"));
-        skipPhase1 = (getFromEnv("skipPhase1", "false").equals("true"));
-        skipPhase2 = (getFromEnv("skipPhase2", "false").equals("true"));
-        skipPhase3 = (getFromEnv("skipPhase3", "false").equals("true"));
         skipReranker = (getFromEnv("skipReranker", "false").equals("true"));
-        skipRequestDocAnnotation = (getFromEnv("skipRequestDocAnnotation", "false").equals("true"));
         useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
-        runEnglishPreprocess = (getFromEnv("runEnglishPreprocess", "false").equals("true"));
         runEnglishIndexBuild = (getFromEnv("runEnglishIndexBuild", "false").equals("true"));
         runPreTrain = (getFromEnv("runPreTrain", "false").equals("true"));
-        runPreprocess = (getFromEnv("runPreprocess", "false").equals("true"));
         runIndexBuild = (getFromEnv("runIndexBuild", "false").equals("true"));
-        runIRPhase1 = (getFromEnv("runIRPhase1", "false").equals("true"));
-        runIRPhase2 = (getFromEnv("runIRPhase2", "true").equals("true"));
-        runIRPhase3 = (getFromEnv("runIRPhase3", "false").equals("true"));
-        runIEPhase = (getFromEnv("runIEPhase", "false").equals("true"));
+        runGetIEFromFile = (getFromEnv("runIEPhase", "false").equals("true"));
 
-        processingModel = ProcessingModel.valueOf((getFromEnv("processingModel",
-                "TWO_STEP")));
+        processingModel = ProcessingModel.valueOf((getFromEnv("processingModel", "TWO_STEP")));
 
         scratchFileLocation = ensureTrailingSlash(getFromEnv("scratchFileLocation",
                 "MISSING ENV VAR: scratchFileLocation", Required.REQUIRED));
@@ -243,33 +231,40 @@ public class Pathnames {
                 scratchFileLocation + "tmp/"));
         logFileLocation = ensureTrailingSlash(getFromEnv("logFileLocation",
                 scratchFileLocation + "logfiles/"));
+
         requestLevelQueryFormulatorDockerImage = getFromEnv("requestLevelQueryFormulatorDockerImage",
-                "MISSING ENV VAR: requestLevelQueryFormulatorDockerImage");
-        if (processingModel == ProcessingModel.ONE_STEP || processingModel == ProcessingModel.TWO_STEP) {
+                "");
+        if (requestLevelQueryFormulatorDockerImage.length() > 0) {
             checkDockerImage(requestLevelQueryFormulatorDockerImage);
         }
 
         taskLevelQueryFormulatorDockerImage = getFromEnv("taskLevelQueryFormulatorDockerImage",
-                "MISSING ENV VAR: taskLevelQueryFormulatorDockerImage");
-        if (processingModel == ProcessingModel.TWO_STEP) {
+                "");
+        if (taskLevelQueryFormulatorDockerImage.length() > 0) {
             checkDockerImage(taskLevelQueryFormulatorDockerImage);
         }
 
         getCandidateDocsQueryFormulatorDockerImage = getFromEnv("getCandidateDocsQueryFormulatorDockerImage",
-                "MISSING ENV VAR: getCandidateDocsQueryFormulatorDockerImage");
-        if (processingModel == ProcessingModel.GET_CANDIDATE_DOCS) {
+                "");
+        if (getCandidateDocsQueryFormulatorDockerImage.length() > 0) {
             checkDockerImage(getCandidateDocsQueryFormulatorDockerImage);
         }
 
+        getPhrasesQueryFormulatorDockerImage = getFromEnv("getPhrasesQueryFormulatorDockerImage",
+                "");
+        if (getPhrasesQueryFormulatorDockerImage.length() > 0) {
+            checkDockerImage(getPhrasesQueryFormulatorDockerImage);
+        }
+
         neuralQueryProcessorDockerImage = getFromEnv("neuralQueryProcessorDockerImage",
-                "MISSING ENV VAR: neuralQueryProcessorDockerImage");
-        if (processingModel == ProcessingModel.NEURAL) {
+                "");
+        if (neuralQueryProcessorDockerImage.length() > 0) {
             checkDockerImage(neuralQueryProcessorDockerImage);
         }
 
         rerankerDockerImage = getFromEnv("rerankerDockerImage",
-                "MISSING ENV VAR: rerankerDockerImage");
-        if (!(processingModel == ProcessingModel.NEURAL)) {
+                "");
+        if (rerankerDockerImage.length() > 0) {
             checkDockerImage(rerankerDockerImage);
         }
 

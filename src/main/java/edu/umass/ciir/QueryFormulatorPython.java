@@ -14,7 +14,7 @@ public class QueryFormulatorPython extends QueryFormulator {
 
     QueryFormulatorPython(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
                           String queryFileNameKey) {
-        super(tasks, phase, processingModel, queryFileNameKey);
+        super(tasks, phase, queryFileNameKey);
     }
 
     String pythonProgramName = "run_multipartiterank_qformulator.py";
