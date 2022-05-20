@@ -27,6 +27,14 @@ public class Document {
     private static Map<String,List<SentenceRange>> arabicDocSentencesMap = new ConcurrentHashMap<>();
     private static Map<String,List<SentenceRange>> englishDocSentencesMap = new ConcurrentHashMap<>();
 
+    public static void addDocToMap(String docid, String doctext) {
+        docMap.put(docid, doctext);
+    }
+
+    public static void addDocSentencesToMap(String docid, List<SentenceRange> sentences) {
+        englishDocSentencesMap.put(docid, sentences);
+    }
+
     public static void buildDocMap(Set<String> uniqueDocIDs) {
         if (!Pathnames.englishCorpusFileName.isEmpty()) {
             String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;

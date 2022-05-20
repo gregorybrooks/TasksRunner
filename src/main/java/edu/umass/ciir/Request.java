@@ -23,6 +23,13 @@ public class Request {
         }
     }
 
+    private String getOptionalValue(JSONObject t, String field) {
+        if (t.containsKey(field)) {
+            return (String) t.get(field);
+        } else {
+            return "";
+        }
+    }
     /**
      * Constructs a Request from a JSON representation of the analytic request.
      * @param request The JSONObject version of the request.
@@ -57,25 +64,27 @@ public class Request {
             for (Iterator iterator = tds.keySet().iterator(); iterator.hasNext(); ) {
                 String entryKey = (String) iterator.next();
                 JSONObject reqDoc = (JSONObject) tds.get(entryKey);
+                String docText = getOptionalValue(reqDoc, "doc-text");
+                List<SentenceRange> sentences = new ArrayList<>();
+                if (reqDoc.containsKey("sentences")) {
+                    JSONArray jsonSentences = (JSONArray) reqDoc.get("sentences");
+                    for (Object jsonObjectSentenceDescriptor : jsonSentences) {
+                        JSONObject jsonSentenceDescriptor = (JSONObject) jsonObjectSentenceDescriptor;
+                        long start = (long) jsonSentenceDescriptor.get("start");
+                        long end = (long) jsonSentenceDescriptor.get("end");
+                        long id = (long) jsonSentenceDescriptor.get("id");
+                        String sentence = docText.substring((int) start, (int) end);
+                        sentences.add(new SentenceRange((int) id, (int) start, (int) end, sentence));
+                    }
+                }
                 List<String> highlights = new ArrayList<>();
                 if (reqDoc.containsKey("segment-text")) {
                     highlights.add( Task.filterCertainCharacters((String) reqDoc.get("segment-text")));
                 }
-                reqExampleDocs.add(new ExampleDocument(entryKey, highlights));
+                reqExampleDocs.add(new ExampleDocument(entryKey, docText, highlights, sentences));
             }
         }
 
- /*       if (reqExampleDocs.size() == 0) {
-            throw new BetterComponentException("A request (" + reqNum + ") in the task file has no example docs");
-        }
-*/
-/* We don't use this anymore
-        if (reqDocTexts != null) {
-            for (Object d : reqDocTexts) {
-                reqDocTextList.add((String) d);
-            }
-        }
-*/
         if (oldStyle) {
             String extractions = "";
             JSONArray reqExtr = (JSONArray) request.get("req-extr");

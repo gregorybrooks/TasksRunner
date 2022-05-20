@@ -150,6 +150,13 @@ public class Task {
         }
     }
 
+    private String getOptionalValue(JSONObject t, String field) {
+        if (t.containsKey(field)) {
+            return (String) t.get(field);
+        } else {
+            return "";
+        }
+    }
     /**
      * Contructs a Task from a JSON representation of an analytic task.
      * @param task The JSONObject version of the task.
@@ -182,10 +189,25 @@ public class Task {
                 taskExampleDocs.add(new ExampleDocument((String) d));
             }
         } else {
-            JSONObject tds = (JSONObject) od;
-            for (Iterator iterator = tds.keySet().iterator(); iterator.hasNext(); ) {
-                String entryKey = (String) iterator.next();
-                taskExampleDocs.add(new ExampleDocument(entryKey));
+            JSONObject taskDocMap = (JSONObject) od;
+            for (Object value : taskDocMap.keySet()) {
+                String entryKey = (String) value;
+                JSONObject taskDoc = (JSONObject) taskDocMap.get(entryKey);
+                String docText = getOptionalValue(taskDoc, "doc-text");
+                String docID = (String) taskDoc.get("doc-id");
+                List<SentenceRange> sentences = new ArrayList<>();
+                if (taskDoc.containsKey("sentences")) {
+                    JSONArray jsonSentences = (JSONArray) taskDoc.get("sentences");
+                    for (Object jsonObjectSentenceDescriptor : jsonSentences) {
+                        JSONObject jsonSentenceDescriptor = (JSONObject) jsonObjectSentenceDescriptor;
+                        long start = (long) jsonSentenceDescriptor.get("start");
+                        long end = (long) jsonSentenceDescriptor.get("end");
+                        long id = (long) jsonSentenceDescriptor.get("id");
+                        String sentence = docText.substring((int) start, (int) end);
+                        sentences.add(new SentenceRange((int) id, (int) start, (int) end, sentence));
+                    }
+                }
+                taskExampleDocs.add(new ExampleDocument(docID, docText, sentences));
             }
         }
 

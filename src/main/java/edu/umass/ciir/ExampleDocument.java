@@ -10,8 +10,16 @@ public class ExampleDocument {
     private List<Event> events;
     private List<SentenceRange> sentences;
 
-    ExampleDocument(String docid, String docText, List<String> highlights) {
+    ExampleDocument(String docid, String docText, List<SentenceRange> sentences) {
+        this.highlights = new ArrayList<>();
+        this.sentences = new ArrayList<>(sentences);
+        this.docid = docid;
+        this.docText = docText;
+    }
+
+    ExampleDocument(String docid, String docText, List<String> highlights, List<SentenceRange> sentences) {
         this.highlights = new ArrayList<>(highlights);
+        this.sentences = new ArrayList<>(sentences);
         this.docid = docid;
         this.docText = docText;
     }
@@ -29,6 +37,7 @@ public class ExampleDocument {
         this.docid = other.docid;
         this.docText = other.docText;
         this.highlights = new ArrayList<>(other.highlights);
+        this.sentences = new ArrayList<>(other.sentences);
     }
 
     public String getDocid() {

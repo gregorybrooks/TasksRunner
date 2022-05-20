@@ -7,6 +7,7 @@ import org.json.simple.Jsonable;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import javax.print.Doc;
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
@@ -287,6 +288,21 @@ public class AnalyticTasks {
      * (example docs and optionally relevance judgment docs)
      */
     private void expandRelevantAndExampleDocs() {
+        /* New way: doctext and sentences are already in the ir-tasks.json and have been loaded into memory */
+        for (Task t : tasks.values()) {
+            for (ExampleDocument d : t.taskExampleDocs) {
+                Document.addDocToMap(d.getDocid(), d.getDocText());
+                Document.addDocSentencesToMap(d.getDocid(), d.getSentences());
+            }
+            for (Request r : t.requests.values()) {
+                for (ExampleDocument d : r.reqExampleDocs) {
+                    Document.addDocToMap(d.getDocid(), d.getDocText());
+                    Document.addDocSentencesToMap(d.getDocid(), d.getSentences());
+                }
+            }
+        }
+        /* OLD WAY:
+        // Build the list of docids to pass to Document.buildDocMap
         Set<String> uniqueDocids = new HashSet<>();
         if (Pathnames.expandQrelDocuments) {
             for (RelevanceJudgmentKey k : relevanceJudgments.keySet())
@@ -295,26 +311,11 @@ public class AnalyticTasks {
         for (String docid : getAllExampleDocIDs()) {
             uniqueDocids.add(docid);
         }
-
         Document.buildDocMap(uniqueDocids);
-
-        /*
-        Expand all positive relevance judgment docs
-        (but not if the relevance judgments are for a corpus we don't have)
         */
-        if (Pathnames.expandQrelDocuments) {
-            for (Map.Entry<RelevanceJudgmentKey, RelevanceJudgment> entry : relevanceJudgments.entrySet()) {
-                RelevanceJudgmentKey k = entry.getKey();
-                RelevanceJudgment j = entry.getValue();
-                if (j.judgment.isRelevant()) {
-                    /* Don't expand judgments of "not relevant" */
 
-                    j.docText = Document.getDocumentWithMap(k.docid);
-                }
-            }
-        }
-
-        // Expand all task and request example docs
+        /* Expand all task and request example docs */
+        /* OLD WAY:
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
                 d.setDocText(Document.getDocumentWithMap(d.getDocid()));
@@ -327,6 +328,25 @@ public class AnalyticTasks {
                 }
             }
         }
+         */
+
+        /*
+        Expand all positive relevance judgment docs
+        (but not if the relevance judgments are for a corpus we don't have)
+        */
+        /*
+        if (Pathnames.expandQrelDocuments) {
+            for (Map.Entry<RelevanceJudgmentKey, RelevanceJudgment> entry : relevanceJudgments.entrySet()) {
+                RelevanceJudgmentKey k = entry.getKey();
+                RelevanceJudgment j = entry.getValue();
+                if (j.judgment.isRelevant()) {
+                    // Don't expand judgments of "not relevant"
+
+                    j.docText = Document.getDocumentWithMap(k.docid);
+                }
+            }
+        }
+        */
     }
 
     private class RelevanceJudgmentKey {
