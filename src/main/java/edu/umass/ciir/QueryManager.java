@@ -384,14 +384,17 @@ public class QueryManager {
         for (String td : hits) {
             List<SentenceRange> sentences = null;
             String docText;
+            String translatedDocText;
             if (Pathnames.targetLanguageIsEnglish) {
                 sentences = Document.getDocumentSentences(td);
                 docText = Document.getDocumentWithMap(td);
+                translatedDocText = "";
             } else {
                 sentences = Document.getArabicDocumentSentences(td);
                 docText = Document.getArabicDocumentWithMap(td);
+                translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, "", sentences);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
@@ -407,7 +410,7 @@ public class QueryManager {
             if (eventsAdded.containsKey(docid)) {
                 finalList.add(eventsAdded.get(docid));
             } else {
-                Hit hit = new Hit(hitLevel, reqNum, docid, "", new ArrayList<Event>());
+                Hit hit = new Hit(hitLevel, reqNum, docid, "", "", new ArrayList<Event>());
                 finalList.add(hit);
             }
         }
@@ -582,12 +585,15 @@ public class QueryManager {
                 for (String td : hits) {
                     String score = getScore(r.reqNum, td);
                     String docText;
+                    String translatedDocText;
                     if (Pathnames.targetLanguageIsEnglish) {
                         docText = Document.getDocumentWithMap(td);
+                        translatedDocText = "";
                     } else {
                         docText = Document.getArabicDocumentWithMap(td);
+                        translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
                     }
-                    simpleEntries.put(td, new SimpleHit(td, docText, score, ""));
+                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null));
                 }
                 if (simpleEntries.size() > 0) {
                     String fileName = eventExtractor.constructRequestLevelRerankerFileName(r);

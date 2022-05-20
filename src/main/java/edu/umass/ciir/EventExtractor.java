@@ -49,6 +49,7 @@ public class EventExtractor {
                 String key = entry.getKey();
                 SimpleHit hit = entry.getValue();
                 String text = hit.docText;
+                String translatedText = hit.translatedDocText;
                 tot_chars += text.length();
                 JSONObject docEntry = new JSONObject();
 
@@ -72,8 +73,12 @@ public class EventExtractor {
                     segmentSections.add(segmentSection);
                 }
                 docEntry.put("segment-sections", segmentSections);
+
                 docEntry.put("segment-text", text);
+                docEntry.put("segment-translated-text", translatedText);
                 docEntry.put("segment-type", "document");
+                docEntries.put(key, docEntry);
+
                 docEntries.put(key, docEntry);
             }
             outermostEntry.put("entries", docEntries);
@@ -215,14 +220,17 @@ public class EventExtractor {
         for (String td : hits) {
             List<SentenceRange> sentences = null;
             String docText;
+            String translatedDocText;
             if (Pathnames.targetLanguageIsEnglish) {
                 sentences = Document.getDocumentSentences(td);
                 docText = Document.getDocumentWithMap(td);
+                translatedDocText = "";
             } else {
                 sentences = Document.getArabicDocumentSentences(td);
                 docText = Document.getArabicDocumentWithMap(td);
+                translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, "", sentences);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
@@ -592,6 +600,7 @@ public class EventExtractor {
 
                 if (idx > Pathnames.REQUEST_HITS_DETAILED) {
                     hit.put("docText", "");
+                    hit.put("translatedDocText", "");
                     JSONArray segmentSections = new JSONArray();
                     hit.put("sentences", segmentSections);
                     JSONArray mitreEvents = new JSONArray();
@@ -600,6 +609,7 @@ public class EventExtractor {
                     hit.put("isi-events", eventsArray);
                 } else {
                     hit.put("docText", h.docText);
+                    hit.put("translatedDocText", h.translatedDocText);
 
                     JSONArray segmentSections = new JSONArray();
                     List<SentenceRange> sentences = null;
@@ -674,6 +684,7 @@ public class EventExtractor {
                         String taskOrRequestID = parts[1];
                         String docid = parts[2];
                         String docText = (String) entry.get("segment-text");
+                        String translatedDocText = (String) entry.get("segment-translated-text");
 
                         JSONObject annotation_sets = (JSONObject) entry.get("annotation-sets");
                         JSONObject basic_events = (JSONObject) annotation_sets.get("basic-events");
@@ -736,7 +747,7 @@ public class EventExtractor {
                             /* END OF EVENTS */
                         }
                         HitLevel hitLevel = docSetType.equals("RequestLevelHit") ? HitLevel.REQUEST_LEVEL : HitLevel.TASK_LEVEL;
-                        Hit hit = new Hit(hitLevel, taskOrRequestID, docid, docText, eventList);
+                        Hit hit = new Hit(hitLevel, taskOrRequestID, docid, docText, translatedDocText, eventList);
                         hits.add(hit);
                     }
 

@@ -23,23 +23,25 @@ public class Document {
 
     private static Map<String,String> docMap = new ConcurrentHashMap<>();
     private static Map<String,String> arabicDocMap = new ConcurrentHashMap<>();
+    private static Map<String,String> translatedArabicDocMap = new ConcurrentHashMap<>();
     private static Map<String,List<SentenceRange>> arabicDocSentencesMap = new ConcurrentHashMap<>();
     private static Map<String,List<SentenceRange>> englishDocSentencesMap = new ConcurrentHashMap<>();
 
     public static void buildDocMap(Set<String> uniqueDocIDs) {
         if (!Pathnames.englishCorpusFileName.isEmpty()) {
             String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
-            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap, true);
+            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap, null, true);
         }
     }
 
     public static void buildArabicDocMap(Set<String> uniqueDocIDs) {
         String corpus = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
-        buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap, false);
+        buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap, translatedArabicDocMap, false);
     }
 
     public static void getDocumentWithGrep (String docid, String corpus, Map<String,String> map,
-                                                    Map<String,List<SentenceRange>> sentenceMap) {
+                                                    Map<String,List<SentenceRange>> sentenceMap,
+                                            Map<String,String> translatedMap) {
         String command = "grep";
 //        String grepText = "\"id\": \"" + docid + "\"";
         String grepText = docid;
@@ -57,7 +59,7 @@ public class Document {
                 if (line.length() == 0) {
                     continue;
                 }
-                doALine(line, map, sentenceMap);
+                doALine(line, map, sentenceMap, translatedMap);
             }
             exitVal = process.waitFor();
         } catch (Exception e) {
@@ -121,32 +123,33 @@ public class Document {
     }
 
     private static void buildDocMap(Set<String> uniqueDocIDs, String corpus, Map<String,String> map,
-                                    Map<String,List<SentenceRange>> sentenceMap, boolean isEnglishCorpus) {
+                                    Map<String,List<SentenceRange>> sentenceMap, Map<String,String> translatedMap,
+                                    boolean isEnglishCorpus) {
 //        AtomicInteger idx = new AtomicInteger(0);
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
-        if (uniqueDocIDs.size() <= 25 && isEnglishCorpus) {
+        if (isEnglishCorpus) {
             logger.info("Using Galago method");
             for (String docid : uniqueDocIDs) {
                 getDocumentWithGalago(docid, Pathnames.englishIndexLocation, map, sentenceMap, true);
             }
         } else {
+/*
             logger.info("Using Galago method");
             for (String docid : uniqueDocIDs) {
                 getDocumentWithGalago(docid, isEnglishCorpus ? Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
                         map, sentenceMap, false);
             }
-/*
+*/
             logger.info("Using corpus file scan method");
             try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
                 stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
                         .forEach(line -> {
-                            doALine(line, map, sentenceMap);
+                            doALine(line, map, sentenceMap, translatedMap);
                         });
             } catch (IOException e) {
                 throw new TasksRunnerException(e);
             }
-*/
         }
         logger.info("Document map complete");
         List<String> missingDocids = new ArrayList<>();
@@ -162,7 +165,7 @@ public class Document {
     }
 
     private static void doALine(String line, Map<String,String> map,
-                         Map<String,List<SentenceRange>> sentenceMap) {
+                         Map<String,List<SentenceRange>> sentenceMap, Map<String, String> translatedMap) {
         JSONParser parser = new JSONParser();
         JSONObject json = null;
         try {
@@ -172,16 +175,25 @@ public class Document {
         }
         String uuid;
         String text;
+        String translatedText;
         List<SentenceRange> sentences = new ArrayList<>();
         if (json.containsKey("uuid")) {
             // OLD STYLE
             uuid = (String) json.get("uuid");
             text = (String) json.get("text");
+            translatedText = "";
+            if (json.containsKey("translated-text")) {
+                translatedText = (String) json.get("translated-text");
+            }
             getSentenceRangesFromText(text, sentences);
         } else {
             JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
             uuid = (String) derived_metadata.get("id");
             text = (String) derived_metadata.get("text");
+            translatedText = "";
+            if (derived_metadata.containsKey("translated-text")) {
+                translatedText = (String) derived_metadata.get("translated-text");
+            }
             if (derived_metadata.containsKey("segment-sections")) {
                 JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
                 int id = 0;
@@ -207,6 +219,7 @@ public class Document {
             }
         }
         map.put(uuid, text);
+        translatedMap.put(uuid, translatedText);
         sentenceMap.put(uuid, sentences);
     }
 
@@ -241,6 +254,10 @@ public class Document {
 
     public static String getArabicDocumentWithMap (String docid) {
         return arabicDocMap.get(docid);
+    }
+
+    public static String getTranslatedArabicDocumentWithMap (String docid) {
+        return translatedArabicDocMap.get(docid);
     }
 
     public static List<SentenceRange> getDocumentSentences (String docid) {

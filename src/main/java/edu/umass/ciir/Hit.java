@@ -12,13 +12,15 @@ public class Hit /*implements JSONAware*/ {
     String taskID;
     String docid;
     String docText;
+    String translatedDocText;
     List<Event> events;
 
-    Hit(HitLevel hitLevel, String taskID, String docid, String docText, List<Event> events) {
+    Hit(HitLevel hitLevel, String taskID, String docid, String docText, String translatedDocText, List<Event> events) {
         this.hitLevel = hitLevel;
         this.taskID = taskID;
         this.docid = docid;
         this.docText = docText;
+        this.translatedDocText = translatedDocText;
         this.events = events;
     }
 

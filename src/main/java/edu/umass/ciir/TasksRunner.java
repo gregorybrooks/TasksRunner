@@ -162,7 +162,6 @@ public class TasksRunner {
                     }
                 }
                 if (taskSetJSON.containsKey("find-relevant-docs.hitl")) {
-                    logger.info("find-relevant-docs.hit found");
                     JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
                     boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
                     if (perform) {
@@ -172,11 +171,9 @@ public class TasksRunner {
                     }
                 }
                 if (taskSetJSON.containsKey("find-candidate-docs.hitl")) {
-                    logger.info("find-candidate-docs.hitl found");
                     JSONObject findTaskExampleDocsHitlJSON = (JSONObject) taskSetJSON.get("find-candidate-docs.hitl");
                     boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
                     if (perform) {
-                        logger.info("find-candidate-docs.hitl perform true");
                         Pathnames.mode = "HITL";
                         Pathnames.runSearch = true;
                         Pathnames.runGetCandidateDocs = true;
@@ -359,7 +356,7 @@ public class TasksRunner {
         logger.info("  Effective query formulation name is: " + newQueryFormulationName);
 
         QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase, eventExtractor);
-        if (Pathnames.processingModel == Pathnames.ProcessingModel.GET_CANDIDATE_DOCS) {
+        if (Pathnames.runGetCandidateDocs) {
             qf.execute(10);
         } else {
             qf.execute(Pathnames.RESULTS_CAP);
@@ -437,6 +434,18 @@ public class TasksRunner {
      */
     void process()  {
 
+        if (Pathnames.runEnglishIndexBuild) {
+            Index index = new Index("english");
+            index.preprocess();
+            index.buildIndex();
+        }
+
+        if (Pathnames.runIndexBuild) {
+            Index index = new Index("target");
+            index.preprocess();
+            index.buildIndex();
+        }
+
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks();    // this is the external analytic tasks file
 
@@ -461,18 +470,6 @@ public class TasksRunner {
 
         if (Pathnames.runPreTrain) {
             eventExtractor.preTrainEventAnnotator();
-        }
-
-        if (Pathnames.runEnglishIndexBuild) {
-            Index index = new Index("english");
-            index.preprocess();
-            index.buildIndex();
-        }
-
-        if (Pathnames.runIndexBuild) {
-            Index index = new Index("target");
-            index.preprocess();
-            index.buildIndex();
         }
 
         if (Pathnames.runGetIEFromFile) {
