@@ -417,8 +417,6 @@ public class QueryManager {
         return finalList;
     }
 
-
-
     public void retrieveEventsFromRequestHits() {
         // Load the document text map in one pass through the corpus file:
         // (Needed only if you run Phase 3 without Phase 2)

@@ -23,12 +23,16 @@ public class EventExtractor {
     private static final Logger logger = Logger.getLogger("TasksRunner");
     private AnalyticTasks tasks;
     private String mode;
+    private List<SearchHit> searchHits;
 
     public EventExtractor(AnalyticTasks tasks, String mode) {
         this.tasks = tasks;
         this.mode = mode;
     }
 
+    public List<SearchHit> getSearchHits() {
+        return searchHits;
+    }
 
     /**
      * Creates a JSON file containing the entries, in the format that the
@@ -587,6 +591,8 @@ public class EventExtractor {
     public void writeEventsAsJson(List<Hit> hits, String type,
                                    String eventHumanReadableFile) {
         try {
+            searchHits = new ArrayList<>();
+
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
                     new FileOutputStream(eventHumanReadableFile)));
             JSONArray topLevel = new JSONArray();
@@ -640,6 +646,7 @@ public class EventExtractor {
                     hit.put("isi-events", eventsArray);
                 }
                 topLevel.add(hit);
+                searchHits.add(new SearchHit(hit));
             }
             writer.write(topLevel.toJSONString());
             writer.close();

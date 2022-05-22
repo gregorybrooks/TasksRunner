@@ -2,12 +2,14 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.boot.SpringApplication;
 
 import java.io.*;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.logging.*;
 import java.util.Map;
 
@@ -48,7 +50,7 @@ public class TasksRunner {
      * Sets up logging for this program.
      */
     public void setupLogging() {
-        String logFileName = Pathnames.logFileLocation + Pathnames.mode + "/tasks-runner.log";
+        String logFileName = Pathnames.logFileLocation + "HITL/tasks-runner.log";
         configureLogger(logFileName);
     }
 
@@ -84,7 +86,7 @@ public class TasksRunner {
      * Reads the tasks.json file, which tells us which function(s) to perform.
      * @param taskSetFile The full pathname of the tasks.json file.
      */
-    private void readTaskSetFile(String taskSetFile) {
+    public void readTaskSetFile(String taskSetFile) {
         try {
             Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(taskSetFile)));
             JSONParser parser = new JSONParser();
@@ -192,6 +194,7 @@ public class TasksRunner {
                     if (perform) {
                         Pathnames.mode = "HITL";
                         Pathnames.runSearch = true;
+                        Pathnames.runGetPhrases = true;
                         Pathnames.processingModel = Pathnames.ProcessingModel.ONE_STEP;
                         // override the Request-level Docker image name with special one for getting phrases
                         Pathnames.requestLevelQueryFormulatorDockerImage = Pathnames.getPhrasesQueryFormulatorDockerImage;
@@ -377,9 +380,14 @@ public class TasksRunner {
         docker.callDockerImage();
     }
 
+    public List<SearchHit> getSearchHits() {
+        return eventExtractor.getSearchHits();
+    }
+
     private void oneStepProcessingModel() {
         phase = "Request";  // used in the file names
-        String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
+        String requestLevelFormulator = Pathnames.runGetPhrases ? Pathnames.getPhrasesQueryFormulatorDockerImage :
+             Pathnames.requestLevelQueryFormulatorDockerImage;
 
         QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase, eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
@@ -490,10 +498,7 @@ public class TasksRunner {
         logger.info("PROCESSING COMPLETE");
     }
 
-    /**
-     * Public entry point for this class.
-     */
-    public static void main (String[] args) {
+    public void mainProcess() {
         if (Pathnames.checkForSudo) {
             boolean hasSudo = false;
             try {
