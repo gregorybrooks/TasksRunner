@@ -21,7 +21,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
         this.phase = phase;
         this.queryFileNameKey = queryFileNameKey;
         this.dockerImageName = dockerImageName;
-        language = Pathnames.targetLanguage.toString();
+        language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
     }
 
     private void callDockerImage() {

@@ -60,7 +60,7 @@ public class EventExtractor {
                 JSONObject events = new JSONObject();
                 JSONObject spansets = new JSONObject();
                 JSONObject basicEvents = new JSONObject();
-                basicEvents.put("events", events);
+                basicEvents.put("events", events);  // to be filled in by ISI event extractor
                 basicEvents.put("span-sets", spansets);
                 JSONObject annotationSets = new JSONObject();
                 annotationSets.put("basic-events", basicEvents);
@@ -77,6 +77,18 @@ public class EventExtractor {
                     segmentSections.add(segmentSection);
                 }
                 docEntry.put("segment-sections", segmentSections);
+
+                // If we've read in events from the corpus file, send them along
+                JSONArray eventsJSON = new JSONArray();
+                List<Event> isiEvents = hit.events;
+//                logger.info("Writing Hit to file, hit.events is " +
+//                        hit.events == null ? "NULL" : Integer.toString(hit.events.size()));
+                for (Event event : isiEvents) {
+                    JSONObject eventJSON = new JSONObject();
+                    eventJSON.put("eventType", event.eventType);
+                    eventsJSON.add(eventJSON);
+                }
+                docEntry.put("isi-events", eventsJSON);
 
                 docEntry.put("segment-text", text);
                 docEntry.put("segment-translated-text", translatedText);
@@ -223,18 +235,23 @@ public class EventExtractor {
                                                 List<String> hits, Map<String,SimpleHit> m) {
         for (String td : hits) {
             List<SentenceRange> sentences = null;
+            List<Event> events = null;
             String docText;
             String translatedDocText;
-            if (Pathnames.targetLanguageIsEnglish) {
+            if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
+                events = Document.getEnglishDocumentEvents(td);
                 sentences = Document.getDocumentSentences(td);
                 docText = Document.getDocumentWithMap(td);
                 translatedDocText = "";
             } else {
+//                logger.info("Looking for events for docid " + td);
+                events = Document.getArabicDocumentEvents(td);
+//                logger.info("Lookup returned " + events == null ? "NULL" : "non-NULL");
                 sentences = Document.getArabicDocumentSentences(td);
                 docText = Document.getArabicDocumentWithMap(td);
                 translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, events);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
@@ -284,12 +301,12 @@ public class EventExtractor {
 
     public void createInputFileEntriesFromExampleDocs(Task t, Map<String,SimpleHit> m) {
         for (ExampleDocument d : t.taskExampleDocs) {
-            SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences());
+            SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences(), null);
             m.put("TaskExampleDoc" + "--" + t.taskNum + "--" + d.getDocid(), hit);
         }
         for (Request r : t.getRequests().values()) {
             for (ExampleDocument d : r.reqExampleDocs) {
-                SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences());
+                SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences(), null);
                 m.put("TaskExampleDoc" + "--" + t.taskNum + "--" + d.getDocid(), hit);
                 m.put("RequestExampleDoc" + "--" + r.reqNum + "--" + d.getDocid(), hit);
             }
@@ -351,6 +368,9 @@ public class EventExtractor {
         try {
             logger.info("Calling event annotator for test_data.bp.json file");
 
+            if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
+                throw new TasksRunnerException("Cannot call annotateProvidedFileEvents for English docs");
+            }
             String script = "./annotate_provided_file.sh.FARSI";
             String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
             if (Pathnames.targetLanguage.equals("ARABIC")) {
@@ -413,10 +433,10 @@ public class EventExtractor {
     public void annotateRequestDocEvents() {
         String script = "./annotate_request_docs.sh.FARSI";
         String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
-        if (Pathnames.targetLanguage.toString().equals("ARABIC")) {
+        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage.toString().equals("ARABIC")) {
             script = "./annotate_request_docs.sh.ARABIC";
             trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
-        } else if (Pathnames.targetLanguageIsEnglish) {
+        } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             script = "./annotate_request_docs.sh.ENGLISH";
             trainingDirs = "";
         }
@@ -456,7 +476,7 @@ public class EventExtractor {
                 try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
                 {
                     stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("annotate_request_docs output:\n" + builder.toString());
+//                    logger.info("annotate_request_docs output:\n" + builder.toString());
                 } catch (IOException ignore) {
                     // logger.info("IO error trying to read output file. Ignoring it");
                 }
@@ -477,10 +497,10 @@ public class EventExtractor {
     public void annotateTaskDocEvents() {
         String script = "./annotate_task_docs.sh.FARSI";
         String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
-        if (Pathnames.targetLanguage.toString().equals("ARABIC")) {
+        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage.toString().equals("ARABIC")) {
             script = "./annotate_task_docs.sh.ARABIC";
             trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
-        } else if (Pathnames.targetLanguageIsEnglish) {
+        } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             script = "./annotate_task_docs.sh.ENGLISH";
             trainingDirs = "";
         }
@@ -619,7 +639,7 @@ public class EventExtractor {
 
                     JSONArray segmentSections = new JSONArray();
                     List<SentenceRange> sentences = null;
-                    if (Pathnames.targetLanguageIsEnglish) {
+                    if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
                         sentences = Document.getDocumentSentences(h.docid);
                     } else {
                         sentences = Document.getArabicDocumentSentences(h.docid);
@@ -654,7 +674,6 @@ public class EventExtractor {
             throw new TasksRunnerException(cause);
         }
     }
-
 
     public List<Hit> readEventFile(String file, int N) {
         List<String> files = new ArrayList<>();
@@ -722,35 +741,49 @@ public class EventExtractor {
                             /* END OF SPANS */
                         }
 
-                        JSONObject events = (JSONObject) basic_events.get("events");
-                        for (Iterator iterator2 = events.keySet().iterator(); iterator2.hasNext(); ) {
-                            String key2 = (String) iterator2.next();
-                            JSONObject event = (JSONObject) events.get(key2);
-                            String eventid = (String) event.get("eventid");
-                            String eventType = (String) event.get("event-type");
-                            String anchor = (String) event.get("anchors");
-                            List<String> agentList = new ArrayList<>();
-                            JSONArray agents = (JSONArray) event.get("agents");
-                            for (Object oAgent : agents) {
-                                String agent = (String) oAgent;
-                                agentList.add(agent);
+                        if (entry.containsKey("isi-events")) {
+                            JSONArray eventsToParse = (JSONArray) entry.get("isi-events");
+//                            logger.info("Reading from isi-events");
+                            for (Object oEvent : eventsToParse) {
+                                JSONObject event = (JSONObject) oEvent;
+                                String eventType = (String) event.get("eventType");
+                                Event e = new Event();
+                                e.eventType = eventType;
+                                eventList.add(e);
                             }
-                            List<String> patientList = new ArrayList<>();
-                            JSONArray patients = (JSONArray) event.get("patients");
-                            for (Object oPatient : patients) {
-                                String patient = (String) oPatient;
-                                patientList.add(patient);
+                        } else {
+                            JSONObject eventsToParse;
+                            eventsToParse = (JSONObject) basic_events.get("events");
+//                            logger.info("Reading from basic events");
+                            for (Iterator iterator2 = eventsToParse.keySet().iterator(); iterator2.hasNext(); ) {
+                                String key2 = (String) iterator2.next();
+                                JSONObject event = (JSONObject) eventsToParse.get(key2);
+                                String eventid = (String) event.get("eventid");
+                                String eventType = (String) event.get("event-type");
+                                String anchor = (String) event.get("anchors");
+                                List<String> agentList = new ArrayList<>();
+                                JSONArray agents = (JSONArray) event.get("agents");
+                                for (Object oAgent : agents) {
+                                    String agent = (String) oAgent;
+                                    agentList.add(agent);
+                                }
+                                List<String> patientList = new ArrayList<>();
+                                JSONArray patients = (JSONArray) event.get("patients");
+                                for (Object oPatient : patients) {
+                                    String patient = (String) oPatient;
+                                    patientList.add(patient);
+                                }
+                                Event e = new Event(entryKey, docSetType, taskOrRequestID, docid, eventid, eventType, anchor,
+                                        agentList, patientList);
+                                e.anchorSpan = new Span(spansMap.get(e.entryKey + "--" + e.anchor).spans.get(0));
+                                for (String agent : e.agentList) {
+                                    e.agentSpans.add(new SpanSet(spansMap.get(e.entryKey + "--" + agent)));
+                                }
+                                for (String patient : e.patientList) {
+                                    e.patientSpans.add(new SpanSet(spansMap.get(e.entryKey + "--" + patient)));
+                                }
+                                eventList.add(e);
                             }
-                            Event e = new Event(entryKey, docSetType, taskOrRequestID, docid, eventid, eventType, anchor,
-                                    agentList, patientList);
-                            e.anchorSpan = new Span(spansMap.get(e.entryKey + "--" + e.anchor).spans.get(0));
-                            for (String agent : e.agentList) {
-                                e.agentSpans.add(new SpanSet(spansMap.get(e.entryKey + "--" + agent)));
-                            }
-                            for (String patient : e.patientList) {
-                                e.patientSpans.add(new SpanSet(spansMap.get(e.entryKey + "--" + patient)));
-                            }
-                            eventList.add(e);
                             /* END OF EVENTS */
                         }
                         HitLevel hitLevel = docSetType.equals("RequestLevelHit") ? HitLevel.REQUEST_LEVEL : HitLevel.TASK_LEVEL;

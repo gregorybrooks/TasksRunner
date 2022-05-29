@@ -73,11 +73,12 @@ public class QueryManager {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+            String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
             String command = sudo + " docker run --rm"
                     + gpu_parm
                     + " --env MODE=" + mode
-                    + " --env OUT_LANG=" + Pathnames.targetLanguage.toString()
+                    + " --env OUT_LANG=" + language
                     + " --env PHASE=" + phase
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
                     + " --env QUERYFILE=" + getKey()
@@ -186,6 +187,7 @@ public class QueryManager {
             String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+            String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
             String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
             String command = sudo + " docker run --rm"
@@ -196,7 +198,7 @@ public class QueryManager {
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
                     + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
                     + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env QLANG=en --env DLANG=" + Pathnames.targetLanguage
+                    + " --env QLANG=en --env DLANG=" + language
                     + " --env RUNFILE_MASK='" + mode + ".[req-num].REQUESTHITS.events.json'"
                     + " --env NUM_CPU=8 --env TOPK=100"
 
@@ -385,7 +387,7 @@ public class QueryManager {
             List<SentenceRange> sentences = null;
             String docText;
             String translatedDocText;
-            if (Pathnames.targetLanguageIsEnglish) {
+            if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
                 sentences = Document.getDocumentSentences(td);
                 docText = Document.getDocumentWithMap(td);
                 translatedDocText = "";
@@ -394,7 +396,7 @@ public class QueryManager {
                 docText = Document.getArabicDocumentWithMap(td);
                 translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, null);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
@@ -421,7 +423,7 @@ public class QueryManager {
         // Load the document text map in one pass through the corpus file:
         // (Needed only if you run Phase 3 without Phase 2)
 /*
-        if (Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             Document.buildDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> t.getRequests().values().stream())
                     .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
@@ -468,7 +470,7 @@ public class QueryManager {
         List<Task> taskList = tasks.getTaskList();
 
         // Load the document text map in one pass through the corpus file:
-        if (Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             Document.buildDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
@@ -499,7 +501,7 @@ public class QueryManager {
         List<Request> requestList = tasks.getRequests();
 
         // Load the document text map in one pass through the corpus file:
-        if (Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             Document.buildDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
@@ -561,7 +563,7 @@ public class QueryManager {
         List<Request> requestList = tasks.getRequests();
 
         // Load the document text map in one pass through the corpus file:
-        if (Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             Document.buildDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
@@ -584,14 +586,14 @@ public class QueryManager {
                     String score = getScore(r.reqNum, td);
                     String docText;
                     String translatedDocText;
-                    if (Pathnames.targetLanguageIsEnglish) {
+                    if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
                         docText = Document.getDocumentWithMap(td);
                         translatedDocText = "";
                     } else {
                         docText = Document.getArabicDocumentWithMap(td);
                         translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
                     }
-                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null));
+                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null, null));
                 }
                 if (simpleEntries.size() > 0) {
                     String fileName = eventExtractor.constructRequestLevelRerankerFileName(r);
@@ -606,7 +608,7 @@ public class QueryManager {
     public void retrieveEventsFromTaskHits() {
         /* Get the document texts and sentences for each hit mentioned in the event files */
         /* (which is a side effect of loading the document text map with those docs) */
-        if (Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             Document.buildDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> eventExtractor.readEventFile(eventExtractor.constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
                     .map(hit -> hit.docid)
@@ -982,7 +984,8 @@ public class QueryManager {
         }
 */
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago2.log";
-        Galago galago = new Galago(Pathnames.targetLanguageIsEnglish ? Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
+        Galago galago = new Galago((Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) ?
+                Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
                 Pathnames.mode, galagoLogFile, Pathnames.galagoLocation);
         galago.search(queries, runFileName, N);
 
@@ -1010,7 +1013,7 @@ public class QueryManager {
         }
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago.log";
         String arabicParm = "";
-        if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
             arabicParm = "--defaultTextPart=postings.snowball ";
         }
         String tempCommand = Pathnames.galagoLocation + command
@@ -1079,7 +1082,7 @@ public class QueryManager {
             command = "galago batch-search";
         }
         String arabicPart = "";
-        if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
         String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_executeAgainstPartial.log";
@@ -1231,12 +1234,12 @@ public class QueryManager {
 
             JSONArray stemmerList = new JSONArray();
             JSONObject stemmerClass = new JSONObject();
-            if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+            if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
                 stemmerList.add("krovetz");
                 stemmerList.add("snowball");
                 stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
                 stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            } else if (Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
+            } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
                 stemmerList.add("krovetz");
                 stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
             } else if (Pathnames.targetLanguage == Pathnames.Language.FARSI) {

@@ -1,6 +1,7 @@
 package edu.umass.ciir;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.JsonArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
@@ -26,6 +27,8 @@ public class Document {
     private static Map<String,String> translatedArabicDocMap = new ConcurrentHashMap<>();
     private static Map<String,List<SentenceRange>> arabicDocSentencesMap = new ConcurrentHashMap<>();
     private static Map<String,List<SentenceRange>> englishDocSentencesMap = new ConcurrentHashMap<>();
+    private static Map<String,List<Event>> arabicDocEventsMap = new ConcurrentHashMap<>();
+    private static Map<String,List<Event>> englishDocEventsMap = new ConcurrentHashMap<>();
 
     public static void addDocToMap(String docid, String doctext) {
         docMap.put(docid, doctext);
@@ -35,21 +38,26 @@ public class Document {
         englishDocSentencesMap.put(docid, sentences);
     }
 
+    public static void addDocEventsToMap(String docid, List<Event> events) {
+        arabicDocEventsMap.put(docid, events);
+    }
     public static void buildDocMap(Set<String> uniqueDocIDs) {
         if (!Pathnames.englishCorpusFileName.isEmpty()) {
             String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
-            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap, null, true);
+            buildDocMap(uniqueDocIDs, corpus, docMap, englishDocSentencesMap, null, englishDocEventsMap,
+                    true);
         }
     }
 
     public static void buildArabicDocMap(Set<String> uniqueDocIDs) {
         String corpus = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
-        buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap, translatedArabicDocMap, false);
+        buildDocMap(uniqueDocIDs, corpus, arabicDocMap, arabicDocSentencesMap, translatedArabicDocMap, arabicDocEventsMap,
+                false);
     }
 
     public static void getDocumentWithGrep (String docid, String corpus, Map<String,String> map,
                                                     Map<String,List<SentenceRange>> sentenceMap,
-                                            Map<String,String> translatedMap) {
+                                            Map<String,String> translatedMap, Map<String, List<Event>> eventMap) {
         String command = "grep";
 //        String grepText = "\"id\": \"" + docid + "\"";
         String grepText = docid;
@@ -67,7 +75,7 @@ public class Document {
                 if (line.length() == 0) {
                     continue;
                 }
-                doALine(line, map, sentenceMap, translatedMap);
+                doALine(line, map, sentenceMap, translatedMap, eventMap);
             }
             exitVal = process.waitFor();
         } catch (Exception e) {
@@ -132,7 +140,7 @@ public class Document {
 
     private static void buildDocMap(Set<String> uniqueDocIDs, String corpus, Map<String,String> map,
                                     Map<String,List<SentenceRange>> sentenceMap, Map<String,String> translatedMap,
-                                    boolean isEnglishCorpus) {
+                                    Map<String, List<Event>> eventMap, boolean isEnglishCorpus) {
 //        AtomicInteger idx = new AtomicInteger(0);
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
@@ -153,7 +161,7 @@ public class Document {
             try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
                 stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
                         .forEach(line -> {
-                            doALine(line, map, sentenceMap, translatedMap);
+                            doALine(line, map, sentenceMap, translatedMap, eventMap);
                         });
             } catch (IOException e) {
                 throw new TasksRunnerException(e);
@@ -173,7 +181,8 @@ public class Document {
     }
 
     private static void doALine(String line, Map<String,String> map,
-                         Map<String,List<SentenceRange>> sentenceMap, Map<String, String> translatedMap) {
+                         Map<String,List<SentenceRange>> sentenceMap, Map<String, String> translatedMap,
+                                Map<String, List<Event>> eventMap) {
         JSONParser parser = new JSONParser();
         JSONObject json = null;
         try {
@@ -185,6 +194,7 @@ public class Document {
         String text;
         String translatedText;
         List<SentenceRange> sentences = new ArrayList<>();
+        List<Event> events = new ArrayList<>();
         if (json.containsKey("uuid")) {
             // OLD STYLE
             uuid = (String) json.get("uuid");
@@ -201,6 +211,10 @@ public class Document {
             translatedText = "";
             if (derived_metadata.containsKey("translated-text")) {
                 translatedText = (String) derived_metadata.get("translated-text");
+            }
+            if (derived_metadata.containsKey("isi-events")) {
+                logger.info("Found isi-events object in corpus line");
+                events = Event.getEventsFromJSON((JSONArray) derived_metadata.get("isi-events"));
             }
             if (derived_metadata.containsKey("segment-sections")) {
                 JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
@@ -229,6 +243,7 @@ public class Document {
         map.put(uuid, text);
         translatedMap.put(uuid, translatedText);
         sentenceMap.put(uuid, sentences);
+        eventMap.put(uuid, events);
     }
 
     private static List<String> callSpacy(String s) {
@@ -276,4 +291,11 @@ public class Document {
         return arabicDocSentencesMap.get(docid);
     }
 
+    public static List<Event> getArabicDocumentEvents (String docid) {
+        return arabicDocEventsMap.get(docid);
+    }
+
+    public static List<Event> getEnglishDocumentEvents (String docid) {
+        return englishDocEventsMap.get(docid);
+    }
 }

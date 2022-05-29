@@ -205,12 +205,12 @@ public class Index {
             JSONArray stemmerList = new JSONArray();
             JSONObject stemmerClass = new JSONObject();
             if (type.equals("target")) {
-                if (Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+                if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
 //                    stemmerList.add("krovetz");
                     stemmerList.add("snowball");
 //                    stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
                     stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-                } else if (Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
+                } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
                     stemmerList.add("krovetz");
                     stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
                 } else if (Pathnames.targetLanguage == Pathnames.Language.FARSI) {

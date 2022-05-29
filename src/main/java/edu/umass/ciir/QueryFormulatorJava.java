@@ -74,7 +74,7 @@ public class QueryFormulatorJava extends QueryFormulator {
     public void buildQueries() {
         String language;
 
-        if (Pathnames.targetLanguageIsEnglish) {
+        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
             language = "en";
         } else {
             language = "ar";

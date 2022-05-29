@@ -177,14 +177,10 @@ public class TasksRunner {
                     boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
                     if (perform) {
                         Pathnames.mode = "HITL";
-                        Pathnames.runSearch = true;
                         Pathnames.runGetCandidateDocs = true;
-                        Pathnames.isTargetEnglish = "true";
-                        Pathnames.targetLanguageIsEnglish = true;
-                        Pathnames.targetLanguage = Pathnames.Language.ENGLISH;
-                        Pathnames.processingModel = Pathnames.ProcessingModel.ONE_STEP;
-                        // override the Request-level Docker image name with special one for getting candidate docs
-                        Pathnames.requestLevelQueryFormulatorDockerImage = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
+                        //Pathnames.isTargetEnglish = "true";
+                        //Pathnames.targetLanguageIsEnglish = true;
+                        //Pathnames.targetLanguage = Pathnames.Language.ENGLISH;
                         break;
                     }
                 }
@@ -193,11 +189,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
                     if (perform) {
                         Pathnames.mode = "HITL";
-                        Pathnames.runSearch = true;
                         Pathnames.runGetPhrases = true;
-                        Pathnames.processingModel = Pathnames.ProcessingModel.ONE_STEP;
-                        // override the Request-level Docker image name with special one for getting phrases
-                        Pathnames.requestLevelQueryFormulatorDockerImage = Pathnames.getPhrasesQueryFormulatorDockerImage;
                         break;
                     }
                 }
@@ -386,8 +378,9 @@ public class TasksRunner {
 
     private void oneStepProcessingModel() {
         phase = "Request";  // used in the file names
-        String requestLevelFormulator = Pathnames.runGetPhrases ? Pathnames.getPhrasesQueryFormulatorDockerImage :
-             Pathnames.requestLevelQueryFormulatorDockerImage;
+        String requestLevelFormulator = Pathnames.runGetPhrases ? Pathnames.getPhrasesQueryFormulatorDockerImage
+                : Pathnames.runGetCandidateDocs ? Pathnames.getCandidateDocsQueryFormulatorDockerImage
+                : Pathnames.requestLevelQueryFormulatorDockerImage;
 
         QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase, eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
@@ -401,7 +394,7 @@ public class TasksRunner {
         tasks.writeJSONVersion();
 
         logger.info("Building queries");
-        qf.buildQueries(Pathnames.requestLevelQueryFormulatorDockerImage);
+        qf.buildQueries(requestLevelFormulator);
 
         logger.info("Executing queries");
         String queryFileDirectory = Pathnames.queryFileLocation;
@@ -484,12 +477,16 @@ public class TasksRunner {
             eventExtractor.annotateProvidedFileEvents();
         } else if (Pathnames.runGetPhrases) {
             getPhrases();
-        } else if (Pathnames.runSearch) {
-            if (Pathnames.processingModel == Pathnames.ProcessingModel.TWO_STEP) {
+        } else if (Pathnames.runSearch || Pathnames.runGetCandidateDocs) {
+            Pathnames.ProcessingModel processingModel = Pathnames.processingModel;
+            if (Pathnames.runGetCandidateDocs) {  // force one-step model
+                processingModel = Pathnames.ProcessingModel.ONE_STEP;
+            }
+            if (processingModel == Pathnames.ProcessingModel.TWO_STEP) {
                 twoStepProcessingModel();
-            } else if (Pathnames.processingModel == Pathnames.ProcessingModel.ONE_STEP) {
+            } else if (processingModel == Pathnames.ProcessingModel.ONE_STEP) {
                 oneStepProcessingModel();
-            } else if (Pathnames.processingModel == Pathnames.ProcessingModel.NEURAL) {
+            } else if (processingModel == Pathnames.ProcessingModel.NEURAL) {
                 neuralProcessingModel();
             } else {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");

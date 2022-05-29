@@ -43,7 +43,7 @@ public class Galago {
             Parameters queryParams = Parameters.create();
             queryParams.set ("index", indexLocation);
             queryParams.set ("requested", N);
-            if (Pathnames.targetLanguage.equals("ARABIC")) {
+            if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage.equals("ARABIC")) {
                 queryParams.set("defaultTextPart", "postings.snowball");
             }
             Retrieval ret = RetrievalFactory.create(queryParams);

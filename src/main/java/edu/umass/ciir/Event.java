@@ -5,6 +5,7 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -23,6 +24,9 @@ public class Event /*implements JSONAware*/ {
     List<SpanSet> agentSpans = new ArrayList<>();
     List<String> patientList;
     List<SpanSet> patientSpans = new ArrayList<>();
+
+    Event() {}
+
     Event(String entryKey, String docSetType, String taskOrRequestID, String docid, String eventid,
           String eventType, String anchor, List<String> agentList, List<String> patientList) {
         this.entryKey = entryKey;
@@ -40,47 +44,17 @@ public class Event /*implements JSONAware*/ {
         this.sentenceID = id;
     }
 
-    /*
-    @Override
-    public String toJSONString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n{");
-        sb.append("\"eventtype\"");
-        sb.append(": ");
-        sb.append("\"" + JSONObject.escape(eventType) + "\"");
-        sb.append(", ");
-
-        sb.append("\"anchor\"");
-        sb.append(": ");
-        sb.append(anchorSpan.toJSONString());
-        sb.append(", ");
-
-        sb.append("\"agents\"");
-        sb.append(": ");
-        if (agentSpans.size() == 0) {
-            sb.append("[] ");
-        } else {
-            for (SpanSet ss : agentSpans) {
-                sb.append(ss.toJSONString());
-            }
+    // WARNING: This is currently limited to getting only eventType
+    public static List<Event> getEventsFromJSON(JSONArray eventsJSON) {
+        List<Event> eventList = new ArrayList<>();
+        for (Object oEvent : eventsJSON) {
+            JSONObject eventJSON = (JSONObject) oEvent;
+            Event event = new Event();
+            event.eventType = (String) eventJSON.get("eventType");
+            eventList.add(event);
         }
-        sb.append(", ");
-
-        sb.append("\"patients\"");
-        sb.append(": ");
-        if (patientSpans.size() == 0) {
-            sb.append("[] ");
-        } else {
-            for (SpanSet ss : patientSpans) {
-                sb.append(ss.toJSONString());
-            }
-        }
-
-        sb.append("} ");
-        return sb.toString();
+        return eventList;
     }
-
-     */
 
     public static JSONArray getEventsJSON(List<Event> events) {
         JSONArray eventsArray = new JSONArray();
@@ -110,15 +84,16 @@ public class Event /*implements JSONAware*/ {
 
             JSONObject anchorSpanJSON = new JSONObject();
             Span anchorSpan = event.anchorSpan;
-            anchorSpanJSON.put("synclass", anchorSpan.synclass);
-            anchorSpanJSON.put("string", anchorSpan.string.replace("\n", " "));
-            anchorSpanJSON.put("start", anchorSpan.start);
-            anchorSpanJSON.put("end", anchorSpan.end);
-            anchorSpanJSON.put("hstring", anchorSpan.hstring.replace("\n", " "));
-            anchorSpanJSON.put("hstart", anchorSpan.hstart);
-            anchorSpanJSON.put("hend", anchorSpan.hend);
-            eventEntry.put("anchor", anchorSpanJSON);
-
+            if (anchorSpan != null) {
+                anchorSpanJSON.put("synclass", anchorSpan.synclass);
+                anchorSpanJSON.put("string", anchorSpan.string.replace("\n", " "));
+                anchorSpanJSON.put("start", anchorSpan.start);
+                anchorSpanJSON.put("end", anchorSpan.end);
+                anchorSpanJSON.put("hstring", anchorSpan.hstring.replace("\n", " "));
+                anchorSpanJSON.put("hstart", anchorSpan.hstart);
+                anchorSpanJSON.put("hend", anchorSpan.hend);
+                eventEntry.put("anchor", anchorSpanJSON);
+            }
             JSONArray patients = new JSONArray();
             for (int index = 0, limit = event.patientSpans.size() - 1; index < event.patientSpans.size(); ++index) {
                 SpanSet p = event.patientSpans.get(index);
