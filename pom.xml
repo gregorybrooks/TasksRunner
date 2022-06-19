@@ -14,7 +14,7 @@
     <artifactId>tasks-runner</artifactId>
     <!-- If you change the version, also change scripts/run_ir.sh and rebuild_docker.sh and run_all-HITL.sh
          and reset_HITL in the task-runner-api-PROD directory -->
-    <version>5.0.0</version>
+    <version>5.1.0</version>
     <packaging>jar</packaging>
 
     <properties>

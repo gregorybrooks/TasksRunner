@@ -16,8 +16,8 @@ public class QueryFormulatorDocker extends QueryFormulator {
     String phase;
     String queryFileNameKey;
 
-    QueryFormulatorDocker(AnalyticTasks tasks, String phase, String queryFileNameKey, String dockerImageName) {
-        super(tasks, phase, queryFileNameKey);
+    QueryFormulatorDocker(String submissionId, String mode, AnalyticTasks tasks, String phase, String queryFileNameKey, String dockerImageName) {
+        super(submissionId, mode, tasks, phase, queryFileNameKey);
         this.phase = phase;
         this.queryFileNameKey = queryFileNameKey;
         this.dockerImageName = dockerImageName;
@@ -26,7 +26,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
 
     private void callDockerImage() {
         try {
-            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
+            String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
@@ -50,10 +50,10 @@ public class QueryFormulatorDocker extends QueryFormulator {
 */
                     + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
                     + " --env queryFileLocation=" + Pathnames.queryFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
+                    + " --env logFileLocation=" + Pathnames.logFileLocation
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
                     + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
-                    + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
+                    + " -v " + Pathnames.logFileLocation  + ":" + Pathnames.logFileLocation
                     + " --env galagoLocation=" + Pathnames.galagoLocation
                     // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                     + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
@@ -66,7 +66,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/" + phase + ".query-formulator.out";
+            String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);

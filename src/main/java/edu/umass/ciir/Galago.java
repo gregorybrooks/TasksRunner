@@ -374,7 +374,4 @@ public class Galago {
         }
         return termFrequencies;
     }
-
-
-
 }

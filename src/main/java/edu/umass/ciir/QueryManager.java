@@ -24,6 +24,7 @@ public class QueryManager {
     public Map<String, String> nonTranslatedQueries;
 
     public Run run;
+    private String mode;
     private String queryFileName;
     private String queryFileFullPathName;
     private String queryFileNameOnly;
@@ -36,20 +37,25 @@ public class QueryManager {
     private long runTime = 0;
     private String rerankedRunFile;
     private String phase;
+    private String submissionId;
     private EventExtractor eventExtractor;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    public QueryManager(AnalyticTasks tasks, String queryFormulationName, String phase, EventExtractor eventExtractor) {
+    public QueryManager(String submissionId, String mode, AnalyticTasks tasks, String queryFormulationName, String phase, 
+                        EventExtractor eventExtractor) {
         try {
             this.tasks = tasks;
             this.phase = phase;
+            this.mode = mode;
+            this.submissionId = submissionId;
             this.eventExtractor = eventExtractor;
             taskFileNameGeneric = tasks.getTaskFileName();
             // When the query formulation name is a Docker image name, it might be qualified
             // with the owner's name and a "/", which confuses things when the formulation name
             // is used in a pathname, so change the "/" to a "-"
             queryFormulationName = queryFormulationName.replace("/", "-");
-            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
+//            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
+            this.key =  submissionId + "." + phase + "." + queryFormulationName;
             queryFileNameOnly = key + ".queries.json";
             queryFileFullPathName = Pathnames.queryFileLocation + queryFileNameOnly;
             queryFileName = queryFileFullPathName; // for historical reasons
@@ -69,8 +75,7 @@ public class QueryManager {
 
     private void callQueryFormulator(String dockerImageName) {
         try {
-            String mode = Pathnames.mode;
-            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
+            String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
@@ -95,10 +100,10 @@ public class QueryManager {
 */
                     + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
                     + " --env queryFileLocation=" + Pathnames.queryFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
+                    + " --env logFileLocation=" + Pathnames.logFileLocation
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
                     + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
-                    + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
+                    + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
                     + " --env galagoLocation=" + Pathnames.galagoLocation
                     // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                     + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
@@ -111,7 +116,7 @@ public class QueryManager {
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/" + phase + ".query-formulator.out";
+            String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);
@@ -182,9 +187,8 @@ public class QueryManager {
     */
     public void callReranker(String currentRunFile, String outputFileName) {
         try {
-            String mode = Pathnames.mode;
             String dockerImageName = Pathnames.rerankerDockerImage;
-            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
+            String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
@@ -199,12 +203,12 @@ public class QueryManager {
                     + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
                     + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
                     + " --env QLANG=en --env DLANG=" + language
-                    + " --env RUNFILE_MASK='" + mode + ".[req-num].REQUESTHITS.events.json'"
+                    + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
                     + " --env NUM_CPU=8 --env TOPK=100"
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/reranker-docker-program.out";
+            String logFile = Pathnames.logFileLocation + submissionId + ".reranker-docker-program.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);
@@ -240,63 +244,13 @@ public class QueryManager {
                 throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
             }
 
+            // TBD: add submissionId to this file name (must change it in the Docker, too)
             Files.copy(new File(Pathnames.eventExtractorFileLocation + "fused.run").toPath(),
                     new File(outputFileName).toPath(), REPLACE_EXISTING);
 
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
-    }
-
-    public void callRerankerOLD(String currentRunFile, String outputFileName) {
-        try {
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/reranker.log";
-            String tempCommand = "cd " + Pathnames.programFileLocation + "BETTER-prod && PYTHONPATH=" + Pathnames.programFileLocation + "BETTER-prod "
-                    + "CUDA_VISIBLE_DEVICES=3 python3 "
-                    + Pathnames.programFileLocation + "BETTER-prod/src/document_reader.py --data_dir="
-                    + Pathnames.eventExtractorFileLocation
-                    + " --task_file=" + tasks.getInternalAnalyticTasksInfoFileName()
-                    + " --prefix=" + tasks.getMode() + "."
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing reranker execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("reranker output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from reranker, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from reranker, exit value is: " + exitVal);
-            }
-            Files.copy(new File(Pathnames.eventExtractorFileLocation + "path_to_runs/fused.run").toPath(),
-                    new File(outputFileName).toPath(), REPLACE_EXISTING);
-
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
-
     }
 
     private int findSentence(long start, List<SentenceRange> sentences) {
@@ -353,20 +307,16 @@ public class QueryManager {
     public void annotateExampleDocs() {
         logger.info("Preparing a file of the example docs for the event annotator");
 
-        if (!Pathnames.skipExampleDocAnnotation) {
-            logger.info("Skipping example doc event annotation");
-        } else {
-            String fileForEventExtractor = eventExtractor.constructExampleToEventExtractorFileName();
-            Map<String, SimpleHit> entries = new HashMap<>();
+        String fileForEventExtractor = eventExtractor.constructExampleToEventExtractorFileName();
+        Map<String, SimpleHit> entries = new HashMap<>();
 
-            for (Task task : tasks.getTaskList()) {
-                eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
-            }
-
-            eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
-
-            eventExtractor.annotateExampleDocEvents();
+        for (Task task : tasks.getTaskList()) {
+            eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
         }
+
+        eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
+
+        eventExtractor.annotateExampleDocEvents();
 
         logger.info("Retrieving the file of example doc events created by the event annotator");
 
@@ -953,7 +903,7 @@ public class QueryManager {
             runFiles.add(theRunFileName);
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
 
-            String taskLevelKey = tasks.getMode() + ".Task."
+            String taskLevelKey = mode + ".Task."
                     + finalTaskLevelFormulationName;
             String indexName = Pathnames.indexLocation + taskLevelKey + "." + t.taskNum + ".PARTIAL";
             logger.info("Executing request queries for task " + t.taskNum);
@@ -983,10 +933,10 @@ public class QueryManager {
             execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
         }
 */
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago2.log";
+        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago2.log";
         Galago galago = new Galago((Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) ?
                 Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
-                Pathnames.mode, galagoLogFile, Pathnames.galagoLocation);
+                mode, galagoLogFile, Pathnames.galagoLocation);
         galago.search(queries, runFileName, N);
 
         run = new Run(runFileName);  // Get new run file into memory
@@ -1004,14 +954,14 @@ public class QueryManager {
      * @param theRunFileName
      * @param indexName
      */
-    private void execute(int threadCount, int N, String theQueryFileName, String theRunFileName, String indexName) {
+    private void executeThreadedBatchSearch(int threadCount, int N, String theQueryFileName, String theRunFileName, String indexName) {
         Instant start = Instant.now();
 
         String command = "galago threaded-batch-search";
         if (threadCount == 1) {
             command = "galago batch-search";
         }
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago.log";
+        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago.log";
         String arabicParm = "";
         if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
             arabicParm = "--defaultTextPart=postings.snowball ";
@@ -1075,6 +1025,7 @@ public class QueryManager {
      */
     private void executeAgainstPartialIndex(int threadCount, int N, String theQueryFileName,
                                             String theRunFileName, String indexName, String taskID) {
+        // TBD: change this to use the library instead of the CLI
         Instant start = Instant.now();
 
         String command = "galago threaded-batch-search";
@@ -1085,7 +1036,7 @@ public class QueryManager {
         if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_executeAgainstPartial.log";
+        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskID + "_executeAgainstPartial.log";
         String tempCommand = Pathnames.galagoLocation + command
                 + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
                 + " --systemName=CLEAR --trec=true "
@@ -1172,7 +1123,7 @@ public class QueryManager {
         String confFile = createGalagoPartialIndexConfFile(taskID);
         Instant start = Instant.now();
 
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_indexbuild.log";
+        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskID + "_indexbuild.log";
         String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
                 Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
                 " --index=" + Pathnames.targetIndexLocation +
@@ -1719,7 +1670,7 @@ public class QueryManager {
      * @param writer the PrintWriter
      */
     private void addEvents(String requestID, PrintWriter writer) {
-        String fileName = Pathnames.eventExtractorFileLocation + Pathnames.mode + "."
+        String fileName = Pathnames.eventExtractorFileLocation + submissionId + "."
             + requestID + ".REQUESTHITS.json.results.json";
         File f = new File(fileName);
         if (f.exists()) {

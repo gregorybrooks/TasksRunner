@@ -20,6 +20,7 @@ public class TasksRunner {
     private String phase;
     private static final Logger logger = Logger.getLogger("TasksRunner");
     EventExtractor eventExtractor;
+    private String submissionId;
 
     /**
      * Configures the logger for this program.
@@ -50,7 +51,7 @@ public class TasksRunner {
      * Sets up logging for this program.
      */
     public void setupLogging() {
-        String logFileName = Pathnames.logFileLocation + "HITL/tasks-runner.log";
+        String logFileName = Pathnames.logFileLocation + "/tasks-runner." + submissionId + ".log";
         configureLogger(logFileName);
     }
 
@@ -88,10 +89,12 @@ public class TasksRunner {
      */
     public void readTaskSetFile(String taskSetFile) {
         try {
+            mode = "AUTO";  // the default, even for non-search operations
+
             Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(taskSetFile)));
             JSONParser parser = new JSONParser();
             JSONObject topLevelJSON = (JSONObject) parser.parse(reader);
-            String testIDJSON = (String) topLevelJSON.get("test-id");
+            submissionId = (String) topLevelJSON.get("test-id");
             JSONObject taskSetJSON = (JSONObject) topLevelJSON.get("task-set");
 
             Pathnames.runPreTrain = false;
@@ -149,7 +152,7 @@ public class TasksRunner {
                     JSONObject findRelevantDocsAutomaticJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.automatic");
                     boolean perform = (boolean) findRelevantDocsAutomaticJSON.get("perform?");
                     if (perform) {
-                        Pathnames.mode = "AUTO";
+                        mode = "AUTO";
                         Pathnames.runSearch = true;
                         break;
                     }
@@ -158,7 +161,7 @@ public class TasksRunner {
                     JSONObject findRelevantDocsAutoHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.auto-hitl");
                     boolean perform = (boolean) findRelevantDocsAutoHitlJSON.get("perform?");
                     if (perform) {
-                        Pathnames.mode = "AUTO-HITL";
+                        mode = "AUTO-HITL";
                         Pathnames.runSearch = true;
                         break;
                     }
@@ -167,7 +170,7 @@ public class TasksRunner {
                     JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
                     boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
                     if (perform) {
-                        Pathnames.mode = "HITL";
+                        mode = "HITL";
                         Pathnames.runSearch = true;
                         break;
                     }
@@ -176,7 +179,7 @@ public class TasksRunner {
                     JSONObject findTaskExampleDocsHitlJSON = (JSONObject) taskSetJSON.get("find-candidate-docs.hitl");
                     boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
                     if (perform) {
-                        Pathnames.mode = "HITL";
+                        mode = "HITL";
                         Pathnames.runGetCandidateDocs = true;
                         //Pathnames.isTargetEnglish = "true";
                         //Pathnames.targetLanguageIsEnglish = true;
@@ -188,7 +191,7 @@ public class TasksRunner {
                     JSONObject findTaskExampleDocsHitlJSON = (JSONObject) taskSetJSON.get("get-phrases.hitl");
                     boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
                     if (perform) {
-                        Pathnames.mode = "HITL";
+                        mode = "HITL";
                         Pathnames.runGetPhrases = true;
                         break;
                     }
@@ -211,12 +214,10 @@ public class TasksRunner {
         String taskLevelFormulator = Pathnames.taskLevelQueryFormulatorDockerImage;
         phase = "Task";
 
-        QueryManager qf = new QueryManager(tasks, taskLevelFormulator, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, mode, tasks, taskLevelFormulator, phase, eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
 
-        if (!Pathnames.skipExampleDocAnnotation) {
-            qf.annotateExampleDocs();
-        }
+        qf.annotateExampleDocs();
 
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators
            and re-rankers to use */
@@ -247,7 +248,7 @@ public class TasksRunner {
 
         logger.info("Building request-level queries");
         phase = "Request";
-        qf = new QueryManager(tasks, requestLevelFormulator, phase, eventExtractor);
+        qf = new QueryManager(submissionId, mode, tasks, requestLevelFormulator, phase, eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
         qf.buildQueries(requestLevelFormulator);
 
@@ -296,7 +297,7 @@ public class TasksRunner {
         String taskLevelFormulator = Pathnames.getPhrasesQueryFormulatorDockerImage;
         phase = "Task";
 
-        QueryManager qf = new QueryManager(tasks, taskLevelFormulator, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, mode, tasks, taskLevelFormulator, phase, eventExtractor);
 
         if (!Pathnames.skipExampleDocAnnotation) {
             qf.annotateExampleDocs();
@@ -324,7 +325,7 @@ public class TasksRunner {
         String newQueryFormulationName = getFormulationName(path, key, queryFileDirectory, requestLevelFormulator);
         logger.info("  Effective query formulation name is: " + newQueryFormulationName);
 
-        QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, mode, tasks, newQueryFormulationName, phase, eventExtractor);
         logger.info("Writing separate query files, one per Task so we can execute them against the Task indexes");
         qf.writeQueryFiles();
 
@@ -350,7 +351,7 @@ public class TasksRunner {
         String newQueryFormulationName = getFormulationName(path, key, queryFileDirectory, requestLevelFormulator);
         logger.info("  Effective query formulation name is: " + newQueryFormulationName);
 
-        QueryManager qf = new QueryManager(tasks, newQueryFormulationName, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, mode, tasks, newQueryFormulationName, phase, eventExtractor);
         if (Pathnames.runGetCandidateDocs) {
             qf.execute(10);
         } else {
@@ -368,7 +369,7 @@ public class TasksRunner {
 
     private void neuralProcessingModel() {
         logger.info("NEURAL PROCESSING MODE: Building and executing queries");
-        NeuralQueryProcessorDocker docker = new NeuralQueryProcessorDocker(tasks);
+        NeuralQueryProcessorDocker docker = new NeuralQueryProcessorDocker(submissionId, mode, tasks);
         docker.callDockerImage();
     }
 
@@ -382,12 +383,10 @@ public class TasksRunner {
                 : Pathnames.runGetCandidateDocs ? Pathnames.getCandidateDocsQueryFormulatorDockerImage
                 : Pathnames.requestLevelQueryFormulatorDockerImage;
 
-        QueryManager qf = new QueryManager(tasks, requestLevelFormulator, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, mode, tasks, requestLevelFormulator, phase, eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
 
-        if (!Pathnames.skipExampleDocAnnotation) {
-            qf.annotateExampleDocs();
-        }
+        qf.annotateExampleDocs();
 
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators
            and re-rankers to use */
@@ -434,6 +433,11 @@ public class TasksRunner {
      * executes the queries, annotates scoredHits with events.
      */
     void process()  {
+        /* This must be done before setupLogging() because that func uses mode,
+        which is set in readTaskSetFile()
+         */
+        readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
+        setupLogging();
 
         if (Pathnames.runEnglishIndexBuild) {
             Index index = new Index("english");
@@ -447,27 +451,24 @@ public class TasksRunner {
             index.buildIndex();
         }
 
+        logger.info("Executing in " + mode + " mode");
         logger.info("Opening the analytic task file, expanding example docs");
-        tasks = new AnalyticTasks();    // this is the external analytic tasks file
+        tasks = new AnalyticTasks(mode, submissionId);    // this is the external analytic tasks file
 
         /*
          * We can be executing in one of 3 modes: AUTO, AUTO-HITL, or HITL.
          * Processing is a little different in each mode, but the differences are hidden inside
-         * the query formulators. The caller passes in the mode through the env file.
+         * the query formulators. The caller passes in the mode through the task set file.
          * The input analytic tasks file should be different for AUTO vs the other 2 modes:
          * the AUTO file should not have anything for the fields like Task Narrative and
-         * Request Text. Those
-         *  are only provided in AUTO-HITL and HITL mode.
-         * HITL mode's only difference is that more sample documents are passed in, in the
-         * supplemental_info.json file.
+         * Request Text. Those are only provided in AUTO-HITL and HITL modes.
+         * In HITL mode, noun phrases and sentences that have been judged by a human are passed in and used.
          * Once we know the mode, we select the 2 query formulators created for that mode.
          * (There are separate query formulators for the creation of Task-level queries and
-         * Request-level queries.)
+         * Request-level queries, in the two-stage model.)
          */
-        mode = tasks.getMode();
-        logger.info("Executing in " + mode + " mode");
 
-        eventExtractor = new EventExtractor(tasks, mode);
+        eventExtractor = new EventExtractor(tasks, mode, submissionId);
 
         if (Pathnames.runPreTrain) {
             eventExtractor.preTrainEventAnnotator();
@@ -493,6 +494,11 @@ public class TasksRunner {
             }
         }
         logger.info("PROCESSING COMPLETE");
+
+        for(Handler h:logger.getHandlers())
+        {
+            h.close();   //must call h.close or a .LCK file will remain.
+        }
     }
 
     public void mainProcess() {
@@ -535,13 +541,6 @@ public class TasksRunner {
         }
 
         TasksRunner betterIR = new TasksRunner();
-        if (Pathnames.useTaskSetFile) {
-            /* This must be done before setupLogging() because that func uses mode,
-            which is set in readTaskSetFile()
-             */
-            betterIR.readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
-        }
-        betterIR.setupLogging();
 
         betterIR.process();
     }

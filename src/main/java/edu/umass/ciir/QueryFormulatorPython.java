@@ -12,9 +12,9 @@ public class QueryFormulatorPython extends QueryFormulator {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    QueryFormulatorPython(AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
+    QueryFormulatorPython(String submissionId, String mode, AnalyticTasks tasks, String phase, Pathnames.ProcessingModel processingModel,
                           String queryFileNameKey) {
-        super(tasks, phase, queryFileNameKey);
+        super(submissionId, mode, tasks, phase, queryFileNameKey);
     }
 
     String pythonProgramName = "run_multipartiterank_qformulator.py";
@@ -23,8 +23,8 @@ public class QueryFormulatorPython extends QueryFormulator {
         try {
             String programName = "python3";
             String pythonProgramNameFullPath = Pathnames.programFileLocation + pythonProgramName;
-            String logFile = Pathnames.logFileLocation + "python-program.log";
-            String inputFile = Pathnames.eventExtractorFileLocation + mode + ".analytic_tasks.json";
+            String logFile = Pathnames.logFileLocation + submissionId + ".python-program.log";
+            String inputFile = Pathnames.eventExtractorFileLocation + submissionId + ".analytic_tasks.json";
 
             String tempCommand = programName + " " + pythonProgramNameFullPath
                     + " --input_file=" + inputFile

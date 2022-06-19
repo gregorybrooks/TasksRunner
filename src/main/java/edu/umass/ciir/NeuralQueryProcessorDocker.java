@@ -13,16 +13,18 @@ public class NeuralQueryProcessorDocker  {
     private static final Logger logger = Logger.getLogger("TasksRunner");
     protected AnalyticTasks tasks;
     protected String mode;
+    String submissionId;
 
-    NeuralQueryProcessorDocker(AnalyticTasks tasks) {
+    NeuralQueryProcessorDocker(String submissionId, String mode, AnalyticTasks tasks) {
         this.tasks = tasks;
-        this.mode = tasks.getMode();
+        this.mode = mode;
+        this.submissionId = submissionId;
     }
 
     public void callDockerImage() {
         try {
             String dockerImageName = Pathnames.neuralQueryProcessorDockerImage;
-            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
+            String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
@@ -36,9 +38,9 @@ public class NeuralQueryProcessorDocker  {
                      can actually access it.
                      */
                     + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
+                    + " --env logFileLocation=" + Pathnames.logFileLocation
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
+                    + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
                     + " --env corpusFileLocation=" + Pathnames.corpusFileLocation + "/"
                     + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
                     + " --env targetCorpusFileName=" + Pathnames.targetCorpusFileName
@@ -47,7 +49,7 @@ public class NeuralQueryProcessorDocker  {
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/neural-docker-program.out";
+            String logFile = Pathnames.logFileLocation + submissionId + ".neural-docker-program.out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);

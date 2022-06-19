@@ -12,9 +12,9 @@ public class QueryFormulatorJava extends QueryFormulator {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    QueryFormulatorJava(AnalyticTasks tasks, String phase,
+    QueryFormulatorJava(String submissionId, String mode, AnalyticTasks tasks, String phase,
                         String queryFileNameKey) {
-        super(tasks, phase, queryFileNameKey);
+        super(submissionId, mode, tasks, phase, queryFileNameKey);
     }
 
     String javaJarFile = "BetterQueryBuilderTaskNounPhrases-2.0.0.jar";
@@ -23,8 +23,8 @@ public class QueryFormulatorJava extends QueryFormulator {
         try {
             String programName = "java -jar ";
             String javaProgramName = Pathnames.programFileLocation + javaJarFile;
-            String logFile = Pathnames.logFileLocation + "java-program.log";
-            String inputFile = Pathnames.eventExtractorFileLocation + mode + ".analytic_tasks.json";
+            String logFile = Pathnames.logFileLocation + submissionId + ".java-program.log";
+            String inputFile = Pathnames.eventExtractorFileLocation + submissionId + ".analytic_tasks.json";
             String tempCommand = programName + " " + javaProgramName + " " + inputFile + " " + mode + " "
                     + Pathnames.queryFileLocation + queryFileName + " " + outLang + " " + Pathnames.programFileLocation + " "
                     + phase + " >& " + logFile;

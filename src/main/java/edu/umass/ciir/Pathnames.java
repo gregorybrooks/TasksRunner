@@ -75,9 +75,7 @@ public class Pathnames {
     public static String galagoJobDirLocation = scratchFileLocation + "galago_job_dir/";
     public static String targetCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
     public static String englishCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
-    public static String tasksFileNameAUTO = "dry-run-topics.auto.json";
-    public static String tasksFileNameAUTOHITL = "dry-run-topics.auto-hitl.json";
-    public static String tasksFileNameHITL = "dry-run-topics.hitl.json";
+    public static String tasksFileName = "ir-tasks.json";
     public static String qrelFileName = "req-qrels";
     public static String isTargetEnglish = "true";
     public static boolean targetLanguageIsEnglish = true;
@@ -85,7 +83,7 @@ public class Pathnames {
     public static String supplementalFileName = "supplemental_info.json";
     public static boolean readQrelFile = true;
     public static boolean expandQrelDocuments = true;
-    public static String mode = "";
+//    public static String mode = "";
     public static String corpusFileFormat = "BETTER";
     public static String analyticTasksFileFormat = "BETTER";
     public static boolean sudoNeeded = true;
@@ -305,17 +303,12 @@ public class Pathnames {
                 "MISSING ENV VAR: targetCorpusFileName", Required.REQUIRED);
         englishCorpusFileName = getFromEnv("englishCorpusFileName",
                 "MISSING ENV VAR: englishCorpusFileName", Required.REQUIRED);
-        tasksFileNameAUTO = getFromEnv("tasksFileNameAUTO",
-                "MISSING ENV VAR: tasksFileNameAUTO", Required.REQUIRED);
-        tasksFileNameAUTOHITL = getFromEnv("tasksFileNameAUTOHITL",
-                "MISSING ENV VAR: tasksFileNameAUTOHITL", Required.REQUIRED);
-        tasksFileNameHITL = getFromEnv("tasksFileNameHITL",
-                "MISSING ENV VAR: tasksFileNameHITL", Required.REQUIRED);
+        tasksFileName = getFromEnv("tasksFileName","ir-tasks.json");
         supplementalFileName = getFromEnv("supplementalFileName", "supplemental_info.json");
         qrelFileName = getFromEnv("qrelFileName","");
         readQrelFile = (getFromEnv("readQrelFile", "true").equals("true"));
         expandQrelDocuments = (getFromEnv("expandQrelDocuments", "true").equals("true"));
-        mode = getFromEnv("mode", "AUTO");
+        //mode = getFromEnv("mode", "AUTO");
         corpusFileFormat = getFromEnv("corpusFileFormat", "MISSING ENV VAR: corpusFileFormat",
                 Required.REQUIRED);
         analyticTasksFileFormat = getFromEnv("analyticTasksFileFormat",

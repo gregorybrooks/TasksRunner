@@ -7,7 +7,7 @@ set -ve
 #cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE
 #cp tasks-ie.json ${APP_DIR}/tasks.json
 
-for f in ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${MODE}.*.REQUESTHITS.json; do
+for f in ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${SUBMISSION_ID}.*.REQUESTHITS.json; do
 #    cp $f ${APP_DIR}/test_data.bp.json
 #    MODELS_BASE_DIR=${MODELS_BASE_DIR_ENGLISH} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E ./run.sh.FARSI
 #    cp ${APP_DIR}/results.json ${f}.results.json

@@ -24,6 +24,7 @@ public class AnalyticTasks {
     private String tasksAndRequestsFile = "";
     private String supplementalFile = "";
     private String mode = "";
+    private String submissionId;
     private boolean sparse = false;
 
     /**
@@ -57,74 +58,25 @@ public class AnalyticTasks {
      * Also reads in the file containing the relevance judgments for these requests.
      * See the log file called better-components.log for activity from these components.
      *
-     * @param taskFileNameParm the filename (not the full path) of the input file
-     *
      * A note about exceptions: there are no exceptions that the caller is expected to handle
      * during execution--all exceptions are returned as the unchecked exception BetterComponentException,
      * which should terminate your program and contains the root cause exception and the
      * higher-level exception that gives it context.
-     * @throws BetterComponentException (unchecked exception) if something goes wrong.
      */
-    /**
-     *
-     */
-    public AnalyticTasks() {
-        setDefaults();
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode) {
-        setDefaults();
+    public AnalyticTasks(String mode, String submissionId) {
+        this.sparse = false;
         this.mode = mode;
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode, String taskFileNameParm) {
-        setDefaults();
-        this.mode = mode;
-        this.taskFileName = taskFileNameParm;
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode, boolean sparse) {
-        setDefaults();
-        this.mode = mode;
-        this.sparse = sparse;
-        openFiles();
-    }
-
-    public AnalyticTasks(Boolean sparse) {
-        setDefaults();
-        this.sparse = sparse;
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode, String taskFileNameParm, Boolean sparse) {
-        setDefaults();
-        this.mode = mode;
-        this.taskFileName = taskFileNameParm;
-        this.sparse = sparse;
+        this.submissionId = submissionId;
+        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
+                + submissionId + ".analytic_tasks.json";
+        taskFileName = Pathnames.tasksFileName;
         openFiles();
     }
 
     private void setDefaults() {
-        this.mode = Pathnames.mode;  // default to the env file
         this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        String tempTaskFileName = "";
-        switch (mode) {
-            case "AUTO":
-                taskFileName = Pathnames.tasksFileNameAUTO;
-                break;
-            case "AUTO-HITL":
-                taskFileName = Pathnames.tasksFileNameAUTOHITL;
-                break;
-            case "HITL":
-                taskFileName = Pathnames.tasksFileNameHITL;
-                break;
-            default:
-                throw new TasksRunnerException("Invalid mode: " + mode + ". Must be AUTO, AUTO-HITL, or HITL");
-        }
+                + submissionId + ".analytic_tasks.json";
+        taskFileName = Pathnames.tasksFileName;
         this.sparse = false;
     }
 
@@ -147,26 +99,14 @@ public class AnalyticTasks {
                     readTaskFileFarsi();
                 }
             } catch (Exception e) {
-                System.out.println("ERROR: Problem reading tasks file " + tasksAndRequestsFile
-                        + ". Check your tasksFileNameXXX setting (one for each mode): ");
-                System.out.println("You are running in " + mode + " mode.");
-                if (mode.equals("AUTO")) {
-                    System.out.println("tasksFileNameAUTO = " + Pathnames.tasksFileNameAUTO);
-                } else if (mode.equals("AUTO-HITL")) {
-                    System.out.println("tasksFileNameAUTOHITL = " + Pathnames.tasksFileNameAUTOHITL);
-                } else if (mode.equals("HITL")) {
-                    System.out.println("tasksFileNameHITL = " + Pathnames.tasksFileNameHITL);
-                }
-                throw e;
+                throw new TasksRunnerException(e);
             }
 
             if (!sparse) {
-                if (mode.equals("HITL")) {
+//                if (mode.equals("HITL")) {
 //                    logger.info("Opening supplemental task definition file " + supplementalFile);
 //                    readSupplementalFile();
-                      logger.info("Not using the supplemental task definition file");
-                }
-
+//                }
 
                 /* Get relevance judgments for these requests.
                  * Unless there are no relevance judgments available for this analytic task file / corpus
@@ -189,10 +129,6 @@ public class AnalyticTasks {
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
-    }
-
-    public String getMode() {
-        return mode;
     }
 
     public String getInternalAnalyticTasksInfoFileName() {

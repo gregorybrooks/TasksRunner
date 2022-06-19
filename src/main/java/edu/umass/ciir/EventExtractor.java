@@ -23,11 +23,13 @@ public class EventExtractor {
     private static final Logger logger = Logger.getLogger("TasksRunner");
     private AnalyticTasks tasks;
     private String mode;
+    private String submissionId;
     private List<SearchHit> searchHits;
 
-    public EventExtractor(AnalyticTasks tasks, String mode) {
+    public EventExtractor(AnalyticTasks tasks, String mode, String submissionId) {
         this.tasks = tasks;
         this.mode = mode;
+        this.submissionId = submissionId;
     }
 
     public List<SearchHit> getSearchHits() {
@@ -83,10 +85,12 @@ public class EventExtractor {
                 List<Event> isiEvents = hit.events;
 //                logger.info("Writing Hit to file, hit.events is " +
 //                        hit.events == null ? "NULL" : Integer.toString(hit.events.size()));
-                for (Event event : isiEvents) {
-                    JSONObject eventJSON = new JSONObject();
-                    eventJSON.put("eventType", event.eventType);
-                    eventsJSON.add(eventJSON);
+                if (isiEvents != null) {
+                    for (Event event : isiEvents) {
+                        JSONObject eventJSON = new JSONObject();
+                        eventJSON.put("eventType", event.eventType);
+                        eventsJSON.add(eventJSON);
+                    }
                 }
                 docEntry.put("isi-events", eventsJSON);
 
@@ -264,39 +268,39 @@ public class EventExtractor {
 
 
     public String constructTaskLevelFileFromEventExtractorFileName(Task t) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + t.taskNum + ".TASKHITS.json.results.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + t.taskNum + ".TASKHITS.json.results.json";
     }
     public String constructTaskLevelToFromEventExtractorFileName(Task t) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + t.taskNum + ".TASKHITS.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + t.taskNum + ".TASKHITS.json";
     }
     public String constructTaskLevelEventFileName(Task t) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + t.taskNum + ".TASKHITS.events.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + t.taskNum + ".TASKHITS.events.json";
     }
     public String constructTaskLevelSimpleFileName(Task t) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + t.taskNum + ".TASKHITS.SIMPLE.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + t.taskNum + ".TASKHITS.SIMPLE.json";
     }
 
     public String constructRequestLevelFileFromEventExtractorFileName(Request r) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.json.results.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.json.results.json";
     }
     public String constructRequestLevelToEventExtractorFileName(Request r) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.json";
     }
     public String constructRequestLevelEventFileName(Request r) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.events.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.events.json";
     }
     public String constructRequestLevelSimpleFileName(Request r) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.SIMPLE.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.SIMPLE.json";
     }
     public String constructRequestLevelRerankerFileName(Request r) {
-        return Pathnames.eventExtractorFileLocation + mode + "." + r.reqNum + ".REQUESTHITS.FOR_RERANKER.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.FOR_RERANKER.json";
     }
 
     public String constructExampleFileFromEventExtractorFileName() {
-        return Pathnames.eventExtractorFileLocation + mode + ".EXAMPLES.json.results.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.json.results.json";
     }
     public String constructExampleToEventExtractorFileName() {
-        return Pathnames.eventExtractorFileLocation + mode + ".EXAMPLES.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.json";
     }
 
     public void createInputFileEntriesFromExampleDocs(Task t, Map<String,SimpleHit> m) {
@@ -315,13 +319,15 @@ public class EventExtractor {
 
     public void annotateExampleDocEvents() {
         try {
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_example_docs.log";
+//            String logFile = Pathnames.logFileLocation + mode + "/annotate_example_docs.log";
+            String logFile = Pathnames.logFileLocation + "/annotate_example_docs." + submissionId + ".log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
                     + " APP_DIR=" + Pathnames.appFileLocation
-                    + " MODE=" + Pathnames.mode
+                    + " MODE=" + mode
+                    + " SUBMISSION_ID=" + submissionId
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
                     + " CORPUS_DIR=" + Pathnames.corpusFileLocation
@@ -377,13 +383,16 @@ public class EventExtractor {
                 script = "./annotate_provided_file.sh.ARABIC";
                 trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
             }
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_provided_file.log";
+//            String logFile = Pathnames.logFileLocation + mode + "/annotate_provided_file.log";
+            String logFile = Pathnames.logFileLocation + "/annotate_provided_file." + submissionId + ".log";
+
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
                     + " APP_DIR=" + Pathnames.appFileLocation
-                    + " MODE=" + Pathnames.mode
+                    + " MODE=" + mode
+                    + " SUBMISSION_ID=" + submissionId
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
                     + " CORPUS_DIR=" + Pathnames.corpusFileLocation
@@ -441,12 +450,14 @@ public class EventExtractor {
             trainingDirs = "";
         }
         try {
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_request_docs.log";
+//            String logFile = Pathnames.logFileLocation + mode + "/annotate_request_docs.log";
+            String logFile = Pathnames.logFileLocation + "/annotate_request_docs." + submissionId + ".log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " " + trainingDirs
-                    + " MODE=" + Pathnames.mode
+                    + " MODE=" + mode
+                    + " SUBMISSION_ID=" + submissionId
                     + " APP_DIR=" + Pathnames.appFileLocation
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
@@ -505,12 +516,14 @@ public class EventExtractor {
             trainingDirs = "";
         }
         try {
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/annotate_task_docs.log";
+//            String logFile = Pathnames.logFileLocation + mode + "/annotate_task_docs.log";
+            String logFile = Pathnames.logFileLocation + "/annotate_task_docs." + submissionId + ".log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " " + trainingDirs
-                    + " MODE=" + Pathnames.mode
+                    + " MODE=" + mode
+                    + " SUBMISSION_ID=" + submissionId
                     + " APP_DIR=" + Pathnames.appFileLocation
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
@@ -558,12 +571,14 @@ public class EventExtractor {
         try {
             logger.info("PRE-TRAINING: Pre-training the event annotator");
 
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/pretrain.log";
+//            String logFile = Pathnames.logFileLocation + mode + "/pretrain.log";
+            String logFile = Pathnames.logFileLocation + "/pretrain." + submissionId + ".log";
             String tempCommand = "cd /home/tasksrunner/scripts && "
                     + " sudo"
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
                     + " APP_DIR=" + Pathnames.appFileLocation
+                    + " SUBMISSION_ID=" + submissionId
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " CORPUS_DIR=" + Pathnames.corpusFileLocation
                     + " ./pretrain.sh"

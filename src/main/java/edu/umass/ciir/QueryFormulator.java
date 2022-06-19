@@ -13,14 +13,16 @@ public class QueryFormulator {
     private Map<String, String> queries = new ConcurrentHashMap<>();
     private Map<String, String> nonTranslatedQueries = new ConcurrentHashMap<>();
     protected AnalyticTasks tasks;
-    protected String mode;
     String phase;
+    String mode;
     String queryFileNameKey;
+    String submissionId;
 
-    QueryFormulator(AnalyticTasks tasks,  String phase, String queryFileNameKey) {
+    QueryFormulator(String submissionId, String mode, AnalyticTasks tasks,  String phase, String queryFileNameKey) {
         this.tasks = tasks;
-        this.mode = tasks.getMode();
         this.phase = phase;
+        this.mode = mode;
+        this.submissionId = submissionId;
         this.queryFileNameKey = queryFileNameKey;
     }
 
