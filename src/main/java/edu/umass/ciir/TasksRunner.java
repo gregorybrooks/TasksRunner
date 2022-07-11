@@ -292,6 +292,90 @@ public class TasksRunner {
         }
     }
 
+    private void multiLanguageTwoStepProcessingModel() {
+        /* These are used in the file names */
+        String requestLevelFormulator = Pathnames.requestLevelQueryFormulatorDockerImage;
+        String taskLevelFormulator = Pathnames.taskLevelQueryFormulatorDockerImage;
+        phase = "Task";
+
+        QueryManager qf = new QueryManager(submissionId, mode, tasks, taskLevelFormulator, phase, eventExtractor);
+        qf.resetQueries();  // Clears any existing queries read in from an old file
+
+        qf.annotateExampleDocs();
+
+        /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators
+           and re-rankers to use */
+        tasks.writeJSONVersion();
+
+        logger.info("Building task-level queries");
+        qf.buildQueries(taskLevelFormulator);
+        qf.readQueryFile();
+
+        logger.info("Executing the task-level queries");
+        qf.execute(2500);
+        logger.info("Execution of task-level queries complete.");
+
+        /* Create an input file for the event extractor for the top N task-level scoredHits.
+        (We did this to experiment with task-level scoredHits, but it is not needed normally.)
+        logger.info("Extracting events from the top task-level scoredHits");
+        qf.createInputForEventExtractorFromTaskHits();
+        */
+
+        // Evaluate the task-level results (they are saved into a file as a side effect)
+        if (Pathnames.doTaskLevelEvaluation) {
+            logger.info("Evaluating the task-level results");
+            Map<String, QueryManager.EvaluationStats> tstats = qf.evaluateTaskLevel();
+        }
+
+        logger.info("Building a separate index for each task's top scoredHits");
+        qf.buildTaskLevelIndexes();
+
+        logger.info("Building request-level queries");
+        phase = "Request";
+        qf = new QueryManager(submissionId, mode, tasks, requestLevelFormulator, phase, eventExtractor);
+        qf.resetQueries();  // Clears any existing queries read in from an old file
+        qf.buildQueries(requestLevelFormulator);
+
+        logger.info("Executing request-level queries");
+        String queryFileDirectory = Pathnames.queryFileLocation;
+        String key = qf.getKey();
+        // The key helps us distinguish files produced by this search from those produced by other searches
+        // (e.g. HITL.Request.gregorybrooks-better-query-builder-1:3.1.0)
+
+        // We want to process all query files produced by the Request-level query formulator.
+        // Make a filter to filter out all but the query files for this Request:
+        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(queryFileDirectory + key)
+                && (!file.toString().startsWith(queryFileDirectory + key + ".TASK."))
+                && (!file.toString().contains(".PRETTY."))
+                && (!file.toString().contains(".NON_TRANSLATED.")));
+
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
+                Paths.get(Pathnames.queryFileLocation),
+                filter)) {
+            dirStream.forEach(path -> executeOne(path, key, queryFileDirectory, requestLevelFormulator,
+                    taskLevelFormulator));
+        } catch (IOException cause) {
+            throw new TasksRunnerException(cause);
+        }
+
+        /* Extract events from the request-level scoredHits, to use when re-ranking the request-level results */
+        logger.info("Extracting events from the top request-level scoredHits");
+        eventExtractor.annotateRequestDocEvents();
+        qf.retrieveEventsFromRequestHits();
+
+        if (!Pathnames.skipReranker) {
+            logger.info("Reranking");
+            qf.rerank();
+            // Evaluate the request-level results (they are saved into a file as a side effect)
+            if (Pathnames.doRequestLevelEvaluation) {
+                logger.info("Evaluating request-level re-ranked hits");
+                Map<String, Double> rstats = qf.evaluate("RERANKED");
+            }
+            logger.info("Merging IR and IE results");
+            qf.writeFinalResultsFile();  // Combined IR (reranked) and IE results
+        }
+    }
+
     private void getPhrases() {
         /* These are used in the file names */
         String taskLevelFormulator = Pathnames.getPhrasesQueryFormulatorDockerImage;
