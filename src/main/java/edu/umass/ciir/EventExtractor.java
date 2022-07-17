@@ -3,17 +3,17 @@ package edu.umass.ciir;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import static java.nio.file.StandardCopyOption.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -299,7 +299,7 @@ public class EventExtractor {
     public String constructExampleFileFromEventExtractorFileName() {
         return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.json.results.json";
     }
-    public String constructExampleToEventExtractorFileName() {
+    public String constructExampleFileToEventExtractorFileName() {
         return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.json";
     }
 
@@ -319,10 +319,11 @@ public class EventExtractor {
 
     public void annotateExampleDocEvents() {
         try {
-//            String logFile = Pathnames.logFileLocation + mode + "/annotate_example_docs.log";
             String logFile = Pathnames.logFileLocation + "/annotate_example_docs." + submissionId + ".log";
-            String tempCommand = "cd /home/tasksrunner/scripts && "
-                    + " sudo"
+            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+
+            String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
+                    + sudo
                     + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
                     + " APP_DIR=" + Pathnames.appFileLocation
@@ -370,32 +371,18 @@ public class EventExtractor {
         }
     }
 
-    public void annotateProvidedFileEvents() {
+    /**
+     * A side-effect of this script is that it copies the REQUESTHITS.json files to REQUESTHITS.json.results.json files,
+     * so it must be called even if you don't actually call the ISI event extractor
+     */
+    public void runAScript(String script, String environmentVars ) {
+        // e.g. script = "./annotate_request_docs.sh.FARSI";
         try {
-            logger.info("Calling event annotator for test_data.bp.json file");
-
-            if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
-                throw new TasksRunnerException("Cannot call annotateProvidedFileEvents for English docs");
-            }
-            String script = "./annotate_provided_file.sh.FARSI";
-            String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
-            if (Pathnames.targetLanguage.equals("ARABIC")) {
-                script = "./annotate_provided_file.sh.ARABIC";
-                trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
-            }
-//            String logFile = Pathnames.logFileLocation + mode + "/annotate_provided_file.log";
-            String logFile = Pathnames.logFileLocation + "/annotate_provided_file." + submissionId + ".log";
-
-            String tempCommand = "cd /home/tasksrunner/scripts && "
-                    + " sudo"
-                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
-                    + " APP_DIR=" + Pathnames.appFileLocation
-                    + " MODE=" + mode
-                    + " SUBMISSION_ID=" + submissionId
-                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
-                    + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
-                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+            String logFile = Pathnames.logFileLocation + script + "." + submissionId + ".log";
+            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+            String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
+                    + sudo
+                    + environmentVars
                     + " " + script
                     + " >& " + logFile;
             logger.info("Executing this command: " + tempCommand);
@@ -414,30 +401,76 @@ public class EventExtractor {
 
                 exitVal = process.waitFor();
             } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing annotate_provided_file execution", cause);
+                logger.log(Level.SEVERE, "Exception executing " + script, cause);
                 throw new TasksRunnerException(cause);
             } finally {
                 StringBuilder builder = new StringBuilder();
                 try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
                 {
                     stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("annotate_provided_file output:\n" + builder.toString());
                 } catch (IOException ignore) {
                     // logger.info("IO error trying to read output file. Ignoring it");
                 }
             }
             if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_provided_file, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from annotate_provided_file, exit value is: " + exitVal);
+                logger.log(Level.SEVERE, "Unexpected ERROR from " + script + ", exit value is: " + exitVal);
+                throw new TasksRunnerException("Unexpected ERROR from " + script + ", exit value is: " + exitVal);
             }
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
     }
 
+
+    public void annotateProvidedFileEvents(String language) {
+        logger.info("Calling event annotator for test_data.bp.json file");
+
+        // So far we only support Arabic and Farsi
+        if (!(language.equals("arabic") || language.equals("farsi"))) {
+            throw new TasksRunnerException("annotateProvidedFileEvents only supports Arabic and Farsi, you asked for "
+                    + language);
+        }
+        String script = "./annotate_provided_file.sh.FARSI";
+        String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
+        if (language.equals("arabic")) {
+            script = "./annotate_provided_file.sh.ARABIC";
+            trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
+        }
+        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                + trainingDirs
+                + " APP_DIR=" + Pathnames.appFileLocation
+                + " MODE=" + mode
+                + " SUBMISSION_ID=" + submissionId
+                + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                + " CORPUS_DIR=" + Pathnames.corpusFileLocation;
+        runAScript(script, environmentVars);
+    }
+
+    private void copyFile(String source, String dest) {
+        try {
+            Files.copy(new File(source).toPath(), new File(dest).toPath(), REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void copyRequestEventFilesToResultsFiles() {
+        List<Request> requestList = tasks.getRequests();
+        for (Request request : requestList) {
+            String fileForEventExtractor = constructRequestLevelToEventExtractorFileName(request);
+            copyFile(fileForEventExtractor, fileForEventExtractor + ".results.json");
+        }
+    }
+
+    public void copyExampleDocEventFileToResultsFile() {
+        String source = constructExampleFileToEventExtractorFileName();
+        copyFile(constructExampleFileToEventExtractorFileName(), constructExampleFileFromEventExtractorFileName());
+    }
     /**
      * A side-effect of this script is that it copies the REQUESTHITS.json files to REQUESTHITS.json.results.json files,
-     * so it must be called even if you don't actually call the ISI event extractor
+     * so it must be called even if you don't actually call the ISI event extractor.
+     * For now, I changed the script to do the copy and commented-out the call to the event annotator.
      */
     public void annotateRequestDocEvents() {
         String script = "./annotate_request_docs.sh.FARSI";
@@ -449,56 +482,15 @@ public class EventExtractor {
             script = "./annotate_request_docs.sh.ENGLISH";
             trainingDirs = "";
         }
-        try {
-//            String logFile = Pathnames.logFileLocation + mode + "/annotate_request_docs.log";
-            String logFile = Pathnames.logFileLocation + "/annotate_request_docs." + submissionId + ".log";
-            String tempCommand = "cd /home/tasksrunner/scripts && "
-                    + " sudo"
-                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " " + trainingDirs
                     + " MODE=" + mode
                     + " SUBMISSION_ID=" + submissionId
                     + " APP_DIR=" + Pathnames.appFileLocation
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
-                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                    + " " + script
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing annotate_request_docs execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-//                    logger.info("annotate_request_docs output:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_request_docs, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from annotate_request_docs, exit value is: " + exitVal);
-            }
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation;
+        runAScript(script, environmentVars);
     }
 
     /**
@@ -515,116 +507,31 @@ public class EventExtractor {
             script = "./annotate_task_docs.sh.ENGLISH";
             trainingDirs = "";
         }
-        try {
-//            String logFile = Pathnames.logFileLocation + mode + "/annotate_task_docs.log";
-            String logFile = Pathnames.logFileLocation + "/annotate_task_docs." + submissionId + ".log";
-            String tempCommand = "cd /home/tasksrunner/scripts && "
-                    + " sudo"
-                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " " + trainingDirs
                     + " MODE=" + mode
                     + " SUBMISSION_ID=" + submissionId
                     + " APP_DIR=" + Pathnames.appFileLocation
                     + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                     + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
-                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                    + " " + script
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing annotate_task_docs execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("annotate_task_docs output:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_task_docs, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from annotate_task_docs, exit value is: " + exitVal);
-            }
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation;
+        runAScript(script, environmentVars);
     }
 
     public void preTrainEventAnnotator() {
-        try {
-            logger.info("PRE-TRAINING: Pre-training the event annotator");
-
-//            String logFile = Pathnames.logFileLocation + mode + "/pretrain.log";
-            String logFile = Pathnames.logFileLocation + "/pretrain." + submissionId + ".log";
-            String tempCommand = "cd /home/tasksrunner/scripts && "
-                    + " sudo"
-                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
-                    + " APP_DIR=" + Pathnames.appFileLocation
-                    + " SUBMISSION_ID=" + submissionId
-                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
-                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                    + " ./pretrain.sh"
-                    + " " + Pathnames.preTrainSizeParm
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing pretrain execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("pretrain output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from pretrainer, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from pretrainer, exit value is: " + exitVal);
-            }
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+        logger.info("PRE-TRAINING: Pre-training the event annotator");
+        String script = "./pretrain.sh";
+        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
+                + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                + " APP_DIR=" + Pathnames.appFileLocation
+                + " SUBMISSION_ID=" + submissionId
+                + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                + " CORPUS_DIR=" + Pathnames.corpusFileLocation;
+        runAScript(script, environmentVars);
         logger.info("PRE-TRAINING COMPLETE");
-
     }
 
-    public void writeEventsAsJson(List<Hit> hits, String type,
-                                   String eventHumanReadableFile) {
+    public void writeEventsAsJson(List<Hit> hits, String type, String eventHumanReadableFile) {
         try {
             searchHits = new ArrayList<>();
 

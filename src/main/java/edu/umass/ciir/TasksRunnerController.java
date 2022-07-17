@@ -9,10 +9,7 @@ import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.*;
 
 @RestController
@@ -24,7 +21,9 @@ public class TasksRunnerController {
 
     TasksRunnerController()  {
         betterIR = new TasksRunner();
-        betterIR.setupLogging();
+//        betterIR.setupLogging();
+        //List<SearchHit> hits = getSearchResults();   // TEMP FOR TESTING
+        testMerge();  // TEMP for testing merge
     }
 
     @GetMapping("/search")
@@ -33,6 +32,13 @@ public class TasksRunnerController {
         betterIR.readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
         betterIR.process();
         return betterIR.getSearchHits();
+    }
+
+    private void testMerge() {
+        List<String> filesToMerge = Arrays.asList("/mnt/scratch/BETTER/BETTER_TEST_ENVIRONMENTS/BETTER_PHASE3_COMBO_ARABIC_FARSI/scratch/clear_ir/runfiles/better.arabic.Request.gregorybrooks-better-query-builder-task-noun-phrases:2.1.0.RERANKED.out",
+                "/mnt/scratch/BETTER/BETTER_TEST_ENVIRONMENTS/BETTER_PHASE3_COMBO_ARABIC_FARSI/scratch/clear_ir/runfiles/better.farsi.Request.gregorybrooks-better-query-builder-task-noun-phrases:2.1.0.RERANKED.out");
+        betterIR.readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
+        betterIR.mergeRerankedRunFiles(filesToMerge);
     }
 
 }

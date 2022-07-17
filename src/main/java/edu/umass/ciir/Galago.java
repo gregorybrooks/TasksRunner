@@ -35,7 +35,7 @@ public class Galago {
         this.logFileLocation = logFileLocation;
     }
 
-    public void search(Map<String, String> queries, String runFileName, int N) {
+    public void search(Map<String, String> queries, String runFileName, int N, String language) {
         try {
             logger.info("Start Galago search");
             PrintWriter writer = new PrintWriter(runFileName);
@@ -43,7 +43,7 @@ public class Galago {
             Parameters queryParams = Parameters.create();
             queryParams.set ("index", indexLocation);
             queryParams.set ("requested", N);
-            if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage.equals("ARABIC")) {
+            if (!Pathnames.runGetCandidateDocs && language.equals("arabic")) {
                 queryParams.set("defaultTextPart", "postings.snowball");
             }
             Retrieval ret = RetrievalFactory.create(queryParams);

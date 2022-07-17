@@ -29,6 +29,7 @@ public class Pathnames {
     public static boolean skipPretrain = false;
     public static boolean skipIndexBuild = false;
     public static boolean skipExampleDocAnnotation = false;
+    public static boolean skipRequestDocAnnotation = false;
 
     public static boolean includeEventsInFinalResults = false;
     public static boolean checkForSudo = true;
@@ -62,13 +63,10 @@ public class Pathnames {
     public static String queryFileLocation = scratchFileLocation + "queryfiles/";
     public static String logFileLocation = scratchFileLocation + "logfiles/";
     public static String indexLocation = scratchFileLocation + "indexes/";
-    public static String englishIndexName = "BETTER-DryRun-v3";
-    public static String englishIndexLocation = indexLocation + englishIndexName;
-    public static String targetIndexName = "BETTER-DryRun-v3";
-    public static String targetIndexLocation = indexLocation + targetIndexName;
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
     public static String galagoBaseLocation = scratchFileLocation + "galago";
     public static String programFileLocation = "/home/tasksrunner/programfiles/";
+    public static String scriptFileLocation = "/home/tasksrunner/scripts/";
     public static String eventExtractorFileLocation = scratchFileLocation + "eventextractorfiles/";
     public static String translationTableLocation = programFileLocation + "translation_tables/";
     public static String taskCorpusFileLocation = scratchFileLocation + "taskcorpusfiles/";
@@ -118,6 +116,8 @@ public class Pathnames {
     public static boolean runIRPhase3 = false;
 */
     public static void checkDockerImage (String imageName) {
+        /* TEMP this doesn't work in the JetBrains debugger */
+/*
         int exitVal = 0;
         int numLines = 0;
         try {
@@ -155,6 +155,7 @@ public class Pathnames {
             System.out.println();
             throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
         }
+*/
     }
 
     public enum Required {
@@ -180,14 +181,18 @@ public class Pathnames {
     }
 
     private static String getFromEnv(String key, String default_value, Required required) {
-        if (env.containsKey(key)) {
-            return env.get(key);
-        } else {
-            if (required == Required.REQUIRED) {
-                throw new TasksRunnerException(default_value);
-            } else {
-                return default_value;
+//        if (env.containsKey(key)) {
+//            return env.get(key);
+        /* To run successfully in the JetBrains debugger, you can't use containsKey() */
+        for (String candidate : env.keySet()) {
+            if (candidate.trim().equals(key)) {
+                return env.get(candidate);
             }
+        }
+        if (required == Required.REQUIRED) {
+            throw new TasksRunnerException(default_value);
+        } else {
+            return default_value;
         }
     }
 
@@ -207,6 +212,7 @@ public class Pathnames {
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
         skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
+        skipRequestDocAnnotation = (getFromEnv("skipAnnotateRequestDocs", "false").equals("true"));
         skipPretrain = (getFromEnv("skipPretrain", "true").equals("true"));
         skipReranker = (getFromEnv("skipReranker", "false").equals("true"));
         useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
@@ -276,20 +282,18 @@ public class Pathnames {
                 scratchFileLocation + "qrelfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
-        targetIndexName = getFromEnv("targetIndexName",
-                "MISSING ENV VAR: targetIndexName", Required.REQUIRED);
-        targetIndexLocation = getFromEnv("targetIndexLocation",
-                indexLocation + targetIndexName);
-        englishIndexName = getFromEnv("englishIndexName", "MISSING ENV VAR: englishIndexName",
-                Required.REQUIRED);
-        englishIndexLocation = getFromEnv("englishIndexLocation",
-                indexLocation + englishIndexName);
 
         galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
                 "/home/tasksrunner/galago/bin/"));
+        /* TEMP FOR TESTING */
+        galagoLocation = "/mnt/scratch/galago_playground/lemur-galago/core/target/appassembler/bin/";
+
         galagoBaseLocation = galagoLocation.replace("/bin/","");
         programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
                 "/home/tasksrunner/programfiles/"));
+        scriptFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
+                "/home/tasksrunner/scripts/"));
+        scriptFileLocation = "/mnt/scratch/BETTER/dev/tools/TasksRunner/scripts";  // TEMP FOR TESTING
         eventExtractorFileLocation = ensureTrailingSlash(getFromEnv("eventExtractorFileLocation",
                 scratchFileLocation + "eventextractorfiles/"));
         translationTableLocation = ensureTrailingSlash(getFromEnv("translationTableLocation",

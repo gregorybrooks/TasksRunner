@@ -25,6 +25,7 @@ public class QueryManager {
 
     public Run run;
     private String mode;
+    private String language;
     private String queryFileName;
     private String queryFileFullPathName;
     private String queryFileNameOnly;
@@ -41,12 +42,13 @@ public class QueryManager {
     private EventExtractor eventExtractor;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    public QueryManager(String submissionId, String mode, AnalyticTasks tasks, String queryFormulationName, String phase, 
+    public QueryManager(String submissionId, String language, String mode, AnalyticTasks tasks, String queryFormulationName, String phase,
                         EventExtractor eventExtractor) {
         try {
             this.tasks = tasks;
             this.phase = phase;
             this.mode = mode;
+            this.language = language;
             this.submissionId = submissionId;
             this.eventExtractor = eventExtractor;
             taskFileNameGeneric = tasks.getTaskFileName();
@@ -55,7 +57,7 @@ public class QueryManager {
             // is used in a pathname, so change the "/" to a "-"
             queryFormulationName = queryFormulationName.replace("/", "-");
 //            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
-            this.key =  submissionId + "." + phase + "." + queryFormulationName;
+            this.key =  submissionId + "." + language + "." + phase + "." + queryFormulationName;
             queryFileNameOnly = key + ".queries.json";
             queryFileFullPathName = Pathnames.queryFileLocation + queryFileNameOnly;
             queryFileName = queryFileFullPathName; // for historical reasons
@@ -77,13 +79,13 @@ public class QueryManager {
         try {
             String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-            String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
-            String command = sudo + " docker run --rm"
+            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+            String command = (sudo + " docker run --rm"
                     + gpu_parm
                     + " --env MODE=" + mode
-                    + " --env OUT_LANG=" + language
+                    // The query formulators expect the language to be all upper-case
+                    + " --env OUT_LANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
                     + " --env PHASE=" + phase
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
                     + " --env QUERYFILE=" + getKey()
@@ -92,30 +94,24 @@ public class QueryManager {
                      in an environment variable, and we make that path a bind-volume so the child container
                      can actually access it.
                      */
-/*
-                    + " --env eventExtractorFileLocation=$eventExtractorFileLocation"
-                    + " --env queryFileLocation=$queryFileLocation"
-                    + " -v $eventExtractorFileLocation:$eventExtractorFileLocation"
-                    + " -v $queryFileLocation:$queryFileLocation"
-*/
                     + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
-                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
                     + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
+                    + " --env logFileLocation=" + Pathnames.logFileLocation
                     + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
                     + " --env galagoLocation=" + Pathnames.galagoLocation
                     // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                     + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                    + " --env englishIndexLocation=" + Pathnames.englishIndexLocation + "/"
-                    + " -v " + Pathnames.englishIndexLocation + ":" + Pathnames.englishIndexLocation
-                    + " --env targetIndexLocation=" + Pathnames.targetIndexLocation + "/"
-                    + " -v " + Pathnames.targetIndexLocation + ":" + Pathnames.targetIndexLocation
+                    + " --env englishIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-en/"
+                    + " -v " + Pathnames.indexLocation + "better-clear-ir-en" + ":" + Pathnames.indexLocation + "better-clear-ir-en"
+                    + " --env targetIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-" + language
+                    + " -v " + Pathnames.indexLocation + "better-clear-ir-" + language + ":" + Pathnames.indexLocation + "better-clear-ir-" + language
                     + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
                     + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
 
                     + " " + dockerImageName
-                    + " sh -c ./runit.sh";
+                    + " sh -c ./runit.sh");
             String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
             String tempCommand = command + " >& " + logFile;
 
@@ -190,9 +186,8 @@ public class QueryManager {
             String dockerImageName = Pathnames.rerankerDockerImage;
             String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-            String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
+            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
             String command = sudo + " docker run --rm"
                     + gpu_parm
@@ -202,7 +197,7 @@ public class QueryManager {
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
                     + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
                     + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env QLANG=en --env DLANG=" + language
+                    + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language)
                     + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
                     + " --env NUM_CPU=8 --env TOPK=100"
 
@@ -253,83 +248,7 @@ public class QueryManager {
         }
     }
 
-    private int findSentence(long start, List<SentenceRange> sentences) {
-        for (SentenceRange sentence : sentences) {
-            if (start >= sentence.start && start <= sentence.end) {
-                return sentence.id;
-            }
-        }
-        return -1;
-    }
 
-    private void updateSentenceIDs (Hit d) {
-        List<Event> events = d.events;
-        for (Event event : events) {
-            String docid = d.docid;
-            long start = (long) event.anchorSpan.start;
-            List<SentenceRange> sentences = Document.getDocumentSentences(docid);
-            int statementID = findSentence(start, sentences);
-            event.sentenceID = statementID;
-        }
-    }
-
-    private void updateTaskOrRequest(Hit hit) {
-//        logger.info("In updateTaskOrRequest, hit.taskID is " + hit.taskID + ", length is " + hit.taskID.length());
-        String groupType = hit.hitLevel == HitLevel.REQUEST_LEVEL ? "R" : "T";
-        if (groupType.equals("T")) {
-            String taskID = hit.taskID;
-            String docid = hit.docid;
-            Task t = tasks.findTask(taskID);
-            if (t != null) {
-                for (ExampleDocument d : t.taskExampleDocs) {
-                    if (d.getDocid().equals(docid)) {
-                        d.setEvents(hit.events);
-                    }
-                }
-            }
-        } else {
-            String requestID = hit.taskID;
-            String docid = hit.docid;
-//            logger.info("docid is " + docid);  // DEBUG
-//            logger.info("Looking for request " + requestID);  // DEBUG
-            Request r = tasks.findRequest(requestID);
-            if (r != null) {
-                for (ExampleDocument d : r.reqExampleDocs) {
-                    if (d.getDocid().equals(docid)) {
-                        d.setEvents(hit.events);
-                    }
-                }
-            }
-        }
-    }
-
-
-    public void annotateExampleDocs() {
-        logger.info("Preparing a file of the example docs for the event annotator");
-
-        String fileForEventExtractor = eventExtractor.constructExampleToEventExtractorFileName();
-        Map<String, SimpleHit> entries = new HashMap<>();
-
-        for (Task task : tasks.getTaskList()) {
-            eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
-        }
-
-        eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
-
-        eventExtractor.annotateExampleDocEvents();
-
-        logger.info("Retrieving the file of example doc events created by the event annotator");
-
-        String fileFromEventExtractor = eventExtractor.constructExampleFileFromEventExtractorFileName();
-
-        List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
-
-        for (Hit hit : hits) {
-            updateSentenceIDs(hit);
-            updateTaskOrRequest(hit);
-        }
-
-    }
 
     public void createInputFileEntriesFromHits(String docSetType, String taskOrRequestID,
                                                List<String> hits, Map<String,SimpleHit> m) {
@@ -440,7 +359,6 @@ public class QueryManager {
             }
         }
     }
-
 
     /**
      * Creates an input file to give to the event extractor, of the top scoredHits for each request.
@@ -589,6 +507,22 @@ public class QueryManager {
         callReranker(runFileName, rerankedRunFile);
         // Refresh the in-memory runfile data
         run = new Run(rerankedRunFile);
+    }
+
+    private static void copyFile(File source, File dest) throws IOException {
+        Files.copy(source.toPath(), dest.toPath(), REPLACE_EXISTING);
+    }
+
+    public void copyRunFileToRerankedRunFile() {
+        try {
+            copyFile(new File(runFileName), new File(rerankedRunFile));
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public String getRerankedRunFileName() {
+        return rerankedRunFile;
     }
 
     /**
@@ -746,8 +680,8 @@ public class QueryManager {
         public List<MissingDoc> missingDocs;
 
         RequestRun(String requestID, List<String> docids, List<ScoredHit> scoredHits) {
-            logger.info("Adding a RequestRun for Request " + requestID);
-            logger.info(docids.size() + " docids");
+//            logger.info("Adding a RequestRun for Request " + requestID);
+//            logger.info(docids.size() + " docids");
             this.requestID = requestID;
             this.docids = docids;
             this.missingDocs = null;
@@ -926,19 +860,23 @@ public class QueryManager {
      * @param N the number of scoredHits to get
      */
     public void execute(int N) {
-/*
+/* VERSION SUITABLE FOR MULTIPLE QUERIES--CALLS GALAGO'S THREAD-BATCH-SEARCH UTILITY, WHICH EXECUTES THE
+   QUERIES IN THE QUERY FILE CONCURRENTLY */
         if (queries.size() == 1) {
-            execute(1, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
+            executeThreadedBatchSearch(1, N, queryFileName, runFileName,
+                    Pathnames.indexLocation + "better-clear-ir-" + language);
         } else {
-            execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
+            executeThreadedBatchSearch(3, N, queryFileName, runFileName,
+                    Pathnames.indexLocation + "better-clear-ir-" + language);
         }
-*/
+
+/* VERSION SUITABLE FOR A SINGLE QUERY--CALLS GALAGO LIBRARY DIRECTLY
         String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago2.log";
         Galago galago = new Galago((Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) ?
-                Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
+                Pathnames.indexLocation + "better-clear-ir-english": Pathnames.indexLocation + "better-clear-ir-" + language,
                 mode, galagoLogFile, Pathnames.galagoLocation);
-        galago.search(queries, runFileName, N);
-
+        galago.search(queries, runFileName, N, language);
+*/
         run = new Run(runFileName);  // Get new run file into memory
     }
 
@@ -961,9 +899,9 @@ public class QueryManager {
         if (threadCount == 1) {
             command = "galago batch-search";
         }
-        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago.log";
+        String galagoLogFile = Pathnames.logFileLocation + submissionId + "." + language + ".galago.log";
         String arabicParm = "";
-        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+        if (!Pathnames.runGetCandidateDocs && language.equals("arabic")) {
             arabicParm = "--defaultTextPart=postings.snowball ";
         }
         String tempCommand = Pathnames.galagoLocation + command
@@ -1033,7 +971,7 @@ public class QueryManager {
             command = "galago batch-search";
         }
         String arabicPart = "";
-        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+        if (!Pathnames.runGetCandidateDocs && language.equals("arabic")) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
         String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskID + "_executeAgainstPartial.log";
@@ -1041,7 +979,7 @@ public class QueryManager {
                 + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
                 + " --systemName=CLEAR --trec=true "
                 + " --index/partial=" + indexName
-                + " --index/full=" + Pathnames.targetIndexLocation
+                + " --index/full=" + Pathnames.indexLocation + "better-clear-ir-" + language
                 + " --defaultIndexPart=partial --backgroundIndex=full"
                 + arabicPart
                 + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
@@ -1118,6 +1056,7 @@ public class QueryManager {
      * @param taskID the task ID
      */
     public void buildTaskPartialIndex(String taskID) {
+        String indexName = Pathnames.indexLocation + "better-clear-ir-" + language;
         createTaskDocIDListFromHits(taskID);
 
         String confFile = createGalagoPartialIndexConfFile(taskID);
@@ -1126,7 +1065,7 @@ public class QueryManager {
         String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskID + "_indexbuild.log";
         String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
                 Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
-                " --index=" + Pathnames.targetIndexLocation +
+                " --index=" + indexName +
                 " --partialIndex=" + Pathnames.indexLocation + key + "." + taskID + ".PARTIAL "
                 + confFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
 
@@ -1185,15 +1124,15 @@ public class QueryManager {
 
             JSONArray stemmerList = new JSONArray();
             JSONObject stemmerClass = new JSONObject();
-            if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
+            if (Pathnames.runGetCandidateDocs || language.equals("english")) {
+                stemmerList.add("krovetz");
+                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+            } else if (language.equals("arabic")) {
                 stemmerList.add("krovetz");
                 stemmerList.add("snowball");
                 stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
                 stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
-                stemmerList.add("krovetz");
-                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            } else if (Pathnames.targetLanguage == Pathnames.Language.FARSI) {
+            } else if (language.equals("farsi")) {
             }
             outputQueries.put("stemmer", stemmerList);
             outputQueries.put("stemmerClass", stemmerClass );

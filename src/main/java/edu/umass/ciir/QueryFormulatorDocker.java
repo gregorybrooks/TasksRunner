@@ -16,7 +16,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
     String phase;
     String queryFileNameKey;
 
-    QueryFormulatorDocker(String submissionId, String mode, AnalyticTasks tasks, String phase, String queryFileNameKey, String dockerImageName) {
+    QueryFormulatorDocker(String submissionId, String mode, String language, AnalyticTasks tasks, String phase, String queryFileNameKey, String dockerImageName) {
         super(submissionId, mode, tasks, phase, queryFileNameKey);
         this.phase = phase;
         this.queryFileNameKey = queryFileNameKey;
@@ -57,10 +57,10 @@ public class QueryFormulatorDocker extends QueryFormulator {
                     + " --env galagoLocation=" + Pathnames.galagoLocation
                     // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                     + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                    + " --env englishIndexLocation=" + Pathnames.englishIndexLocation + "/"
-                    + " -v " + Pathnames.englishIndexLocation + ":" + Pathnames.englishIndexLocation
-                    + " --env targetIndexLocation=" + Pathnames.targetIndexLocation + "/"
-                    + " -v " + Pathnames.targetIndexLocation + ":" + Pathnames.targetIndexLocation
+                    + " --env englishIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-en/"
+                    + " -v " + Pathnames.indexLocation + "better-clear-ir-en" + ":" + Pathnames.indexLocation + "better-clear-ir-en"
+                    + " --env targetIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-" + language + "/"
+                    + " -v " + Pathnames.indexLocation + "better-clear-ir-" + language + ":" + Pathnames.indexLocation + "better-clear-ir-" + language
                     + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
                     + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
 
