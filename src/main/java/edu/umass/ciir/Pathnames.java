@@ -25,6 +25,8 @@ public class Pathnames {
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
 
+    public static boolean developmentTestingNoDocker = false;
+
     public static boolean skipReranker = false;
     public static boolean skipPretrain = false;
     public static boolean skipIndexBuild = false;
@@ -116,46 +118,45 @@ public class Pathnames {
     public static boolean runIRPhase3 = false;
 */
     public static void checkDockerImage (String imageName) {
-        /* TEMP this doesn't work in the JetBrains debugger */
-/*
-        int exitVal = 0;
-        int numLines = 0;
-        try {
-            // String command = "sudo docker image ls " + imageName + " | wc -l ";
-            List builders;
-            if (Pathnames.sudoNeeded) {
-                builders = Arrays.asList(
-                        new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
-                        new ProcessBuilder("wc", "-l"));
-            } else {
-                builders = Arrays.asList(
-                        new ProcessBuilder("docker", "image", "ls", imageName),
-                        new ProcessBuilder("wc", "-l"));
-            }
-            List<Process> processes = ProcessBuilder.startPipeline(builders);
-            Process process = processes.get(processes.size() - 1);
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.length() == 0) {
-                    continue;
+        if (!developmentTestingNoDocker) {  /* This doesn't work in the JetBrains debugger */
+            int exitVal = 0;
+            int numLines = 0;
+            try {
+                // String command = "sudo docker image ls " + imageName + " | wc -l ";
+                List builders;
+                if (Pathnames.sudoNeeded) {
+                    builders = Arrays.asList(
+                            new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
+                            new ProcessBuilder("wc", "-l"));
+                } else {
+                    builders = Arrays.asList(
+                            new ProcessBuilder("docker", "image", "ls", imageName),
+                            new ProcessBuilder("wc", "-l"));
                 }
-                numLines = Integer.parseInt(line.strip());
+                List<Process> processes = ProcessBuilder.startPipeline(builders);
+                Process process = processes.get(processes.size() - 1);
+
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.length() == 0) {
+                        continue;
+                    }
+                    numLines = Integer.parseInt(line.strip());
+                }
+                exitVal = process.waitFor();
+            } catch (Exception e) {
+                throw new TasksRunnerException(e);
             }
-            exitVal = process.waitFor();
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
+            if (exitVal != 0) {
+                throw new TasksRunnerException("Unexpected ERROR while executing docker command. Exit value is " + exitVal);
+            }
+            if (numLines < 2) {
+                System.out.println();
+                throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
+            }
         }
-        if (exitVal != 0) {
-            throw new TasksRunnerException("Unexpected ERROR while executing docker command. Exit value is " + exitVal);
-        }
-        if (numLines < 2) {
-            System.out.println();
-            throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
-        }
-*/
     }
 
     public enum Required {
@@ -205,6 +206,9 @@ public class Pathnames {
     }
 
     static {
+
+        // Set this to true in the environment vars if you are testing on cessnock, outside of a Docker container
+        developmentTestingNoDocker = (getFromEnv("developmentTestingNoDocker", "false").equals("true"));
 
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
         REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "1000"));
@@ -285,15 +289,23 @@ public class Pathnames {
 
         galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
                 "/home/tasksrunner/galago/bin/"));
-        /* TEMP FOR TESTING */
-        galagoLocation = "/mnt/scratch/galago_playground/lemur-galago/core/target/appassembler/bin/";
+        if (developmentTestingNoDocker) {
+            galagoLocation = "/mnt/scratch/BETTER/dev/tools/galago-dev/core/target/appassembler/bin/";
+        }
 
         galagoBaseLocation = galagoLocation.replace("/bin/","");
+
         programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
                 "/home/tasksrunner/programfiles/"));
+        if (developmentTestingNoDocker) {
+            programFileLocation = "/mnt/scratch/BETTER/dev/tools/TasksRunner/programfiles/";
+        }
+
         scriptFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
                 "/home/tasksrunner/scripts/"));
-        scriptFileLocation = "/mnt/scratch/BETTER/dev/tools/TasksRunner/scripts";  // TEMP FOR TESTING
+        if (developmentTestingNoDocker) {
+            scriptFileLocation = "/mnt/scratch/BETTER/dev/tools/TasksRunner/scripts";
+        }
         eventExtractorFileLocation = ensureTrailingSlash(getFromEnv("eventExtractorFileLocation",
                 scratchFileLocation + "eventextractorfiles/"));
         translationTableLocation = ensureTrailingSlash(getFromEnv("translationTableLocation",

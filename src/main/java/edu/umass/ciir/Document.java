@@ -147,7 +147,7 @@ public class Document {
         if (isEnglishCorpus) {
             logger.info("Using Galago method");
             for (String docid : uniqueDocIDs) {
-                getDocumentWithGalago(docid, Pathnames.indexLocation + "better-clear-ir-en",
+                getDocumentWithGalago(docid, Pathnames.indexLocation + "better-clear-ir-english",
                         map, sentenceMap, true);
             }
         } else {

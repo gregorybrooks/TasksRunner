@@ -42,7 +42,7 @@ public class QueryManager {
     private EventExtractor eventExtractor;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    public QueryManager(String submissionId, String language, String mode, AnalyticTasks tasks, String queryFormulationName, String phase,
+    public QueryManager(String submissionId, String language, String mode, AnalyticTasks tasks, String phase,
                         EventExtractor eventExtractor) {
         try {
             this.tasks = tasks;
@@ -55,9 +55,10 @@ public class QueryManager {
             // When the query formulation name is a Docker image name, it might be qualified
             // with the owner's name and a "/", which confuses things when the formulation name
             // is used in a pathname, so change the "/" to a "-"
-            queryFormulationName = queryFormulationName.replace("/", "-");
+//            queryFormulationName = queryFormulationName.replace("/", "-");
 //            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
-            this.key =  submissionId + "." + language + "." + phase + "." + queryFormulationName;
+//            this.key =  submissionId + "." + language + "." + phase + "." + queryFormulationName;
+            this.key =  submissionId + "." + language + "." + phase;
             queryFileNameOnly = key + ".queries.json";
             queryFileFullPathName = Pathnames.queryFileLocation + queryFileNameOnly;
             queryFileName = queryFileFullPathName; // for historical reasons
@@ -73,6 +74,14 @@ public class QueryManager {
         } catch (Exception e) {
             throw new TasksRunnerException(e.getMessage());
         }
+    }
+
+    private String getTaskLevelKey() {
+        return submissionId + "." + language + "." + "Task";
+    }
+
+    private String getTaskLevelIndexName(String taskNum) {
+        return getTaskLevelKey() + "." + taskNum + ".PARTIAL";
     }
 
     private void callQueryFormulator(String dockerImageName) {
@@ -823,11 +832,11 @@ public class QueryManager {
      * Also, it creates an event extractor input file for each task, while the scoredHits
      * are in memory.
      */
-    public void executeRequestQueries(String taskLevelFormulationName, int numResults) {
+    public void executeRequestQueries(int numResults) {
         // When the query formulation name is a Docker image name, it might be qualified
         // with the owner's name and a "/", which confuses things when the formulation name
         // is used in a pathname, so change the "/" to a "-"
-        String finalTaskLevelFormulationName = taskLevelFormulationName.replace("/", "-");
+        //String finalTaskLevelFormulationName = taskLevelFormulationName.replace("/", "-");
 
         AtomicLong totalRunTime = new AtomicLong(0);
         List<String> runFiles = new CopyOnWriteArrayList<>();
@@ -837,12 +846,9 @@ public class QueryManager {
             runFiles.add(theRunFileName);
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
 
-            String taskLevelKey = mode + ".Task."
-                    + finalTaskLevelFormulationName;
-            String indexName = Pathnames.indexLocation + taskLevelKey + "." + t.taskNum + ".PARTIAL";
             logger.info("Executing request queries for task " + t.taskNum);
 
-            executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName, indexName, t.taskNum);
+            executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName, t.taskNum);
 
             totalRunTime.getAndAdd(runTime);
         });
@@ -959,10 +965,9 @@ public class QueryManager {
      * @param N
      * @param theQueryFileName
      * @param theRunFileName
-     * @param indexName
      */
     private void executeAgainstPartialIndex(int threadCount, int N, String theQueryFileName,
-                                            String theRunFileName, String indexName, String taskID) {
+                                            String theRunFileName, String taskNum) {
         // TBD: change this to use the library instead of the CLI
         Instant start = Instant.now();
 
@@ -974,11 +979,11 @@ public class QueryManager {
         if (!Pathnames.runGetCandidateDocs && language.equals("arabic")) {
             arabicPart = " --defaultTextPart=postings.snowball";
         }
-        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskID + "_executeAgainstPartial.log";
+        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskNum + "_executeAgainstPartial.log";
         String tempCommand = Pathnames.galagoLocation + command
                 + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
                 + " --systemName=CLEAR --trec=true "
-                + " --index/partial=" + indexName
+                + " --index/partial=" + Pathnames.indexLocation + getTaskLevelIndexName(taskNum)
                 + " --index/full=" + Pathnames.indexLocation + "better-clear-ir-" + language
                 + " --defaultIndexPart=partial --backgroundIndex=full"
                 + arabicPart
@@ -1066,8 +1071,8 @@ public class QueryManager {
         String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
                 Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
                 " --index=" + indexName +
-                " --partialIndex=" + Pathnames.indexLocation + key + "." + taskID + ".PARTIAL "
-                + confFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
+                " --partialIndex=" + Pathnames.indexLocation + getTaskLevelIndexName(taskID)
+                + " " + confFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
 
         logger.info("Executing this command: " + tempCommand);
 

@@ -17,7 +17,6 @@ public class TasksRunner {
     EventExtractor eventExtractor;
     private AnalyticTasks tasks;
     private String mode;
-    private String phase;
     private String submissionId;
 
     /**
@@ -207,11 +206,7 @@ public class TasksRunner {
     private void updateSentenceIDs (Hit d) {
         List<Event> events = d.events;
         for (Event event : events) {
-            String docid = d.docid;
-            long start = (long) event.anchorSpan.start;
-            List<SentenceRange> sentences = Document.getDocumentSentences(docid);
-            int statementID = findSentence(start, sentences);
-            event.sentenceID = statementID;
+            event.sentenceID = findSentence(event.anchorSpan.start, Document.getDocumentSentences(d.docid));
         }
     }
 
@@ -241,8 +236,6 @@ public class TasksRunner {
         } else {
             String requestID = hit.taskID;
             String docid = hit.docid;
-//            logger.info("docid is " + docid);  // DEBUG
-//            logger.info("Looking for request " + requestID);  // DEBUG
             Request r = tasks.findRequest(requestID);
             if (r != null) {
                 for (ExampleDocument d : r.reqExampleDocs) {
@@ -304,16 +297,8 @@ public class TasksRunner {
 
         logger.info("Building Task-level phrases-to-be-annotated files");
         QueryManager qf = new QueryManager(submissionId, "ENGLISH", mode, tasks,
-                Pathnames.getPhrasesQueryFormulatorDockerImage, "Task", eventExtractor);
+                 "Task", eventExtractor);
         qf.buildQueries(Pathnames.getPhrasesQueryFormulatorDockerImage);
-    }
-
-    private String getFormulationName(Path path, String key, String queryFileDirectory, String requestLevelFormulator) {
-        String pathname = path.toString();
-        pathname = pathname.replace(queryFileDirectory + key, "");
-        String extra = pathname.replace(".queries.json", "");
-        String newQueryFormulationName = requestLevelFormulator + extra;
-        return newQueryFormulationName;
     }
 
     private Pathnames.ProcessingModel getProcessingModel() {
@@ -324,19 +309,16 @@ public class TasksRunner {
         return processingModel;
     }
 
-    private void executeQueryFile(Path path, String key, String language, String queryFileDirectory, String requestLevelFormulator,
-                                  String taskLevelFormulator) {
+    private void executeQueryFile(Path path, String language) {
         logger.info("Found a query file produced by the query formulator: " + path);
-        String newQueryFormulationName = getFormulationName(path, key, queryFileDirectory, requestLevelFormulator);
-        logger.info("  Effective query formulation name is: " + newQueryFormulationName);
 
-        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, newQueryFormulationName, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, "Request", eventExtractor);
 
         if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
             logger.info("Writing separate query files, one per Task so we can execute them against the Task indexes");
             qf.writeQueryFiles();
             logger.info("Executing the Request queries, using the Task-level indexes");
-            qf.executeRequestQueries(taskLevelFormulator, Pathnames.RESULTS_CAP);
+            qf.executeRequestQueries(Pathnames.RESULTS_CAP);
         } else {
             if (Pathnames.runGetCandidateDocs) {
                 qf.execute(10);
@@ -357,10 +339,8 @@ public class TasksRunner {
         //eventExtractor.createInputForRerankerFromRequestHits(qf);
     }
 
-    private void doTaskLevelProcessing(String language, String taskLevelFormulator) {
-        phase = "Task";
-
-        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, taskLevelFormulator, phase, eventExtractor);
+    private void doTaskLevelProcessing(String taskLevelFormulator, String language) {
+        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, "Task", eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
 
         logger.info("Building task-level queries");
@@ -393,9 +373,9 @@ public class TasksRunner {
         List<String> filesToMerge = new ArrayList<>();
         for (String language : (new Index("target")).getTargetLanguages()) {
             if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
-                doTaskLevelProcessing(language, taskLevelFormulator);
+                doTaskLevelProcessing(taskLevelFormulator, language);
             }
-            doRequestLevelProcessing(taskLevelFormulator, requestLevelFormulator, language, filesToMerge);
+            doRequestLevelProcessing(requestLevelFormulator, language, filesToMerge);
         }
         logger.info("Merging multiple language's ranked runfiles into one");
         mergeRerankedRunFiles(filesToMerge);
@@ -405,40 +385,27 @@ public class TasksRunner {
 
     }
 
-    private void twoStepProcessingModel() {
-        doSearch(Pathnames.taskLevelQueryFormulatorDockerImage, Pathnames.requestLevelQueryFormulatorDockerImage);
-    }
-
-    private void oneStepProcessingModel() {
-        doSearch("", Pathnames.runGetPhrases ? Pathnames.getPhrasesQueryFormulatorDockerImage
-                : Pathnames.runGetCandidateDocs ? Pathnames.getCandidateDocsQueryFormulatorDockerImage
-                : Pathnames.requestLevelQueryFormulatorDockerImage);
-    }
-
-    private void doRequestLevelProcessing(String taskLevelFormulator, String requestLevelFormulator, String language,
+    private void doRequestLevelProcessing(String requestLevelFormulator, String language,
                                           List<String> filesToMerge) {
         logger.info("Building request-level queries");
-        phase = "Request";
 
-        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, requestLevelFormulator, phase, eventExtractor);
+        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, "Request", eventExtractor);
         qf.resetQueries();  // Clears any existing queries read in from an old file
         qf.buildQueries(requestLevelFormulator);
 
         logger.info("Executing request-level queries");
-        String queryFileDirectory = Pathnames.queryFileLocation;
 
         // We want to process all query files produced by the Request-level query formulator.
         // Make a filter to filter out all but the query files for this Request:
-        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(queryFileDirectory + qf.getKey())
-                && (!file.toString().startsWith(queryFileDirectory + qf.getKey() + ".TASK."))
+        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(Pathnames.queryFileLocation + qf.getKey())
+                && (!file.toString().startsWith(Pathnames.queryFileLocation + qf.getKey() + ".TASK."))
                 && (!file.toString().contains(".PRETTY."))
                 && (!file.toString().contains(".NON_TRANSLATED.")));
 
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
                 Paths.get(Pathnames.queryFileLocation),
                 filter)) {
-            dirStream.forEach(path -> executeQueryFile(path, qf.getKey(), language, queryFileDirectory, requestLevelFormulator,
-                    taskLevelFormulator));
+            dirStream.forEach(path -> executeQueryFile(path, language));
         } catch (IOException cause) {
             throw new TasksRunnerException(cause);
         }
@@ -507,7 +474,6 @@ public class TasksRunner {
                 reader.close();
             }
             for (Map.Entry<String, List<Queue<String>>> entry : requestRankedLists.entrySet()) {
-                String requestNum = entry.getKey();
                 List<Queue<String>> rankedQueues = entry.getValue();
 
                 for (int index = 0; index < 1000; ++index) {
@@ -571,12 +537,15 @@ public class TasksRunner {
             eventExtractor.annotateProvidedFileEvents("arabic");  // TBD: make this work with multiple languages
         } else if (Pathnames.runGetPhrases) {
             getPhrases();
-        } else if (Pathnames.runSearch || Pathnames.runGetCandidateDocs) {
+        } else if (Pathnames.runGetCandidateDocs) {
+            doSearch("", Pathnames.getCandidateDocsQueryFormulatorDockerImage);
+        }
+        else if (Pathnames.runSearch) {
             Pathnames.ProcessingModel processingModel = getProcessingModel();
             if (processingModel == Pathnames.ProcessingModel.TWO_STEP) {
-                twoStepProcessingModel();
+                doSearch(Pathnames.taskLevelQueryFormulatorDockerImage, Pathnames.requestLevelQueryFormulatorDockerImage);
             } else if (processingModel == Pathnames.ProcessingModel.ONE_STEP) {
-                oneStepProcessingModel();
+                doSearch("", Pathnames.requestLevelQueryFormulatorDockerImage);
             } else if (processingModel == Pathnames.ProcessingModel.NEURAL) {
                 neuralProcessingModel();
             } else {
@@ -591,7 +560,8 @@ public class TasksRunner {
         }
     }
 
-    public void mainProcess() {
+    public static void main(String[] args) {
+
         if (Pathnames.checkForSudo) {
             boolean hasSudo = false;
             try {
@@ -613,25 +583,8 @@ public class TasksRunner {
             }
         }
 
-        File f = new File(Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
-        if (!f.exists()) {
-            String errorMessage = "ERROR: corpus file (FARSI) " + Pathnames.corpusFileLocation
-                    + Pathnames.targetCorpusFileName
-                    + " does not exist! Check your environment file for the corpusFileLocation and targetCorpusFileName settings.";
-            System.out.println(errorMessage);
-            throw new TasksRunnerException(errorMessage);
-        }
-        f = new File(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);
-        if (!f.exists()) {
-            String errorMessage = "ERROR: corpus file (ENGLISH) " + Pathnames.corpusFileLocation
-                    + Pathnames.englishCorpusFileName
-                    + " does not exist! Check your environment file for the corpusFileLocation and englishCorpusFileName settings.";
-            System.out.println(errorMessage);
-            throw new TasksRunnerException(errorMessage);
-        }
-
         TasksRunner betterIR = new TasksRunner();
-
+        betterIR.readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
         betterIR.process();
     }
 }

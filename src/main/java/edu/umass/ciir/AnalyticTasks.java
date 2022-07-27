@@ -225,6 +225,7 @@ public class AnalyticTasks {
      */
     private void expandRelevantAndExampleDocs() {
         /* New way: doctext and sentences are already in the ir-tasks.json and have been loaded into memory */
+        /*
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
                 Document.addDocToMap(d.getDocid(), d.getDocText());
@@ -237,7 +238,8 @@ public class AnalyticTasks {
                 }
             }
         }
-        /* OLD WAY:
+        */
+        /* OLD WAY: */
         // Build the list of docids to pass to Document.buildDocMap
         Set<String> uniqueDocids = new HashSet<>();
         if (Pathnames.expandQrelDocuments) {
@@ -248,10 +250,9 @@ public class AnalyticTasks {
             uniqueDocids.add(docid);
         }
         Document.buildDocMap(uniqueDocids);
-        */
 
         /* Expand all task and request example docs */
-        /* OLD WAY:
+        /* OLD WAY */
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
                 d.setDocText(Document.getDocumentWithMap(d.getDocid()));
@@ -264,7 +265,6 @@ public class AnalyticTasks {
                 }
             }
         }
-         */
 
         /*
         Expand all positive relevance judgment docs
@@ -867,9 +867,4 @@ public class AnalyticTasks {
         });
     }
 
-    /**
-     * A public entry point function, needed to create the executable jar file.
-     * @param args no arguments are expected
-     */
-    public static void main(String[] args) { }
 }
