@@ -426,8 +426,8 @@ public class EventExtractor {
         logger.info("Calling event annotator for test_data.bp.json file");
 
         // So far we only support Arabic and Farsi
-        if (!(language.equals("arabic") || language.equals("farsi"))) {
-            throw new TasksRunnerException("annotateProvidedFileEvents only supports Arabic and Farsi, you asked for "
+        if (!(language.equals("arabic") || language.equals("farsi") || language.equals("russian"))) {
+            throw new TasksRunnerException("annotateProvidedFileEvents only supports Russian, Arabic and Farsi, you asked for "
                     + language);
         }
         String script = "./annotate_provided_file.sh.FARSI";
@@ -435,6 +435,9 @@ public class EventExtractor {
         if (language.equals("arabic")) {
             script = "./annotate_provided_file.sh.ARABIC";
             trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
+        } else if (language.equals("russian")) {
+            script = "./annotate_provided_file.sh.RUSSIAN";
+            trainingDirs = "MODELS_BASE_DIR_RUSSIAN=" + Pathnames.MODELS_BASE_DIR_RUSSIAN;
         }
         String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                 + trainingDirs

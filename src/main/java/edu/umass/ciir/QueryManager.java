@@ -7,8 +7,6 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,7 +65,9 @@ public class QueryManager {
             evaluationRequestLevelFileName = Pathnames.evaluationFileLocation + "/" + key + ".REQUEST.csv";
 
             queries = getGeneratedQueries(queryFileName);
+            /*
             nonTranslatedQueries = getGeneratedQueries(queryFileName + ".NON_TRANSLATED");
+             */
             rerankedRunFile = Pathnames.runFileLocation + key + ".RERANKED.out";
 
             run = new Run();
@@ -96,6 +96,7 @@ public class QueryManager {
                     // The query formulators expect the language to be all upper-case
                     + " --env OUT_LANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
                     + " --env PHASE=" + phase
+                    + " --env SEARCH_ENGINE=" + Pathnames.searchEngine
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
                     + " --env QUERYFILE=" + getKey()
                     /* For each directory that we want to share between this parent docker container (TasksRunner)
@@ -112,10 +113,13 @@ public class QueryManager {
                     + " --env galagoLocation=" + Pathnames.galagoLocation
                     // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                     + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                    + " --env englishIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-en/"
-                    + " -v " + Pathnames.indexLocation + "better-clear-ir-en" + ":" + Pathnames.indexLocation + "better-clear-ir-en"
-                    + " --env targetIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-" + language
-                    + " -v " + Pathnames.indexLocation + "better-clear-ir-" + language + ":" + Pathnames.indexLocation + "better-clear-ir-" + language
+                    + " --env englishIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en/"
+                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
+                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
+                    + " --env targetIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-"
+                    + language
+                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
+                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
                     + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
                     + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
 
@@ -544,33 +548,16 @@ public class QueryManager {
      */
     private Map<String, String> getGeneratedQueries(String queryFileName) {
         logger.info("Reading query file: " + queryFileName);
-        Map<String, String> queriesMap = new HashMap<>();
-        try {
-            File tempFile = new File(queryFileName);
-            if (tempFile.exists()) {
-                Reader reader = new BufferedReader(new InputStreamReader(
-                        new FileInputStream(queryFileName)));
-                JSONParser parser = new JSONParser();
-                JSONObject head = (JSONObject) parser.parse(reader);
-                JSONArray queries = (JSONArray) head.get("queries");
-                for (Object oRequest : queries) {
-                    JSONObject r = (JSONObject) oRequest;
-                    String reqNum = (String) r.get("number");
-                    String reqText = (String) r.get("text");
-                    queriesMap.put(reqNum, reqText);
-                }
-            }
-        } catch (Exception ex) {
-            throw new TasksRunnerException(ex);
-        }
-        return queriesMap;
+        return SearchEngineInterface.getSearchEngine().getQueries(queryFileName);
     }
 
     public void resetQueries() {
         if (queries.size() > 0)
             queries.clear();
+        /*
         if (nonTranslatedQueries.size() > 0)
             nonTranslatedQueries.clear();
+         */
     }
 
     public Map<String,String> getQueries() { return queries; }
@@ -606,7 +593,7 @@ public class QueryManager {
      */
     private void writeQueryFile(String taskID, String outputFileName) {
         // Output the query list as a JSON file,
-        // in the format Galago's batch-search expects as input
+        // in the format the search engine's search program expects as input
         try {
             JSONArray qlist = new JSONArray();
             for (Map.Entry<String, String> entry : queries.entrySet()) {
@@ -699,7 +686,7 @@ public class QueryManager {
     }
 
     /**
-     * Represents the results of a particular query formulation's Galago execution.
+     * Represents the results of a particular query formulation's execution.
      */
     public class Run {
         public Map<String, RequestRun> requestRuns = new HashMap<String, RequestRun>();
@@ -707,7 +694,7 @@ public class QueryManager {
             readFile(theRunFileName);
         }
         /**
-         * Reads in the file that was output from Galago's batch-search function,
+         * Reads in the file that was output from the search engine's search function,
          * which is the top x scoredHits for each of the Requests in the input file.
          */
         Run() {
@@ -715,7 +702,7 @@ public class QueryManager {
         }
 
         /**
-         * Reads in the file that was output from Galago's batch-search function,
+         * Reads in the file that was output from the search engine's search function,
          * which is the top x scoredHits for each of the Requests in the input file.
          */
         private void readFile(String theRunFileName) {
@@ -826,8 +813,7 @@ public class QueryManager {
     }
 
     /**
-     * For each task, executes the task's request queryfile with Galago's batch-search,
-     * using a single Galago thread, getting 1000 scoredHits, producing a task-level
+     * For each task, executes the task's request queryfile, getting 1000 scoredHits, producing a task-level
      * runfile, using the task's task-level index built previously from the task's top scoredHits.
      * Also, it creates an event extractor input file for each task, while the scoredHits
      * are in memory.
@@ -848,7 +834,10 @@ public class QueryManager {
 
             logger.info("Executing request queries for task " + t.taskNum);
 
-            executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName, t.taskNum);
+            GalagoSearchEngine galagoSearchEngine = new GalagoSearchEngine();
+            galagoSearchEngine.executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName,
+                    t.taskNum, submissionId, language, getTaskLevelIndexName(t.taskNum));
+            run = new Run(theRunFileName);  // Get new run file into memory
 
             totalRunTime.getAndAdd(runTime);
         });
@@ -858,182 +847,37 @@ public class QueryManager {
 
         runTime = totalRunTime.get();
     }
-
-    /**
-     * Executes the default queryfile with Galago's batch-search,
-     * using the default number of Galago batch threads,
-     * requesting N scoredHits, producing the default runfile, using the Arabic index.
-     * @param N the number of scoredHits to get
-     */
-    public void execute(int N) {
-/* VERSION SUITABLE FOR MULTIPLE QUERIES--CALLS GALAGO'S THREAD-BATCH-SEARCH UTILITY, WHICH EXECUTES THE
-   QUERIES IN THE QUERY FILE CONCURRENTLY */
-        if (queries.size() == 1) {
-            executeThreadedBatchSearch(1, N, queryFileName, runFileName,
-                    Pathnames.indexLocation + "better-clear-ir-" + language);
-        } else {
-            executeThreadedBatchSearch(3, N, queryFileName, runFileName,
-                    Pathnames.indexLocation + "better-clear-ir-" + language);
-        }
-
-/* VERSION SUITABLE FOR A SINGLE QUERY--CALLS GALAGO LIBRARY DIRECTLY
-        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago2.log";
-        Galago galago = new Galago((Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) ?
-                Pathnames.indexLocation + "better-clear-ir-english": Pathnames.indexLocation + "better-clear-ir-" + language,
-                mode, galagoLogFile, Pathnames.galagoLocation);
-        galago.search(queries, runFileName, N, language);
-*/
-        run = new Run(runFileName);  // Get new run file into memory
-    }
-
-    /**
-     * Executes the specified queryfile with Galago's batch-search,
-     * using the specified number of Galago batch threads,
-     * requesting the specified number of scoredHits, producing the specified runfile, using
-     * the specified index.
-     *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
-     * @param indexName
-     */
-    private void executeThreadedBatchSearch(int threadCount, int N, String theQueryFileName, String theRunFileName, String indexName) {
-        Instant start = Instant.now();
-
-        String command = "galago threaded-batch-search";
-        if (threadCount == 1) {
-            command = "galago batch-search";
-        }
-        String galagoLogFile = Pathnames.logFileLocation + submissionId + "." + language + ".galago.log";
-        String arabicParm = "";
-        if (!Pathnames.runGetCandidateDocs && language.equals("arabic")) {
-            arabicParm = "--defaultTextPart=postings.snowball ";
-        }
-        String tempCommand = Pathnames.galagoLocation + command
-                + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
-                + " --systemName=CLEAR " + arabicParm + "--trec=true --index=" + indexName
-                + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
-
-        logger.info("Executing this command: " + tempCommand);
-        logger.info("Run file will be  " + theRunFileName);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
-        run = new Run(theRunFileName);  // Get new run file into memory
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        runTime  = interval.toMinutes();
-    }
-
-    /**
-     * Executes the specified queryfile with Galago's batch-search,
-     * using the specified number of Galago batch threads,
-     * requesting the specified number of scoredHits, producing the specified runfile, using
-     * the specified PARTIAL index.
-     *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
-     */
-    private void executeAgainstPartialIndex(int threadCount, int N, String theQueryFileName,
-                                            String theRunFileName, String taskNum) {
-        // TBD: change this to use the library instead of the CLI
-        Instant start = Instant.now();
-
-        String command = "galago threaded-batch-search";
-        if (threadCount == 1) {
-            command = "galago batch-search";
-        }
-        String arabicPart = "";
-        if (!Pathnames.runGetCandidateDocs && language.equals("arabic")) {
-            arabicPart = " --defaultTextPart=postings.snowball";
-        }
-        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskNum + "_executeAgainstPartial.log";
-        String tempCommand = Pathnames.galagoLocation + command
-                + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
-                + " --systemName=CLEAR --trec=true "
-                + " --index/partial=" + Pathnames.indexLocation + getTaskLevelIndexName(taskNum)
-                + " --index/full=" + Pathnames.indexLocation + "better-clear-ir-" + language
-                + " --defaultIndexPart=partial --backgroundIndex=full"
-                + arabicPart
-                + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
-
-        logger.info("Executing this command: " + tempCommand);
-        logger.info("Run file will be  " + runFileName);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            // TEMP throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
-        run = new Run(theRunFileName);  // Get new run file into memory
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        runTime  = interval.toMinutes();
-    }
-
     /**
      * Builds a Galago index on the top scoredHits for each task.
      */
     public void buildTaskLevelIndexes() {
-        tasks.getTaskList().parallelStream().forEach(t ->  buildTaskPartialIndex(t.taskNum));
+        GalagoSearchEngine galagoSearchEngine = new GalagoSearchEngine();
+        tasks.getTaskList().parallelStream().forEach(t ->
+                {
+                    createTaskDocIDListFromHits(t.taskNum);
+                    galagoSearchEngine.buildTaskPartialIndex(t.taskNum, submissionId,
+                Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language,
+                            Pathnames.taskCorpusFileLocation + key + "." + t.taskNum + ".DOC_LIST.txt",
+                            getTaskLevelIndexName(t.taskNum), language,
+                            Pathnames.taskCorpusFileLocation + key + "." + t.taskNum + ".conf");
+                }
+                );
+    }
+    /**
+     * Asks the search engine to executes the default queryfile,
+     * requesting N scoredHits, producing the default runfile, using the target index for the current language.
+     * @param N the number of scoredHits to get
+     */
+    public void execute(int N) {
+//        GalagoSearchEngine galagoIndex = new GalagoSearchEngine();
+        SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
+        if (queries.size() == 1) {
+            searchEngine.search(1, N, queryFileName, runFileName, submissionId, language);
+        } else {
+            searchEngine.search(3, N, queryFileName, runFileName, submissionId, language);
+        }
+
+        run = new Run(runFileName);  // Get new run file into memory
     }
 
     /**
@@ -1054,115 +898,6 @@ public class QueryManager {
             logger.log(Level.SEVERE, "Exception creating task-level doc list file", cause);
             throw new TasksRunnerException(cause);
         }
-    }
-
-    /**
-     * Builds a Galago partial index on the top scoredHits for this task.
-     * @param taskID the task ID
-     */
-    public void buildTaskPartialIndex(String taskID) {
-        String indexName = Pathnames.indexLocation + "better-clear-ir-" + language;
-        createTaskDocIDListFromHits(taskID);
-
-        String confFile = createGalagoPartialIndexConfFile(taskID);
-        Instant start = Instant.now();
-
-        String galagoLogFile = Pathnames.logFileLocation + submissionId + ".galago_" + taskID + "_indexbuild.log";
-        String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
-                Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
-                " --index=" + indexName +
-                " --partialIndex=" + Pathnames.indexLocation + getTaskLevelIndexName(taskID)
-                + " " + confFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
-
-        logger.info("Executing this command: " + tempCommand);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        long runTime  = interval.toMinutes();
-        logger.info("Galago run time (minutes):\n" + runTime);
-    }
-
-    /**
-     * Creates a Galago config file specifying the parameters for building the index
-     * for this task's top scoredHits. This is the version to be used when building a PARTIAL index.
-     * @param taskID the task ID
-     * @return the name of the Galago config file, specific to this task
-     */
-    private String createGalagoPartialIndexConfFile(String taskID) {
-        String taskLevelConfFile;
-        try {
-            JSONObject outputQueries = new JSONObject();
-            outputQueries.put("mode", "local" );
-            outputQueries.put("fieldIndex", true);
-            outputQueries.put("tmpdir", Pathnames.tempFileLocation );
-
-            JSONArray stemmerList = new JSONArray();
-            JSONObject stemmerClass = new JSONObject();
-            if (Pathnames.runGetCandidateDocs || language.equals("english")) {
-                stemmerList.add("krovetz");
-                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            } else if (language.equals("arabic")) {
-                stemmerList.add("krovetz");
-                stemmerList.add("snowball");
-                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-                stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            } else if (language.equals("farsi")) {
-            }
-            outputQueries.put("stemmer", stemmerList);
-            outputQueries.put("stemmerClass", stemmerClass );
-
-            JSONObject tokenizer = new JSONObject();
-            JSONArray fields = new JSONArray();
-            fields.add("exid");
-            tokenizer.put("fields", fields);
-            JSONObject formats = new JSONObject();
-            formats.put("exid", "string");
-            tokenizer.put("formats", formats);
-            outputQueries.put("tokenizer", tokenizer);
-            outputQueries.put("galagoJobDir", Pathnames.galagoJobDirLocation + taskID);
-            outputQueries.put("deleteJobDir", true);
-            outputQueries.put("mem", "40g");
-
-            taskLevelConfFile = Pathnames.taskCorpusFileLocation + key + "." + taskID + ".conf";
-            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                    new FileOutputStream(taskLevelConfFile)));
-            writer.write(outputQueries.toJSONString());
-            writer.close();
-        } catch (Exception cause) {
-            throw new TasksRunnerException(cause);
-        }
-        return taskLevelConfFile;
     }
 
     public Map<String, EvaluationStats> evaluateTaskLevel() {
@@ -1774,4 +1509,96 @@ public class QueryManager {
             throw new TasksRunnerException("Run file " + runFileName + " does not exist");
         }
     }
-}
+
+    private List<Run> readRunFiles(List<String> filesToMerge) {
+        List<Run> runs = new ArrayList<>();
+        for (String fileName : filesToMerge) {
+            runs.add(new QueryManager.Run(fileName));
+        }
+        if (runs.size() == 0) {
+            throw new TasksRunnerException("Must be >0 run files to merge");
+        }
+        return runs;
+    }
+
+    private Map<String, List<ScoredHit>> mergeRequestHits(List<Run> runs) {
+        Map<String, List<ScoredHit>> requestHits = new HashMap<>();
+        for (String requestNum : tasks.getRequestIDs()) {
+            requestHits.put(requestNum, new ArrayList<>());
+        }
+        mergeHits(requestHits, runs);
+        sortHits(requestHits);
+        return requestHits;
+    }
+
+    private void mergeHits(Map<String, List<ScoredHit>> requestHits, List<Run> runs) {
+        for (String requestNum : tasks.getRequestIDs()) {
+            for (Run run : runs) {
+                if (run.requestRuns.containsKey(requestNum)) {
+                    requestHits.get(requestNum).addAll(run.requestRuns.get(requestNum).scoredHits);
+                }
+            }
+        }
+    }
+
+    /* Sort the ScoredHit lists in place, by score ascending */
+    private void sortHits(Map<String, List<ScoredHit>> requestHits) {
+        for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
+            List<ScoredHit> hits = entry.getValue();
+            Collections.sort(hits, (lhs, rhs) -> {
+                // -1 - less than, 1 - greater than, 0 - equal, inverted to get descending
+                return Float.parseFloat(lhs.score) > Float.parseFloat(rhs.score) ? -1
+                        : (Float.parseFloat(lhs.score) < Float.parseFloat(rhs.score)) ? 1 : 0;
+            });
+        }
+    }
+
+    private void writeHitsToMergedRunFile(Map<String, List<ScoredHit>> requestHits, PrintWriter writer) {
+        for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
+            String requestNum = entry.getKey();
+            List<ScoredHit> hits = entry.getValue();
+            int rank = 1;
+            for (ScoredHit hit : hits) {
+                writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " " + (2000 - rank) + " CLEAR");
+                if (rank > 1000) {
+                    break;
+                }
+            }
+        }
+        writer.close();
+    }
+
+    private void copySingleRunFileToMergedRunFile(String singleFile, String mergedFile) {
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(mergedFile)));
+            BufferedReader reader = new BufferedReader(new FileReader(singleFile));
+            String line = reader.readLine();
+            while (line != null) {
+                writer.println(line);
+                line = reader.readLine();
+            }
+            reader.close();
+            writer.close();
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void mergeRerankedRunFiles2(List<String> filesToMerge) {
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));
+            if (filesToMerge.size() == 1) {
+                /* No merge is needed */
+                copySingleRunFileToMergedRunFile(filesToMerge.get(0),
+                        Pathnames.runFileLocation + submissionId + ".FINAL.out");
+            } else {
+                writeHitsToMergedRunFile(mergeRequestHits(readRunFiles(filesToMerge)), writer);
+            }
+            } catch (Exception e) {
+                throw new TasksRunnerException(e);
+            }
+        }
+
+    }

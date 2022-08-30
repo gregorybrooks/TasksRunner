@@ -25,6 +25,7 @@ public class Pathnames {
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
 
+    public static String searchEngine = "GALAGO";
     public static boolean developmentTestingNoDocker = false;
 
     public static boolean skipReranker = false;
@@ -66,6 +67,7 @@ public class Pathnames {
     public static String logFileLocation = scratchFileLocation + "logfiles/";
     public static String indexLocation = scratchFileLocation + "indexes/";
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
+    public static String anseriniLocation = scratchFileLocation + "galago/bin/";
     public static String galagoBaseLocation = scratchFileLocation + "galago";
     public static String programFileLocation = "/home/tasksrunner/programfiles/";
     public static String scriptFileLocation = "/home/tasksrunner/scripts/";
@@ -92,6 +94,7 @@ public class Pathnames {
     public static String MODELS_BASE_DIR_ENGLISH = "";
     public static String MODELS_BASE_DIR_FARSI = "";
     public static String MODELS_BASE_DIR_ARABIC = "";
+    public static String MODELS_BASE_DIR_RUSSIAN = "";
     public static String MODELS_BASE_DIR = "";
 
 // english training as english and arabic
@@ -209,9 +212,10 @@ public class Pathnames {
 
         // Set this to true in the environment vars if you are testing on cessnock, outside of a Docker container
         developmentTestingNoDocker = (getFromEnv("developmentTestingNoDocker", "false").equals("true"));
+        searchEngine = getFromEnv("searchEngine", "galago");
 
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
-        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "1000"));
+        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "10"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
@@ -295,6 +299,12 @@ public class Pathnames {
 
         galagoBaseLocation = galagoLocation.replace("/bin/","");
 
+        anseriniLocation = ensureTrailingSlash(getFromEnv("anseriniLocation",
+                "/home/tasksrunner/anserini/target/appassembler/bin/"));
+        if (developmentTestingNoDocker) {
+            anseriniLocation = "/mnt/scratch/LEMUR_PROJECT/dev/anserini/target/appassembler/bin/";
+        }
+
         programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
                 "/home/tasksrunner/programfiles/"));
         if (developmentTestingNoDocker) {
@@ -342,6 +352,7 @@ public class Pathnames {
         MODELS_BASE_DIR_ENGLISH = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_ENGLISH);
         MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_FARSI", MODELS_BASE_DIR_FARSI);
         MODELS_BASE_DIR_ARABIC = getFromEnv("MODELS_BASE_DIR_ARABIC", MODELS_BASE_DIR_ARABIC);
+        MODELS_BASE_DIR_RUSSIAN = getFromEnv("MODELS_BASE_DIR_RUSSIAN", MODELS_BASE_DIR_RUSSIAN);
         targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
                 Required.REQUIRED));
     }

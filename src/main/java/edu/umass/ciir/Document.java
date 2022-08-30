@@ -1,7 +1,6 @@
 package edu.umass.ciir;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JsonArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
@@ -144,7 +143,9 @@ public class Document {
 //        AtomicInteger idx = new AtomicInteger(0);
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
+/*
         if (isEnglishCorpus) {
+
             logger.info("Using Galago method");
             for (String docid : uniqueDocIDs) {
                 getDocumentWithGalago(docid, Pathnames.indexLocation + "better-clear-ir-english",
@@ -167,7 +168,7 @@ public class Document {
             } catch (IOException e) {
                 throw new TasksRunnerException(e);
             }
-        }
+ //       }
         logger.info("Document map complete");
         List<String> missingDocids = new ArrayList<>();
         for (String d : uniqueDocIDs) {
@@ -193,6 +194,7 @@ public class Document {
         }
         String uuid;
         String text;
+        String language;
         String translatedText;
         List<SentenceRange> sentences = new ArrayList<>();
         List<Event> events = new ArrayList<>();
@@ -209,6 +211,7 @@ public class Document {
             JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
             uuid = (String) derived_metadata.get("id");
             text = (String) derived_metadata.get("text");
+            language = SearchEngineInterface.getSearchEngine().toCanonicalForm((String) derived_metadata.get("language"));
             translatedText = "";
             if (derived_metadata.containsKey("translated-text")) {
                 translatedText = (String) derived_metadata.get("translated-text");
@@ -217,7 +220,8 @@ public class Document {
                 logger.info("Found isi-events object in corpus line");
                 events = Event.getEventsFromJSON((JSONArray) derived_metadata.get("isi-events"));
             }
-            if (derived_metadata.containsKey("segment-sections")) {
+            /* Russian docs have sentence metadata left over from Arabic, so must calc them here */
+            if (!language.equals("russian") && derived_metadata.containsKey("segment-sections")) {
                 JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
                 int id = 0;
                 for (Object oSection : segment_sections) {
@@ -241,8 +245,11 @@ public class Document {
                 getSentenceRangesFromText(text, sentences);
             }
         }
+        // If there are duplicate docs in the corpus, we will keep the last one we encounter
         map.put(uuid, text);
-        translatedMap.put(uuid, translatedText);
+        if (translatedMap != null) {
+            translatedMap.put(uuid, translatedText);
+        }
         sentenceMap.put(uuid, sentences);
         eventMap.put(uuid, events);
     }
@@ -299,4 +306,6 @@ public class Document {
     public static List<Event> getEnglishDocumentEvents (String docid) {
         return englishDocEventsMap.get(docid);
     }
+
+
 }

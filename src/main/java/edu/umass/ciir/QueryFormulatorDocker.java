@@ -35,6 +35,7 @@ public class QueryFormulatorDocker extends QueryFormulator {
                     + " --env MODE=" + mode
                     + " --env OUT_LANG=" + language
                     + " --env PHASE=" + phase
+                    + " --env SEARCH_ENGINE=" + Pathnames.searchEngine
                     + " --env INPUTFILE=" + analyticTasksInfoFilename
                     + " --env QUERYFILE=" + queryFileNameKey
                     /* For each directory that we want to share between this parent docker container (TasksRunner)

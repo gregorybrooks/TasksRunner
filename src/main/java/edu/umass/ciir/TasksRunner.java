@@ -111,7 +111,7 @@ public class TasksRunner {
             if (Pathnames.skipIndexBuild) {
                 logger.info("Skipping target index build");
             } else {
-                if ((new Index("target")).getTargetLanguages().size() == 0) {
+                if ((SearchEngineInterface.getTargetLanguages().size() == 0)) {
                     logger.info("Target indexes do not exist, so we will build them");
                     Pathnames.runIndexBuild = true;
                 } else {
@@ -120,12 +120,14 @@ public class TasksRunner {
             }
 
             Pathnames.runEnglishIndexBuild = false;
-            if (!(new Index("target")).englishIndexExists()) {
+/*
+            if (!(SearchEngineInterface.englishIndexExists())) {
                 logger.info("English index does not exist, so we will build the English index");
                 Pathnames.runEnglishIndexBuild = true;
             } else {
                 logger.info("English index already exists, so we will NOT build the English index");
             }
+*/
 
             /* Now the following are mutually exclusive operations */
             Pathnames.runSearch = false;
@@ -371,14 +373,17 @@ public class TasksRunner {
         tasks.writeJSONVersion();
 
         List<String> filesToMerge = new ArrayList<>();
-        for (String language : (new Index("target")).getTargetLanguages()) {
+        for (String language : SearchEngineInterface.getTargetLanguages()) {
             if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
                 doTaskLevelProcessing(taskLevelFormulator, language);
             }
             doRequestLevelProcessing(requestLevelFormulator, language, filesToMerge);
         }
         logger.info("Merging multiple language's ranked runfiles into one");
-        mergeRerankedRunFiles(filesToMerge);
+        mergeRerankedRunFiles(filesToMerge);  // round robin merging
+        // try merging by score:
+        //QueryManager qf = new QueryManager(submissionId, null, mode, tasks, null, eventExtractor);
+        //qf.mergeRerankedRunFiles2(filesToMerge);
 
         logger.info("Merging IR and IE results");
         // writeFinalResultsFile();  // adapt this from QueryManager.writeFinalResultsFile()
@@ -437,56 +442,76 @@ public class TasksRunner {
         try {
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
                     new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));
-            Map<String, List<Queue<String>>> requestRankedLists = new HashMap<>();
-            for (String fileName : filesToMerge) {
-                BufferedReader reader = new BufferedReader(new FileReader(fileName));
-                String previousRequestNum = null;
-                Queue<String> hits = new LinkedList<>();
+            if (filesToMerge.size() == 1) {
+                /* No merge is needed */
+                BufferedReader reader = new BufferedReader(new FileReader(filesToMerge.get(0)));
                 String line = reader.readLine();
                 while (line != null) {
-                    String[] tokens = line.split(" ");
-                    String thisRequestNum = tokens[0];
-                    if (!thisRequestNum.equals(previousRequestNum)) {
-                        if (previousRequestNum != null) {
-                            if (requestRankedLists.containsKey(previousRequestNum)) {
-                                requestRankedLists.get(previousRequestNum).add(new LinkedList<String>(hits));
-                            } else {
-                                List<Queue<String>> hitQueuesList = new ArrayList<>();
-                                hitQueuesList.add(new LinkedList<String>(hits));
-                                requestRankedLists.put(previousRequestNum, hitQueuesList);
-                            }
-                        }
-                        previousRequestNum = thisRequestNum;
-                        hits.clear();
-                    }
-                    hits.add(line);
+                    writer.println(line);
                     line = reader.readLine();
                 }
-                if (previousRequestNum != null) {
-                    if (requestRankedLists.containsKey(previousRequestNum)) {
-                        requestRankedLists.get(previousRequestNum).add(new LinkedList<String>(hits));
-                    } else {
-                        List<Queue<String>> hitQueuesList = new ArrayList<>();
-                        hitQueuesList.add(new LinkedList<String>(hits));
-                        requestRankedLists.put(previousRequestNum, hitQueuesList);
+                reader.close();
+                writer.close();
+            } else {
+                int score = 2000;
+                Map<String, List<Queue<String>>> requestRankedLists = new HashMap<>();
+                for (String fileName : filesToMerge) {
+                    BufferedReader reader = new BufferedReader(new FileReader(fileName));
+                    String previousRequestNum = null;
+                    Queue<String> hits = new LinkedList<>();
+                    String line = reader.readLine();
+                    while (line != null) {
+                        String[] tokens = line.split(" ");
+                        String thisRequestNum = tokens[0];
+                        if (!thisRequestNum.equals(previousRequestNum)) {
+                            if (previousRequestNum != null) {
+                                if (requestRankedLists.containsKey(previousRequestNum)) {
+                                    requestRankedLists.get(previousRequestNum).add(new LinkedList<String>(hits));
+                                } else {
+                                    List<Queue<String>> hitQueuesList = new ArrayList<>();
+                                    hitQueuesList.add(new LinkedList<String>(hits));
+                                    requestRankedLists.put(previousRequestNum, hitQueuesList);
+                                }
+                            }
+                            previousRequestNum = thisRequestNum;
+                            hits.clear();
+                        }
+                        hits.add(line);
+                        line = reader.readLine();
+                    }
+                    if (previousRequestNum != null) {
+                        if (requestRankedLists.containsKey(previousRequestNum)) {
+                            requestRankedLists.get(previousRequestNum).add(new LinkedList<String>(hits));
+                        } else {
+                            List<Queue<String>> hitQueuesList = new ArrayList<>();
+                            hitQueuesList.add(new LinkedList<String>(hits));
+                            requestRankedLists.put(previousRequestNum, hitQueuesList);
+                        }
+                    }
+                    reader.close();
+                }
+                for (Map.Entry<String, List<Queue<String>>> entry : requestRankedLists.entrySet()) {
+                    List<Queue<String>> rankedQueues = entry.getValue();
+
+                    for (int index = 0; index < 1000; ++index) {
+                        String line = rankedQueues.get(index % filesToMerge.size()).remove();
+                        writer.println(setScore(line, index));
                     }
                 }
-                reader.close();
+                writer.close();
             }
-            for (Map.Entry<String, List<Queue<String>>> entry : requestRankedLists.entrySet()) {
-                List<Queue<String>> rankedQueues = entry.getValue();
-
-                for (int index = 0; index < 1000; ++index) {
-                    String line = rankedQueues.get(index % filesToMerge.size()).remove();
-                    writer.println(line);
-                }
-            }
-            writer.close();
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
     }
 
+    private String setScore(String line, int index) {
+        String[] tokens = line.split(" ");
+        String thisRequestNum = tokens[0];
+        String docno = tokens[2];
+        String newLine = thisRequestNum + " Q0 " + docno + " " + index + " " + (2000 - index) + " CLEAR";
+        return newLine;
+    }
     /**
      * Processes the analytic tasks file: generates queries for the Tasks and Requests,
      * executes the queries, annotates scoredHits with events.
@@ -499,15 +524,13 @@ public class TasksRunner {
         setupLogging();
 
         if (Pathnames.runEnglishIndexBuild) {
-            Index index = new Index("english");
-            index.preprocess();
-            index.buildIndex();
+            SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
+            searchEngine.buildIndexes(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);
         }
 
         if (Pathnames.runIndexBuild) {
-            Index index = new Index("target");
-            index.preprocess();
-            index.buildIndex();
+            SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
+            searchEngine.buildIndexes(Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
         }
 
         logger.info("Executing in " + mode + " mode");
