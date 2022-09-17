@@ -8,7 +8,7 @@ cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE
 cp tasks-ie.json ${APP_DIR}/tasks.json
 
 echo `date`
-MODELS_BASE_DIR=${MODELS_BASE_DIR_ENGLISH} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E ./run.sh.FARSI
+MODELS_BASE_DIR=${MODELS_BASE_DIR} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-E ./run_ie.sh
 
 ## move the output of the event extractor to where the clear-ir program expects it
 mv ${APP_DIR}/results.json ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${SUBMISSION_ID}.EXAMPLES.results.json

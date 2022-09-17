@@ -1,5 +1,6 @@
 package edu.umass.ciir;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -367,6 +368,148 @@ public class TasksRunner {
         qf.buildTaskLevelIndexes();
     }
 
+    private void addRankedListForLanguage(String fileName, String language, Map<String, Map<String, Map<String, List<ScoredHit>>>> tasks) {
+        File f = new File(fileName);
+        if (!f.exists()) {
+            throw new TasksRunnerException("No reranked run file for language " + language + "!");
+        } else {
+            logger.info("Reading reranked run file " + fileName);
+            try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] tokens = line.split("[ \t]+");
+                    if (tokens.length != 6) {
+                        throw new TasksRunnerException("Bad runfile line: " + line);
+                    }
+                    String requestID = tokens[0];
+                    String docid = tokens[2];
+                    String score = tokens[4];
+                    String taskID = QueryManager.getTaskIDFromRequestID(requestID);
+                    ScoredHit scoredHit = new ScoredHit(docid, score);
+                    if (tasks.containsKey(taskID)) {
+//                        Map<String, List<ScoredHit>> requests = tasks.get(taskID);
+                        Map<String, Map<String, List<ScoredHit>>> requests = tasks.get(taskID);
+                        if (requests.containsKey(requestID)) {
+                            Map<String, List<ScoredHit>> languages = requests.get(requestID);
+                            if (languages.containsKey(language)) {
+                                List<ScoredHit> hitlist = languages.get(language);
+                                if (hitlist.size() < Pathnames.RESULTS_CAP_IN_FINAL_RESULTS_FILE) {
+                                    hitlist.add(scoredHit);
+                                }
+                            } else {
+                                List<ScoredHit> hitlist = new ArrayList<>();
+                                hitlist.add(scoredHit);
+                                languages.put(language, hitlist);
+                            }
+                        } else {
+                            List<ScoredHit> requestScoredHits = new ArrayList<>();
+                            requestScoredHits.add(scoredHit);
+                            Map<String, List<ScoredHit>> languages = new HashMap<>();
+                            languages.put(language,requestScoredHits);
+                            requests.put(requestID, languages);
+                        }
+                    } else {
+                        Map<String, Map<String, List<ScoredHit>>> requests = new HashMap<>();
+                        List<ScoredHit> requestScoredHits = new ArrayList<>();
+                        requestScoredHits.add(scoredHit);
+                        Map<String, List<ScoredHit>> languages = new HashMap<>();
+                        languages.put(language,requestScoredHits);
+                        requests.put(requestID, languages);
+                        tasks.put(taskID, requests);
+                    }
+                }
+            } catch (IOException e) {
+                throw new TasksRunnerException(e);
+            }
+        }
+    }
+
+    public void writeFinalResultsFile() {
+        // Read the run files into memory
+        Map<String, Map<String, Map<String, List<ScoredHit>>>> tasks = new HashMap<>();
+        List<String> targetLanguages = SearchEngineInterface.getTargetLanguages();
+        for (String language : targetLanguages) {
+            addRankedListForLanguage(Pathnames.runFileLocation + submissionId + "." + language + ".Request.RERANKED.out", SearchEngineInterface.toThreeCharForm(language), tasks);
+        }
+        addRankedListForLanguage(Pathnames.runFileLocation + submissionId + ".FINAL.out", "combined", tasks);
+
+        /* Now write the info to the output file */
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(Pathnames.appFileLocation + "results.json")));
+
+            writer.println("{");
+            writer.println("\"format-type\": \"ir-results\",");
+            writer.println("\"format-version\": \"v1\",");
+            writer.println("\"corpus-id\": \"release-1\",");
+            writer.println("\"search-results\": {" );
+            int numTasks = tasks.size();
+            int currentTaskIdx = 0;
+            for (String taskID : tasks.keySet()) {
+                ++currentTaskIdx;
+                writer.println("  \"" + taskID + "\": {");
+                writer.println("    \"task\": \"" + taskID + "\",");
+                writer.println("    \"requests\": {");
+                Map<String, Map<String, List<ScoredHit>>> requests = tasks.get(taskID);
+                int numRequests = requests.size();
+                int currentRequestIdx = 0;
+                for (String requestID : requests.keySet()) {
+                    ++currentRequestIdx;
+                    writer.println("      \"" + requestID + "\": {");
+                    writer.println("        \"request\": \"" + requestID + "\",");
+                    writer.println("        \"rankings\": {");
+                    Map<String, List<ScoredHit>> languages = requests.get(requestID);
+                    int currentLanguageIdx = 0;
+                    for (String language : languages.keySet()) {
+                        ++currentLanguageIdx;
+                        List<ScoredHit> scoredHits = languages.get(language);
+                        writer.println("           \"" + language + "\": [");
+                        int numHits = scoredHits.size();
+                        int currentHitIdx = 0;
+                        for (ScoredHit scoredHit : scoredHits) {
+                            ++currentHitIdx;
+                            String hitLine = "            { \"docid\": \"" + scoredHit.docid + "\", \"score\": " + scoredHit.score + " }";
+                            if (currentHitIdx < numHits) {
+                                hitLine += ",";
+                            }
+                            writer.println(hitLine);
+                        }
+                        if (currentLanguageIdx < languages.size()) {
+                            writer.println("           ],");
+                        } else {
+                            writer.println("           ]");
+                        }
+                        // end of combined ranking
+                    }
+                    if (Pathnames.includeEventsInFinalResults) {
+                        writer.println("        },");
+                        //addEvents(requestID, writer);
+                    } else {
+                        writer.println("        }");  // no comma
+                    }
+
+                    if (currentRequestIdx < numRequests) {
+                        writer.println("      },");  // end of this request
+                    } else {
+                        writer.println("      }");  // end of this request
+                    }
+                }
+                writer.println("    }");  // end of requests
+                if (currentTaskIdx < numTasks) {
+                    writer.println("  },");  // end of this task
+                } else {
+                    writer.println("  }");  // end of this task
+                }
+            }
+            writer.println("}");  // end of search-results
+            writer.println("}");  // end of file
+            writer.close();
+        } catch (Exception cause) {
+            throw new TasksRunnerException(cause);
+        }
+    }
+
+
     private void doSearch(String taskLevelFormulator, String requestLevelFormulator) {
         annotateExampleDocs();
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators and re-rankers to use */
@@ -385,8 +528,8 @@ public class TasksRunner {
         //QueryManager qf = new QueryManager(submissionId, null, mode, tasks, null, eventExtractor);
         //qf.mergeRerankedRunFiles2(filesToMerge);
 
-        logger.info("Merging IR and IE results");
-        // writeFinalResultsFile();  // adapt this from QueryManager.writeFinalResultsFile()
+        logger.info("Output the final file");
+        writeFinalResultsFile();
 
     }
 
@@ -493,9 +636,13 @@ public class TasksRunner {
                 for (Map.Entry<String, List<Queue<String>>> entry : requestRankedLists.entrySet()) {
                     List<Queue<String>> rankedQueues = entry.getValue();
 
-                    for (int index = 0; index < 1000; ++index) {
-                        String line = rankedQueues.get(index % filesToMerge.size()).remove();
-                        writer.println(setScore(line, index));
+                    RankedQueuesManager queueManager = new RankedQueuesManager(rankedQueues);
+                    for (int written = 0; written < 1000; ++written) {
+                        String line = queueManager.getNextLine();
+                        if (line == null) {
+                            break;
+                        }
+                        writer.println(setScore(line, written));
                     }
                 }
                 writer.close();

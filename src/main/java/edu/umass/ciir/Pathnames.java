@@ -24,6 +24,7 @@ public class Pathnames {
     public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
     public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
+    public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 10;
 
     public static String searchEngine = "GALAGO";
     public static boolean developmentTestingNoDocker = false;
@@ -97,29 +98,6 @@ public class Pathnames {
     public static String MODELS_BASE_DIR_RUSSIAN = "";
     public static String MODELS_BASE_DIR = "";
 
-// english training as english and arabic
-/*
-    public static String scratchLocation = "/home/glbrooks/BETTER/";
-    public static String targetCorpusFileName = "english-training-corpus.jl";
-    public static String englishCorpusFileName = "english-training-corpus.jl";
-    public static String tasksFileName = "ir-hitl-performer-tasks.fixed.json";
-    public static String englishIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
-    public static String targetIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
-    public static String isTargetEnglish = "true";
-    public static boolean targetLanguageIsEnglish = true;
-    public static String supplementalFileName = "supplemental_info.json";
-    public static boolean readQrelFile = false;
-    public static boolean expandQrelDocuments = false;
-    public static String qrelFileName = "";
-    public static String mode = "";
-    public static boolean doTaskLevelEvaluation = false;
-    public static boolean doRequestLevelEvaluation = false;
-    public static boolean runPreprocess = false;
-    public static boolean runIndexBuild = false;
-    public static boolean runIRPhase1 = false;
-    public static boolean runIRPhase2 = false;
-    public static boolean runIRPhase3 = false;
-*/
     public static void checkDockerImage (String imageName) {
         if (!developmentTestingNoDocker) {  /* This doesn't work in the JetBrains debugger */
             int exitVal = 0;
@@ -217,7 +195,8 @@ public class Pathnames {
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
         REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "10"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
-        includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
+        RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "10"));
+        includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "false").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
         skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
         skipRequestDocAnnotation = (getFromEnv("skipAnnotateRequestDocs", "false").equals("true"));

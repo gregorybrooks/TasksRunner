@@ -1,0 +1,1 @@
+target/appassembler/bin/SearchCollection -index ./openresearch_data/lucene-index-openresearch -topics ./openresearch_data/anserini_format/queries.small.test.tsv -topicreader TsvString -output ./openresearch_data/anserini_format/run.small.test -bm25

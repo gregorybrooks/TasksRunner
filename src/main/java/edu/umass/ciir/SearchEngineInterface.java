@@ -16,43 +16,85 @@ public interface SearchEngineInterface {
     /**
      * Returns the normalized form of a language that is in a corpus file's "language" field.
      * We convert everything to an all-lowercase, English word like "arabic".
-     * @param rawLanguage The value seen in the corpus file, like "ar" or "Arabic".
+     * @param rawLanguage The value seen in the corpus file, like "ar" or "Arabic" or "zho".
      * @return the normalized form of the language, like "arabic"
      */
-    default String toCanonicalForm(String rawLanguage) {
+    static String toCanonicalForm(String rawLanguage) {
         rawLanguage = rawLanguage.toLowerCase(Locale.ROOT);
-        if (rawLanguage.equals("ar")) {
-            rawLanguage = "arabic";
-        } else if (rawLanguage.equals("ko")) {
-            rawLanguage = "korean";
-        } else if (rawLanguage.equals("fa")) {
-            rawLanguage = "farsi";
-        } else if (rawLanguage.equals("zh")) {
-            rawLanguage = "chinese";
-        } else if (rawLanguage.equals("ru")) {
-            rawLanguage = "russian";
-        } else if (rawLanguage.equals("en")) {
-            rawLanguage = "english";
-        }
-        List<String> allowedLanguages = Arrays.asList("arabic", "korean", "farsi", "chinese", "russian", "english");
-        if (!allowedLanguages.contains(rawLanguage)) {
-            throw new TasksRunnerException("Unsupported language: " + rawLanguage);
+        switch (rawLanguage) {
+            case "ar":
+                rawLanguage = "arabic";
+                break;
+            case "ko": case "kor":
+                rawLanguage = "korean";
+                break;
+            case "fa":
+                rawLanguage = "farsi";
+                break;
+            case "zh": case "zho":
+                rawLanguage = "chinese";
+                break;
+            case "ru": case "rus":
+                rawLanguage = "russian";
+                break;
+            case "en": case "eng":
+                rawLanguage = "english";
+                break;
+            default:
+                throw new TasksRunnerException("Invalid raw language passed to toCanonicalForm: " + rawLanguage);
         }
         return rawLanguage;
     }
-    default String toTwoCharForm(String canonicalForm) {
-        if (canonicalForm.equals("arabic")) {
-            canonicalForm = "ar";
-        } else if (canonicalForm.equals("korean")) {
-            canonicalForm = "ko";
-        } else if (canonicalForm.equals("farsi")) {
-            canonicalForm = "fa";
-        } else if (canonicalForm.equals("chinese")) {
-            canonicalForm = "zh";
-        } else if (canonicalForm.equals("russian")) {
-            canonicalForm = "ru";
-        } else if (canonicalForm.equals("english")) {
-            canonicalForm = "en";
+
+    static String toTwoCharForm(String canonicalForm) {
+        switch (canonicalForm) {
+            case "arabic":
+                canonicalForm = "ar";
+                break;
+            case "korean":
+                canonicalForm = "ko";
+                break;
+            case "farsi":
+                canonicalForm = "fa";
+                break;
+            case "chinese":
+                canonicalForm = "zh";
+                break;
+            case "russian":
+                canonicalForm = "ru";
+                break;
+            case "english":
+                canonicalForm = "en";
+                break;
+            default:
+                throw new TasksRunnerException("Invalid language passed to toTwoCharForm: " + canonicalForm);
+        }
+        return canonicalForm;
+
+    }
+
+    static String toThreeCharForm(String canonicalForm) {
+        switch (canonicalForm) {
+            case "arabic":
+                canonicalForm = "ara";
+                break;
+            case "korean":
+                canonicalForm = "kor";
+                break;
+            case "farsi":
+                canonicalForm = "far";
+                break;
+            case "chinese":
+                canonicalForm = "zho";
+                break;
+            case "russian":
+                canonicalForm = "rus";
+                break;
+            case "english":
+                canonicalForm = "eng";
+                break;
+            default:
+                throw new TasksRunnerException("Invalid language passed to toThreeCharForm: " + canonicalForm);
         }
         return canonicalForm;
 

@@ -1,0 +1,1 @@
+sh ./target/appassembler/bin/IndexCollection -collection JsonCollection  -generator DefaultLuceneDocumentGenerator -threads 8 -input ./openresearch_data/anserini_format/corpus  -index ./openresearch_data/lucene-index-openresearch -optimize -storePositions -storeDocvectors -storeRaw

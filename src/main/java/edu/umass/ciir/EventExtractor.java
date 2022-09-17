@@ -425,20 +425,8 @@ public class EventExtractor {
     public void annotateProvidedFileEvents(String language) {
         logger.info("Calling event annotator for test_data.bp.json file");
 
-        // So far we only support Arabic and Farsi
-        if (!(language.equals("arabic") || language.equals("farsi") || language.equals("russian"))) {
-            throw new TasksRunnerException("annotateProvidedFileEvents only supports Russian, Arabic and Farsi, you asked for "
-                    + language);
-        }
-        String script = "./annotate_provided_file.sh.FARSI";
-        String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
-        if (language.equals("arabic")) {
-            script = "./annotate_provided_file.sh.ARABIC";
-            trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
-        } else if (language.equals("russian")) {
-            script = "./annotate_provided_file.sh.RUSSIAN";
-            trainingDirs = "MODELS_BASE_DIR_RUSSIAN=" + Pathnames.MODELS_BASE_DIR_RUSSIAN;
-        }
+        String script = "./annotate_provided_file.sh";
+        String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
         String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                 + trainingDirs
                 + " APP_DIR=" + Pathnames.appFileLocation
@@ -476,15 +464,8 @@ public class EventExtractor {
      * For now, I changed the script to do the copy and commented-out the call to the event annotator.
      */
     public void annotateRequestDocEvents() {
-        String script = "./annotate_request_docs.sh.FARSI";
-        String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
-        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage.toString().equals("ARABIC")) {
-            script = "./annotate_request_docs.sh.ARABIC";
-            trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
-        } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
-            script = "./annotate_request_docs.sh.ENGLISH";
-            trainingDirs = "";
-        }
+        String script = "./annotate_request_docs.sh";
+        String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
         String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " " + trainingDirs
                     + " MODE=" + mode
@@ -501,15 +482,8 @@ public class EventExtractor {
      * Keep this method in case we ever want to do this:
      */
     public void annotateTaskDocEvents() {
-        String script = "./annotate_task_docs.sh.FARSI";
-        String trainingDirs = "MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI;
-        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage.toString().equals("ARABIC")) {
-            script = "./annotate_task_docs.sh.ARABIC";
-            trainingDirs = "MODELS_BASE_DIR_ARABIC=" + Pathnames.MODELS_BASE_DIR_ARABIC;
-        } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
-            script = "./annotate_task_docs.sh.ENGLISH";
-            trainingDirs = "";
-        }
+        String script = "./annotate_task_docs.sh";
+        String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
         String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
                     + " " + trainingDirs
                     + " MODE=" + mode
@@ -525,7 +499,7 @@ public class EventExtractor {
         logger.info("PRE-TRAINING: Pre-training the event annotator");
         String script = "./pretrain.sh";
         String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                + " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
                 + " APP_DIR=" + Pathnames.appFileLocation
                 + " SUBMISSION_ID=" + submissionId
                 + " SCRATCH_DIR=" + Pathnames.scratchFileLocation

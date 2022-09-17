@@ -574,7 +574,7 @@ public class QueryManager {
         }
     }
 
-    private String getTaskIDFromRequestID(String requestID) {
+    public static String getTaskIDFromRequestID(String requestID) {
         String thisTaskID;
         if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
             thisTaskID = requestID;
@@ -653,18 +653,6 @@ public class QueryManager {
         return "";
     }
 
-    public class ScoredHit {
-        public String docid;
-        public String score;
-        ScoredHit(String docid, String score) {
-            this.docid = docid;
-            this.score = score;
-        }
-        ScoredHit(ScoredHit other) {
-            this.docid = other.docid;
-            this.score = other.score;
-        }
-    }
     /**
      * Within the solution are multiple Tasks, and each Task has multiple Requests.
      * This class represents the results of running the query for a Request.
@@ -802,6 +790,9 @@ public class QueryManager {
                 Path inFile=Paths.get(runFile);
                 List<String> lines = Files.readAllLines(inFile, charset);
                 logger.info(lines.size() + " lines");
+                if (lines.size() == 0) {
+                    throw new TasksRunnerException("Task-level runfile " + runFile + " is empty! Task-level query bad?");
+                }
                 Files.write(outFile, lines, charset, StandardOpenOption.CREATE,
                         StandardOpenOption.APPEND);
             }
@@ -887,6 +878,9 @@ public class QueryManager {
      */
     private void createTaskDocIDListFromHits(String taskID) {
         List<String> docids = this.getAllDocids(taskID);
+        if (docids.size() == 0) {
+            throw new TasksRunnerException("No hits from Task " + taskID + " Task-level query! Query execution probably failed.");
+        }
         String outputFile = Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt";
         try {
             PrintWriter writer = new PrintWriter(outputFile);
@@ -1370,143 +1364,6 @@ public class QueryManager {
             } catch (IOException e) {
                 throw new TasksRunnerException(e);
             }
-        }
-    }
-
-    public void writeFinalResultsFile() {
-        Map<String, Map<String, List<ScoredHit>>> tasks = new HashMap<>();
-        String fileName = rerankedRunFile;
-        File f = new File(fileName);
-        if (f.exists()) {
-            logger.info("Reading reranked run file " + fileName);
-            try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = line.split("[ \t]+");
-                    if (tokens.length != 6) {
-                        throw new TasksRunnerException("Bad runfile line: " + line);
-                    }
-                    String requestID = tokens[0];
-                    String docid = tokens[2];
-                    String score = tokens[4];
-                    String taskID = getTaskIDFromRequestID(requestID);
-                    ScoredHit scoredHit = new ScoredHit(docid, score);
-                    if (tasks.containsKey(taskID)) {
-                        Map<String, List<ScoredHit>> requests = tasks.get(taskID);
-                        if (requests.containsKey(requestID)) {
-                            List<ScoredHit> hitlist = requests.get(requestID);
-                            if (hitlist.size() < Pathnames.RESULTS_CAP) {
-                                hitlist.add(scoredHit);
-                            }
-                        } else {
-                            List<ScoredHit> requestScoredHits = new ArrayList<>();
-                            requestScoredHits.add(scoredHit);
-                            requests.put(requestID, requestScoredHits);
-                        }
-                    } else {
-                        Map<String, List<ScoredHit>> requests = new HashMap<>();
-                        List<ScoredHit> requestScoredHits = new ArrayList<>();
-                        requestScoredHits.add(scoredHit);
-                        requests.put(requestID, requestScoredHits);
-                        tasks.put(taskID, requests);
-                    }
-                }
-            } catch (IOException e) {
-                throw new TasksRunnerException(e);
-            }
-            /* Now write the info to the output file */
-            try {
-                PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                        new FileOutputStream(Pathnames.appFileLocation + "results.json")));
-
-                JSONObject topLevel = new JSONObject();
-                topLevel.put("format-type", "ir-results");
-                topLevel.put("format-version", "v1");
-                topLevel.put("corpus-id", "release-foo");
-
-                writer.println("{");
-                writer.println("\"format-type\": \"ir-results\",");
-                writer.println("\"format-version\": \"v1\",");
-                writer.println("\"corpus-id\": \"release-1\",");
-                writer.println("\"search-results\": {" );
-                /* search-results dict: */
-                JSONObject searchResults = new JSONObject();
-                int numTasks = tasks.size();
-                int currentTaskIdx = 0;
-                for (String taskID : tasks.keySet()) {
-                    ++currentTaskIdx;
-                    writer.println("  \"" + taskID + "\": {");
-                    writer.println("    \"task\": \"" + taskID + "\",");
-                    writer.println("    \"requests\": {");
-
-                    JSONObject searchResult = new JSONObject();
-                    Map<String, List<ScoredHit>> requests = tasks.get(taskID);
-                    JSONObject jsonRequests = new JSONObject();
-                    int numRequests = requests.size();
-                    int currentRequestIdx = 0;
-                    for (String requestID : requests.keySet()) {
-                        ++currentRequestIdx;
-                        writer.println("      \"" + requestID + "\": {");
-                        writer.println("        \"request\": \"" + requestID + "\",");
-                        writer.println("        \"ranking\": [");
-
-                        List<ScoredHit> scoredHits = requests.get(requestID);
-                        JSONObject jsonRequest = new JSONObject();
-                        JSONArray ranking = new JSONArray();
-                        int numHits = scoredHits.size();
-                        int currentHitIdx = 0;
-                        for (ScoredHit scoredHit : scoredHits) {
-                            ++currentHitIdx;
-                            JSONObject jsonHit = new JSONObject();
-                            String hitLine = "          { \"docid\": \"" + scoredHit.docid + "\", \"score\": " + scoredHit.score + " }";
-                            if (currentHitIdx < numHits) {
-                                hitLine += ",";
-                            }
-                            writer.println(hitLine);
-                            jsonHit.put("docid", scoredHit.docid);
-                            jsonHit.put("score", scoredHit.score);
-                            ranking.add(jsonHit);
-                        }
-                        // end of ranking - time for the events
-
-                        if (Pathnames.includeEventsInFinalResults) {
-                            writer.println("        ],");
-                            addEvents(requestID, writer);
-                        } else {
-                            writer.println("        ]");  // no comma
-                        }
-
-                        if (currentRequestIdx < numRequests) {
-                            writer.println("      },");  // end of this request
-                        } else {
-                            writer.println("      }");  // end of this request
-                        }
-                        jsonRequest.put("ranking", ranking);
-                        jsonRequest.put("request", requestID);
-                        jsonRequests.put(requestID, jsonRequest);
-                    }
-                    writer.println("    }");  // end of requests
-                    if (currentTaskIdx < numTasks) {
-                        writer.println("  },");  // end of this task
-                    } else {
-                        writer.println("  }");  // end of this task
-                    }
-                    searchResult.put("requests", jsonRequests);
-                    searchResult.put("task", taskID);
-                    searchResults.put(taskID, searchResult);
-                }
-                writer.println("}");  // end of search-results
-                writer.println("}");  // end of file
-                topLevel.put("search-results", searchResults);
-
-                // writer.write(topLevel.toJSONString());
-                writer.close();
-            } catch (Exception cause) {
-                throw new TasksRunnerException(cause);
-            }
-        }
-        else {
-            throw new TasksRunnerException("Run file " + runFileName + " does not exist");
         }
     }
 
