@@ -135,6 +135,7 @@ public class TasksRunner {
             Pathnames.runGetIEFromFile = false;
             Pathnames.runGetPhrases = false;
             Pathnames.runGetCandidateDocs = false;
+            Pathnames.IEAllowed = true;
 
             while (true) {
                 if (taskSetJSON.containsKey("extract-basic-events")) {
@@ -147,35 +148,44 @@ public class TasksRunner {
                     }
                 }
                 if (taskSetJSON.containsKey("find-relevant-docs.automatic")) {
-                    JSONObject findRelevantDocsAutomaticJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.automatic");
-                    boolean perform = (boolean) findRelevantDocsAutomaticJSON.get("perform?");
+                    JSONObject findRelevantDocsJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.automatic");
+                    boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "AUTO";
                         Pathnames.runSearch = true;
+                        if (findRelevantDocsJSON.containsKey("ie-allowed")) {
+                            Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
+                        }
                         break;
                     }
                 }
                 if (taskSetJSON.containsKey("find-relevant-docs.auto-hitl")) {
-                    JSONObject findRelevantDocsAutoHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.auto-hitl");
-                    boolean perform = (boolean) findRelevantDocsAutoHitlJSON.get("perform?");
+                    JSONObject findRelevantDocsJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.auto-hitl");
+                    boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "AUTO-HITL";
                         Pathnames.runSearch = true;
+                        if (findRelevantDocsJSON.containsKey("ie-allowed")) {
+                            Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
+                        }
                         break;
                     }
                 }
                 if (taskSetJSON.containsKey("find-relevant-docs.hitl")) {
-                    JSONObject findRelevantDocsHitlJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
-                    boolean perform = (boolean) findRelevantDocsHitlJSON.get("perform?");
+                    JSONObject findRelevantDocsJSON = (JSONObject) taskSetJSON.get("find-relevant-docs.hitl");
+                    boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
                         Pathnames.runSearch = true;
+                        if (findRelevantDocsJSON.containsKey("ie-allowed")) {
+                            Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
+                        }
                         break;
                     }
                 }
                 if (taskSetJSON.containsKey("find-candidate-docs.hitl")) {
-                    JSONObject findTaskExampleDocsHitlJSON = (JSONObject) taskSetJSON.get("find-candidate-docs.hitl");
-                    boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
+                    JSONObject findRelevantDocsJSON = (JSONObject) taskSetJSON.get("find-candidate-docs.hitl");
+                    boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
                         Pathnames.runGetCandidateDocs = true;
@@ -186,8 +196,8 @@ public class TasksRunner {
                     }
                 }
                 if (taskSetJSON.containsKey("get-phrases.hitl")) {
-                    JSONObject findTaskExampleDocsHitlJSON = (JSONObject) taskSetJSON.get("get-phrases.hitl");
-                    boolean perform = (boolean) findTaskExampleDocsHitlJSON.get("perform?");
+                    JSONObject findRelevantDocsJSON = (JSONObject) taskSetJSON.get("get-phrases.hitl");
+                    boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
                         Pathnames.runGetPhrases = true;

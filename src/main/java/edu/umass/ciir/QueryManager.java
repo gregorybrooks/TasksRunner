@@ -210,7 +210,7 @@ public class QueryManager {
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
                     + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
                     + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language)
+                    + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
                     + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
                     + " --env NUM_CPU=8 --env TOPK=100"
 

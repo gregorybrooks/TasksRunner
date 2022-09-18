@@ -28,6 +28,7 @@ public class Pathnames {
 
     public static String searchEngine = "GALAGO";
     public static boolean developmentTestingNoDocker = false;
+    public static boolean IEAllowed = true;
 
     public static boolean skipReranker = false;
     public static boolean skipPretrain = false;
