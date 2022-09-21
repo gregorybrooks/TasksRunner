@@ -238,21 +238,27 @@ public class Pathnames {
 
         getCandidateDocsQueryFormulatorDockerImage = getFromEnv("getCandidateDocsQueryFormulatorDockerImage",
                 "");
+        /*
         if (getCandidateDocsQueryFormulatorDockerImage.length() > 0) {
             checkDockerImage(getCandidateDocsQueryFormulatorDockerImage);
         }
+         */
 
         getPhrasesQueryFormulatorDockerImage = getFromEnv("getPhrasesQueryFormulatorDockerImage",
                 "");
+        /*
         if (getPhrasesQueryFormulatorDockerImage.length() > 0) {
             checkDockerImage(getPhrasesQueryFormulatorDockerImage);
         }
+        */
 
         neuralQueryProcessorDockerImage = getFromEnv("neuralQueryProcessorDockerImage",
                 "");
+        /*
         if (neuralQueryProcessorDockerImage.length() > 0) {
             checkDockerImage(neuralQueryProcessorDockerImage);
         }
+         */
 
         rerankerDockerImage = getFromEnv("rerankerDockerImage",
                 "");

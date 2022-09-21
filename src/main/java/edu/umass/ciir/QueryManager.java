@@ -113,9 +113,9 @@ public class QueryManager {
                     + " --env galagoLocation=" + Pathnames.galagoLocation
                     // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                     + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                    + " --env englishIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en/"
-                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
-                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
+//                    + " --env englishIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en/"
+//                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
+//                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
                     + " --env targetIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-"
                     + language
                     + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
