@@ -21,13 +21,13 @@ public class QueryFormulatorDocker extends QueryFormulator {
         this.phase = phase;
         this.queryFileNameKey = queryFileNameKey;
         this.dockerImageName = dockerImageName;
-        language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
     }
 
     private void callDockerImage() {
         try {
             String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+            // IF THE DOCKER EVER REALLY USES THE GPUs, MIGHT HAVE TO MAKE THIS --gpus 1 like for reranker
             String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
             String command = sudo + " docker run --rm"

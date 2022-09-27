@@ -19,6 +19,13 @@ public class TasksRunner {
     private AnalyticTasks tasks;
     private String mode;
     private String submissionId;
+    private boolean runIndexBuild = false;
+    private boolean runEnglishIndexBuild = false;
+    private boolean runPreTrain = false;
+    private boolean runGetIEFromFile = false;
+    private boolean runGetPhrases = false;
+    private boolean runGetCandidateDocs = false;
+    private boolean runSearch = false;
 
     /**
      * Configures the logger for this program.
@@ -78,7 +85,6 @@ public class TasksRunner {
       "corpus-location": "/corpus",
       "scratch-storage": "/scratch"
     }
-
 }
 */
     /**
@@ -93,48 +99,49 @@ public class TasksRunner {
             JSONParser parser = new JSONParser();
             JSONObject topLevelJSON = (JSONObject) parser.parse(reader);
             submissionId = (String) topLevelJSON.get("test-id");
+            submissionId = submissionId.replace(" ", "_");
             JSONObject taskSetJSON = (JSONObject) topLevelJSON.get("task-set");
 
-            Pathnames.runPreTrain = false;
+            runPreTrain = false;
             if (Pathnames.skipPretrain) {
                 logger.info("Skipping IE pre-training");
             } else {
-                File f = new File(Pathnames.MODELS_BASE_DIR_ENGLISH);
+                File f = new File(Pathnames.MODELS_BASE_DIR);
                 if (!f.exists()) {
-                    logger.info(Pathnames.MODELS_BASE_DIR_ENGLISH + " does not exist, so we will run IE pre-training");
-                    Pathnames.runPreTrain = true;
+                    logger.info(Pathnames.MODELS_BASE_DIR + " does not exist, so we will run IE pre-training");
+                    runPreTrain = true;
                 } else {
-                    logger.info(Pathnames.MODELS_BASE_DIR_ENGLISH + " already exists, so we will NOT run IE pre-training");
+                    logger.info(Pathnames.MODELS_BASE_DIR + " already exists, so we will NOT run IE pre-training");
                 }
             }
 
-            Pathnames.runIndexBuild = false;
+            runIndexBuild = false;
             if (Pathnames.skipIndexBuild) {
                 logger.info("Skipping target index build");
             } else {
                 if ((SearchEngineInterface.getTargetLanguages().size() == 0)) {
                     logger.info("Target indexes do not exist, so we will build them");
-                    Pathnames.runIndexBuild = true;
+                    runIndexBuild = true;
                 } else {
                     logger.info("Target indexes already exist, so we will NOT build them");
                 }
             }
 
-            Pathnames.runEnglishIndexBuild = false;
+            runEnglishIndexBuild = false;
 /*
             if (!(SearchEngineInterface.englishIndexExists())) {
                 logger.info("English index does not exist, so we will build the English index");
-                Pathnames.runEnglishIndexBuild = true;
+                runEnglishIndexBuild = true;
             } else {
                 logger.info("English index already exists, so we will NOT build the English index");
             }
 */
 
             /* Now the following are mutually exclusive operations */
-            Pathnames.runSearch = false;
-            Pathnames.runGetIEFromFile = false;
-            Pathnames.runGetPhrases = false;
-            Pathnames.runGetCandidateDocs = false;
+            runSearch = false;
+            runGetIEFromFile = false;
+            runGetPhrases = false;
+            runGetCandidateDocs = false;
             Pathnames.IEAllowed = true;
 
             while (true) {
@@ -143,7 +150,7 @@ public class TasksRunner {
                     Boolean perform = (Boolean) extractBasicEventsJSON.get("perform?");
                     if (perform) {
                         logger.info("extract-basic-events perform true");
-                        Pathnames.runGetIEFromFile = true;
+                        runGetIEFromFile = true;
                         break;
                     }
                 }
@@ -152,7 +159,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "AUTO";
-                        Pathnames.runSearch = true;
+                        runSearch = true;
                         if (findRelevantDocsJSON.containsKey("ie-allowed")) {
                             Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
                         }
@@ -164,7 +171,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "AUTO-HITL";
-                        Pathnames.runSearch = true;
+                        runSearch = true;
                         if (findRelevantDocsJSON.containsKey("ie-allowed")) {
                             Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
                         }
@@ -176,7 +183,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
-                        Pathnames.runSearch = true;
+                        runSearch = true;
                         if (findRelevantDocsJSON.containsKey("ie-allowed")) {
                             Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
                         }
@@ -188,8 +195,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
-                        Pathnames.runGetCandidateDocs = true;
-                        //Pathnames.isTargetEnglish = "true";
+                        runGetCandidateDocs = true;
                         //Pathnames.targetLanguageIsEnglish = true;
                         //Pathnames.targetLanguage = Pathnames.Language.ENGLISH;
                         break;
@@ -200,11 +206,11 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
-                        Pathnames.runGetPhrases = true;
+                        runGetPhrases = true;
                         break;
                     }
                 }
-                if (!(Pathnames.runGetPhrases || Pathnames.runSearch || Pathnames.runGetIEFromFile || Pathnames.runGetCandidateDocs)) {
+                if (!(runGetPhrases || runSearch || runGetIEFromFile || runGetCandidateDocs)) {
                     logger.info("No operation to do in tasks.json");
                     throw new TasksRunnerException("No operation specified in tasks.json");
                 }
@@ -316,7 +322,7 @@ public class TasksRunner {
 
     private Pathnames.ProcessingModel getProcessingModel() {
         Pathnames.ProcessingModel processingModel = Pathnames.processingModel;
-        if (Pathnames.runGetCandidateDocs) {  // force one-step model
+        if (runGetCandidateDocs) {  // force one-step model
             processingModel = Pathnames.ProcessingModel.ONE_STEP;
         }
         return processingModel;
@@ -333,7 +339,7 @@ public class TasksRunner {
             logger.info("Executing the Request queries, using the Task-level indexes");
             qf.executeRequestQueries(Pathnames.RESULTS_CAP);
         } else {
-            if (Pathnames.runGetCandidateDocs) {
+            if (runGetCandidateDocs) {
                 qf.execute(10);
             } else {
                 qf.execute(Pathnames.RESULTS_CAP);
@@ -362,13 +368,13 @@ public class TasksRunner {
 
         logger.info("Executing the task-level queries");
         qf.execute(2500);
-        logger.info("Execution of task-level queries complete.");
 
         /* Create an input file for the event extractor for the top N task-level scoredHits.
         (We did this to experiment with task-level scoredHits, but it is not needed normally.)
         logger.info("Extracting events from the top task-level scoredHits");
         qf.createInputForEventExtractorFromTaskHits();
         */
+
         if (Pathnames.doTaskLevelEvaluation) {
             logger.info("Evaluating the task-level results");
             Map<String, QueryManager.EvaluationStats> tstats = qf.evaluateTaskLevel();
@@ -439,9 +445,11 @@ public class TasksRunner {
         Map<String, Map<String, Map<String, List<ScoredHit>>>> tasks = new HashMap<>();
         List<String> targetLanguages = SearchEngineInterface.getTargetLanguages();
         for (String language : targetLanguages) {
-            addRankedListForLanguage(Pathnames.runFileLocation + submissionId + "." + language + ".Request.RERANKED.out", SearchEngineInterface.toThreeCharForm(language), tasks);
+            addRankedListForLanguage(Pathnames.runFileLocation + submissionId + "."
+                    + language + ".Request.RERANKED.out", SearchEngineInterface.toThreeCharForm(language), tasks);
         }
-        addRankedListForLanguage(Pathnames.runFileLocation + submissionId + ".FINAL.out", "combined", tasks);
+        addRankedListForLanguage(Pathnames.runFileLocation + submissionId + ".FINAL.out", "combined",
+                tasks);
 
         /* Now write the info to the output file */
         try {
@@ -521,7 +529,8 @@ public class TasksRunner {
 
 
     private void doSearch(String taskLevelFormulator, String requestLevelFormulator) {
-        annotateExampleDocs();
+        annotateExampleDocs();  // call ISI event extractor to add events to the example docs
+
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators and re-rankers to use */
         tasks.writeJSONVersion();
 
@@ -532,15 +541,16 @@ public class TasksRunner {
             }
             doRequestLevelProcessing(requestLevelFormulator, language, filesToMerge);
         }
+
         logger.info("Merging multiple language's ranked runfiles into one");
         mergeRerankedRunFiles(filesToMerge);  // round robin merging
-        // try merging by score:
-        //QueryManager qf = new QueryManager(submissionId, null, mode, tasks, null, eventExtractor);
-        //qf.mergeRerankedRunFiles2(filesToMerge);
+        /* or do merging by score instead of round robin:
+        QueryManager qf = new QueryManager(submissionId, null, mode, tasks, null, eventExtractor);
+        qf.mergeRerankedRunFiles2(filesToMerge);
+         */
 
         logger.info("Output the final file");
         writeFinalResultsFile();
-
     }
 
     private void doRequestLevelProcessing(String requestLevelFormulator, String language,
@@ -670,57 +680,52 @@ public class TasksRunner {
         return newLine;
     }
     /**
-     * Processes the analytic tasks file: generates queries for the Tasks and Requests,
+     * Executes the analytic tasks file: generates queries for the Tasks and Requests,
      * executes the queries, annotates scoredHits with events.
+     * We can be executing in one of 3 modes: AUTO, AUTO-HITL, or HITL.
+     * Processing is a little different in each mode, but the differences are hidden inside
+     * the query formulators. The caller passes in the mode through the task set file.
+     * The input analytic tasks file should be different for AUTO vs the other 2 modes:
+     * the AUTO file should not have anything for the fields like Task Narrative and
+     * Request Text. Those are only provided in AUTO-HITL and HITL modes.
+     * In HITL mode, noun phrases and sentences that have been judged by a human are passed in and used.
+     * Once we know the mode, we select the 2 query formulators created for that mode.
+     * (There are separate query formulators for the creation of Task-level queries and
+     * Request-level queries, in the two-stage model.)
      */
     void process()  {
-        /* This must be done before setupLogging() because that func uses mode,
-        which is set in readTaskSetFile()
-         */
-        //readTaskSetFile(Pathnames.appFileLocation + "tasks.json");
+
         setupLogging();
 
-        if (Pathnames.runEnglishIndexBuild) {
+        if (runEnglishIndexBuild) {
             SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
             searchEngine.buildIndexes(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);
         }
 
-        if (Pathnames.runIndexBuild) {
+        if (runIndexBuild) {
             SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
             searchEngine.buildIndexes(Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
         }
 
+        logger.info("Submission id is: " + submissionId);
         logger.info("Executing in " + mode + " mode");
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks(mode, submissionId);    // this is the external analytic tasks file
 
-        /*
-         * We can be executing in one of 3 modes: AUTO, AUTO-HITL, or HITL.
-         * Processing is a little different in each mode, but the differences are hidden inside
-         * the query formulators. The caller passes in the mode through the task set file.
-         * The input analytic tasks file should be different for AUTO vs the other 2 modes:
-         * the AUTO file should not have anything for the fields like Task Narrative and
-         * Request Text. Those are only provided in AUTO-HITL and HITL modes.
-         * In HITL mode, noun phrases and sentences that have been judged by a human are passed in and used.
-         * Once we know the mode, we select the 2 query formulators created for that mode.
-         * (There are separate query formulators for the creation of Task-level queries and
-         * Request-level queries, in the two-stage model.)
-         */
-
         eventExtractor = new EventExtractor(tasks, mode, submissionId);
 
-        if (Pathnames.runPreTrain) {
+        if (runPreTrain) {
             eventExtractor.preTrainEventAnnotator();
         }
 
-        if (Pathnames.runGetIEFromFile) {
-            eventExtractor.annotateProvidedFileEvents("arabic");  // TBD: make this work with multiple languages
-        } else if (Pathnames.runGetPhrases) {
+        if (runGetIEFromFile) {
+            eventExtractor.annotateProvidedFileEvents();
+        } else if (runGetPhrases) {
             getPhrases();
-        } else if (Pathnames.runGetCandidateDocs) {
+        } else if (runGetCandidateDocs) {
             doSearch("", Pathnames.getCandidateDocsQueryFormulatorDockerImage);
         }
-        else if (Pathnames.runSearch) {
+        else if (runSearch) {
             Pathnames.ProcessingModel processingModel = getProcessingModel();
             if (processingModel == Pathnames.ProcessingModel.TWO_STEP) {
                 doSearch(Pathnames.taskLevelQueryFormulatorDockerImage, Pathnames.requestLevelQueryFormulatorDockerImage);
@@ -734,7 +739,7 @@ public class TasksRunner {
         }
         logger.info("PROCESSING COMPLETE");
 
-        for(Handler h:logger.getHandlers())
+        for(Handler h : logger.getHandlers())
         {
             h.close();   //must call h.close or a .LCK file will remain.
         }

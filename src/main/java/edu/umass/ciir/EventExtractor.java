@@ -324,8 +324,7 @@ public class EventExtractor {
 
             String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
                     + sudo
-                    + " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                    + " MODELS_BASE_DIR_FARSI=" + Pathnames.MODELS_BASE_DIR_FARSI
+                    + " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
                     + " APP_DIR=" + Pathnames.appFileLocation
                     + " MODE=" + mode
                     + " SUBMISSION_ID=" + submissionId
@@ -422,13 +421,12 @@ public class EventExtractor {
     }
 
 
-    public void annotateProvidedFileEvents(String language) {
+    public void annotateProvidedFileEvents() {
         logger.info("Calling event annotator for test_data.bp.json file");
 
         String script = "./annotate_provided_file.sh";
         String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
-        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                + trainingDirs
+        String environmentVars = trainingDirs
                 + " APP_DIR=" + Pathnames.appFileLocation
                 + " MODE=" + mode
                 + " SUBMISSION_ID=" + submissionId
@@ -466,8 +464,7 @@ public class EventExtractor {
     public void annotateRequestDocEvents() {
         String script = "./annotate_request_docs.sh";
         String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
-        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                    + " " + trainingDirs
+        String environmentVars = trainingDirs
                     + " MODE=" + mode
                     + " SUBMISSION_ID=" + submissionId
                     + " APP_DIR=" + Pathnames.appFileLocation
@@ -484,8 +481,7 @@ public class EventExtractor {
     public void annotateTaskDocEvents() {
         String script = "./annotate_task_docs.sh";
         String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
-        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                    + " " + trainingDirs
+        String environmentVars = trainingDirs
                     + " MODE=" + mode
                     + " SUBMISSION_ID=" + submissionId
                     + " APP_DIR=" + Pathnames.appFileLocation
@@ -498,8 +494,7 @@ public class EventExtractor {
     public void preTrainEventAnnotator() {
         logger.info("PRE-TRAINING: Pre-training the event annotator");
         String script = "./pretrain.sh";
-        String environmentVars = " MODELS_BASE_DIR_ENGLISH=" + Pathnames.MODELS_BASE_DIR_ENGLISH
-                + " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
+        String environmentVars = " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
                 + " APP_DIR=" + Pathnames.appFileLocation
                 + " SUBMISSION_ID=" + submissionId
                 + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
