@@ -21,35 +21,49 @@ public class NeuralQueryProcessorDocker  {
         this.submissionId = submissionId;
     }
 
-    public void callDockerImage() {
+    public void buildIndex() {
+        callDockerImage("runit_indexbuild.sh");
+    }
+
+    public void search() {
+        callDockerImage("runit_retrieval.sh");
+    }
+
+    public void callDockerImage(String script) {
         try {
             String dockerImageName = Pathnames.neuralQueryProcessorDockerImage;
             String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
+// doesn't seem to work at Mitre:            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+            String gpu_parm = " --gpus 1";
+
+            String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
             String command = sudo + " docker run --rm"
                     + gpu_parm
                     + " --env MODE=" + mode
-                    + " --env INPUTFILE=" + analyticTasksInfoFilename
-                    /* For each directory that we want to share between this parent docker container (TasksRunner)
-                     and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
-                     in an environment variable, and we make that path a bind-volume so the child container
-                     can actually access it.
-                     */
-                    + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation
+                    + " --env DEVICE=" + deviceParm
+                    + " --env NUM_CPU=8 --env TOPK=100"
+
+                    + " --env TASK_FILE=" + /*Pathnames.eventExtractorFileLocation + */ analyticTasksInfoFilename
                     + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
-                    + " --env corpusFileLocation=" + Pathnames.corpusFileLocation + "/"
-                    + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
-                    + " --env targetCorpusFileName=" + Pathnames.targetCorpusFileName
-                    + " --env runFileLocation=" + Pathnames.runFileLocation + "/"
+                    + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
+
+                    + " --env RUNFILE_DIR=" + Pathnames.runFileLocation
                     + " -v " + Pathnames.runFileLocation + ":" + Pathnames.runFileLocation
 
+                    + " --env NEURAL_FILES_DIR=" + Pathnames.neuralFilesLocation
+                    + " -v " + Pathnames.neuralFilesLocation + ":" + Pathnames.neuralFilesLocation
+
+                    + " --env logFileLocation=" + Pathnames.logFileLocation
+                    + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
+
+                    + " --env CORPUS_FILE=" + Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName
+                    + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
+
                     + " " + dockerImageName
-                    + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + submissionId + ".neural-docker-program.out";
+                    + " sh -c ./" + script;
+            String logFile = Pathnames.logFileLocation + submissionId + ".neural-docker-program." + script + ".out";
             String tempCommand = command + " >& " + logFile;
 
             logger.info("Executing this command: " + tempCommand);

@@ -1,6 +1,5 @@
 package edu.umass.ciir;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -19,13 +18,25 @@ public class TasksRunner {
     private AnalyticTasks tasks;
     private String mode;
     private String submissionId;
-    private boolean runIndexBuild = false;
-    private boolean runEnglishIndexBuild = false;
-    private boolean runPreTrain = false;
-    private boolean runGetIEFromFile = false;
-    private boolean runGetPhrases = false;
-    private boolean runGetCandidateDocs = false;
-    private boolean runSearch = false;
+//    private boolean runIndexBuild = false;
+//    private boolean runEnglishIndexBuild = false;
+//    private boolean runPreTrain = false;
+//    private boolean runGetIEFromFile = false;
+//    private boolean runGetPhrases = false;
+//    private boolean runGetCandidateDocs = false;
+//    private boolean runSearch = false;
+//    private boolean runNeuralIndexing = false;
+    public enum Action {
+        INDEX_BUILD,
+        ENGLISH_INDEX_BUILD,
+        PRETRAIN,
+        GET_IE_FROM_FILE,
+        GET_PHRASES,
+        GET_CANDIDATE_DOCS,
+        SEARCH,
+        NEURAL_INDEX_BUILD
+    }
+    private final Set<Action> actions = new HashSet<>();
 
     /**
      * Configures the logger for this program.
@@ -102,55 +113,59 @@ public class TasksRunner {
             submissionId = submissionId.replace(" ", "_");
             JSONObject taskSetJSON = (JSONObject) topLevelJSON.get("task-set");
 
-            runPreTrain = false;
             if (Pathnames.skipPretrain) {
                 logger.info("Skipping IE pre-training");
             } else {
                 File f = new File(Pathnames.MODELS_BASE_DIR);
                 if (!f.exists()) {
                     logger.info(Pathnames.MODELS_BASE_DIR + " does not exist, so we will run IE pre-training");
-                    runPreTrain = true;
+                    actions.add(Action.PRETRAIN);
                 } else {
                     logger.info(Pathnames.MODELS_BASE_DIR + " already exists, so we will NOT run IE pre-training");
                 }
             }
 
-            runIndexBuild = false;
             if (Pathnames.skipIndexBuild) {
                 logger.info("Skipping target index build");
             } else {
                 if ((SearchEngineInterface.getTargetLanguages().size() == 0)) {
                     logger.info("Target indexes do not exist, so we will build them");
-                    runIndexBuild = true;
+                    actions.add(Action.INDEX_BUILD);
                 } else {
                     logger.info("Target indexes already exist, so we will NOT build them");
                 }
             }
 
-            runEnglishIndexBuild = false;
+            if (Pathnames.skipNeuralIndexBuild) {
+                logger.info("Skipping neural index build");
+            } else {
+                File f = new File(Pathnames.neuralFilesLocation + "0.pt");
+                if (!f.exists()) {
+                    logger.info(Pathnames.neuralFilesLocation + "0.pt" + " does not exist, so we will build the neural index");
+                    actions.add(Action.NEURAL_INDEX_BUILD);
+                } else {
+                    logger.info(Pathnames.neuralFilesLocation + "0.pt" + " already exists, so we will NOT build the neural index");
+                }
+            }
+
 /*
             if (!(SearchEngineInterface.englishIndexExists())) {
                 logger.info("English index does not exist, so we will build the English index");
-                runEnglishIndexBuild = true;
+                actions.add(Action.ENGLISH_INDEX_BUILD);
             } else {
                 logger.info("English index already exists, so we will NOT build the English index");
             }
 */
-
-            /* Now the following are mutually exclusive operations */
-            runSearch = false;
-            runGetIEFromFile = false;
-            runGetPhrases = false;
-            runGetCandidateDocs = false;
             Pathnames.IEAllowed = true;
 
+            /* The following are mutually exclusive search operations */
             while (true) {
                 if (taskSetJSON.containsKey("extract-basic-events")) {
                     JSONObject extractBasicEventsJSON = (JSONObject) taskSetJSON.get("extract-basic-events");
                     Boolean perform = (Boolean) extractBasicEventsJSON.get("perform?");
                     if (perform) {
                         logger.info("extract-basic-events perform true");
-                        runGetIEFromFile = true;
+                        actions.add(Action.GET_IE_FROM_FILE);
                         break;
                     }
                 }
@@ -159,7 +174,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "AUTO";
-                        runSearch = true;
+                        actions.add(Action.SEARCH);
                         if (findRelevantDocsJSON.containsKey("ie-allowed")) {
                             Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
                         }
@@ -171,7 +186,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "AUTO-HITL";
-                        runSearch = true;
+                        actions.add(Action.SEARCH);
                         if (findRelevantDocsJSON.containsKey("ie-allowed")) {
                             Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
                         }
@@ -183,7 +198,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
-                        runSearch = true;
+                        actions.add(Action.SEARCH);
                         if (findRelevantDocsJSON.containsKey("ie-allowed")) {
                             Pathnames.IEAllowed = (boolean) findRelevantDocsJSON.get("ie-allowed");
                         }
@@ -195,7 +210,7 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
-                        runGetCandidateDocs = true;
+                        actions.add(Action.GET_CANDIDATE_DOCS);
                         //Pathnames.targetLanguageIsEnglish = true;
                         //Pathnames.targetLanguage = Pathnames.Language.ENGLISH;
                         break;
@@ -206,11 +221,12 @@ public class TasksRunner {
                     boolean perform = (boolean) findRelevantDocsJSON.get("perform?");
                     if (perform) {
                         mode = "HITL";
-                        runGetPhrases = true;
+                        actions.add(Action.GET_PHRASES);
                         break;
                     }
                 }
-                if (!(runGetPhrases || runSearch || runGetIEFromFile || runGetCandidateDocs)) {
+                if (!(actions.contains(Action.GET_PHRASES) || actions.contains(Action.SEARCH)
+                      || actions.contains(Action.GET_IE_FROM_FILE) || actions.contains(Action.GET_CANDIDATE_DOCS))) {
                     logger.info("No operation to do in tasks.json");
                     throw new TasksRunnerException("No operation specified in tasks.json");
                 }
@@ -298,16 +314,6 @@ public class TasksRunner {
 
     }
 
-    private void neuralProcessingModel() {
-        logger.info("NEURAL PROCESSING MODE: Building and executing queries");
-        NeuralQueryProcessorDocker docker = new NeuralQueryProcessorDocker(submissionId, mode, tasks);
-        docker.callDockerImage();
-    }
-
-    public List<SearchHit> getSearchHits() {
-        return eventExtractor.getSearchHits();
-    }
-
     private void getPhrases() {
         annotateExampleDocs();
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators
@@ -322,7 +328,7 @@ public class TasksRunner {
 
     private Pathnames.ProcessingModel getProcessingModel() {
         Pathnames.ProcessingModel processingModel = Pathnames.processingModel;
-        if (runGetCandidateDocs) {  // force one-step model
+        if (actions.contains(Action.GET_CANDIDATE_DOCS)) {  // force one-step model
             processingModel = Pathnames.ProcessingModel.ONE_STEP;
         }
         return processingModel;
@@ -339,17 +345,19 @@ public class TasksRunner {
             logger.info("Executing the Request queries, using the Task-level indexes");
             qf.executeRequestQueries(Pathnames.RESULTS_CAP);
         } else {
-            if (runGetCandidateDocs) {
+            if (actions.contains(Action.GET_CANDIDATE_DOCS)) {
                 qf.execute(10);
             } else {
                 qf.execute(Pathnames.RESULTS_CAP);
             }
         }
 
+/*
         if (Pathnames.doRequestLevelEvaluation) {
             logger.info("Evaluating Request-level hits");
             Map<String, Double> rstats = qf.evaluate("RAW");  // before reranking is called "RAW"
         }
+*/
 
         /* Extract events from the request-level scoredHits, to use when re-ranking the request-level results */
         qf.createInputFileForEventExtractorFromRequestHits();
@@ -375,16 +383,19 @@ public class TasksRunner {
         qf.createInputForEventExtractorFromTaskHits();
         */
 
+/*
         if (Pathnames.doTaskLevelEvaluation) {
             logger.info("Evaluating the task-level results");
             Map<String, QueryManager.EvaluationStats> tstats = qf.evaluateTaskLevel();
         }
+*/
 
         logger.info("Building a separate index for each task's top scoredHits");
         qf.buildTaskLevelIndexes();
     }
 
-    private void addRankedListForLanguage(String fileName, String language, Map<String, Map<String, Map<String, List<ScoredHit>>>> tasks) {
+    private void addRankedListForLanguage(String fileName, String language, Map<String, Map<String, Map<String,
+            List<ScoredHit>>>> tasks) {
         File f = new File(fileName);
         if (!f.exists()) {
             throw new TasksRunnerException("No reranked run file for language " + language + "!");
@@ -593,10 +604,12 @@ public class TasksRunner {
             logger.info("Reranking");
             qf.rerank();
             // Evaluate the (reranked) request-level results (they are saved into a file as a side effect)
+/*
             if (Pathnames.doRequestLevelEvaluation) {
                 logger.info("Evaluating the Request-level hits");
                 Map<String, Double> rstats = qf.evaluate("RERANKED");
             }
+*/
         }
         filesToMerge.add(qf.getRerankedRunFileName());
     }
@@ -616,7 +629,6 @@ public class TasksRunner {
                 reader.close();
                 writer.close();
             } else {
-                int score = 2000;
                 Map<String, List<Queue<String>>> requestRankedLists = new HashMap<>();
                 for (String fileName : filesToMerge) {
                     BufferedReader reader = new BufferedReader(new FileReader(fileName));
@@ -676,8 +688,7 @@ public class TasksRunner {
         String[] tokens = line.split(" ");
         String thisRequestNum = tokens[0];
         String docno = tokens[2];
-        String newLine = thisRequestNum + " Q0 " + docno + " " + index + " " + (2000 - index) + " CLEAR";
-        return newLine;
+        return thisRequestNum + " Q0 " + docno + " " + index + " " + (2000 - index) + " CLEAR";
     }
     /**
      * Executes the analytic tasks file: generates queries for the Tasks and Requests,
@@ -696,43 +707,47 @@ public class TasksRunner {
     void process()  {
 
         setupLogging();
-
-        if (runEnglishIndexBuild) {
-            SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
-            searchEngine.buildIndexes(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);
-        }
-
-        if (runIndexBuild) {
-            SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
-            searchEngine.buildIndexes(Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
-        }
-
         logger.info("Submission id is: " + submissionId);
         logger.info("Executing in " + mode + " mode");
+
+        if (actions.contains(Action.ENGLISH_INDEX_BUILD)) {
+            SearchEngineInterface.getSearchEngine().buildIndexes(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);
+        }
+
+        if (actions.contains(Action.INDEX_BUILD)) {
+            SearchEngineInterface.getSearchEngine().buildIndexes(Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName);
+        }
+
+        if (actions.contains(Action.NEURAL_INDEX_BUILD)) {
+            logger.info("Building the neural index");
+            new NeuralQueryProcessorDocker(submissionId, mode, tasks).buildIndex();
+        }
+
         logger.info("Opening the analytic task file, expanding example docs");
         tasks = new AnalyticTasks(mode, submissionId);    // this is the external analytic tasks file
 
         eventExtractor = new EventExtractor(tasks, mode, submissionId);
 
-        if (runPreTrain) {
+        if (actions.contains(Action.PRETRAIN)) {
             eventExtractor.preTrainEventAnnotator();
         }
 
-        if (runGetIEFromFile) {
+        if (actions.contains(Action.GET_IE_FROM_FILE)) {
             eventExtractor.annotateProvidedFileEvents();
-        } else if (runGetPhrases) {
+        } else if (actions.contains(Action.GET_PHRASES)) {
             getPhrases();
-        } else if (runGetCandidateDocs) {
+        } else if (actions.contains(Action.GET_CANDIDATE_DOCS)) {
             doSearch("", Pathnames.getCandidateDocsQueryFormulatorDockerImage);
         }
-        else if (runSearch) {
+        else if (actions.contains(Action.SEARCH)) {
             Pathnames.ProcessingModel processingModel = getProcessingModel();
             if (processingModel == Pathnames.ProcessingModel.TWO_STEP) {
                 doSearch(Pathnames.taskLevelQueryFormulatorDockerImage, Pathnames.requestLevelQueryFormulatorDockerImage);
             } else if (processingModel == Pathnames.ProcessingModel.ONE_STEP) {
                 doSearch("", Pathnames.requestLevelQueryFormulatorDockerImage);
             } else if (processingModel == Pathnames.ProcessingModel.NEURAL) {
-                neuralProcessingModel();
+                logger.info("NEURAL PROCESSING MODE: Building and executing queries");
+                new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
             } else {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }

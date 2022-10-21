@@ -214,6 +214,10 @@ public class QueryManager {
                     + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
                     + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
                     + " --env NUM_CPU=8 --env TOPK=100"
+                    + " --env RUNFILE=" + runFileName
+                    + " -v " + Pathnames.runFileLocation + ":" + Pathnames.runFileLocation
+                    + " --env CORPUS_FILE=" + Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName
+                    + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
 
                     + " " + dockerImageName
                     + " sh -c ./runit.sh";
@@ -1379,6 +1383,46 @@ public class QueryManager {
         return runs;
     }
 
+    private class RrmHit {
+        public String docid;
+        public Double score;
+        RrmHit(String docid, Double score) {
+            this.docid = docid;
+            this.score = score;
+        }
+        RrmHit(RrmHit other) {
+            this.docid = other.docid;
+            this.score = other.score;
+        }
+    }
+
+    private Map<String, List<RrmHit>> reciprocalRankMerge(List<Run> runs) {
+        Map<String, List<RrmHit>> requestHits = new HashMap<>();
+        for (String requestNum : tasks.getRequestIDs()) {
+            Map<String, Double> sums = new HashMap<>();
+            for (Run run : runs) {
+                if (run.requestRuns.containsKey(requestNum)) {
+                    List<ScoredHit> hits = run.requestRuns.get(requestNum).scoredHits;
+                    int rank = 1;
+                    for (ScoredHit hit : hits) {
+                        sums.merge(hit.docid, (1.0 / 60 + rank), Double::sum);
+                        ++rank;
+                    }
+                }
+            }
+            List<RrmHit> hitList = new ArrayList<>();
+            for (Map.Entry<String, Double> entry : sums.entrySet()) {
+                hitList.add(new RrmHit(entry.getKey(), entry.getValue()));
+            }
+            Collections.sort(hitList, (lhs, rhs) -> {
+                // -1 - less than, 1 - greater than, 0 - equal, inverted to get descending
+                return lhs.score > rhs.score ? -1 : (lhs.score < rhs.score ? 1 : 0);
+            });
+            requestHits.put(requestNum, hitList);
+        }
+        return requestHits;
+    }
+
     private Map<String, List<ScoredHit>> mergeRequestHits(List<Run> runs) {
         Map<String, List<ScoredHit>> requestHits = new HashMap<>();
         for (String requestNum : tasks.getRequestIDs()) {
@@ -1459,4 +1503,35 @@ public class QueryManager {
             }
         }
 
+    private void writeRrmHitsToMergedRunFile(Map<String, List<RrmHit>> requestHits, PrintWriter writer) {
+        for (Map.Entry<String, List<RrmHit>> entry : requestHits.entrySet()) {
+            String requestNum = entry.getKey();
+            List<RrmHit> hits = entry.getValue();
+            int rank = 1;
+            for (RrmHit hit : hits) {
+                writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " " + (2000 - rank) + " CLEAR");
+                if (rank > 1000) {
+                    break;
+                }
+            }
+        }
+        writer.close();
     }
+
+    public void reciprocalRankMergeRerankedRunFiles(List<String> filesToMerge) {
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));
+            if (filesToMerge.size() == 1) {
+                /* No merge is needed */
+                copySingleRunFileToMergedRunFile(filesToMerge.get(0),
+                        Pathnames.runFileLocation + submissionId + ".FINAL.out");
+            } else {
+                writeRrmHitsToMergedRunFile(reciprocalRankMerge(readRunFiles(filesToMerge)), writer);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+}

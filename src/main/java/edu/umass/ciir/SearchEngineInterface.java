@@ -22,22 +22,22 @@ public interface SearchEngineInterface {
     static String toCanonicalForm(String rawLanguage) {
         rawLanguage = rawLanguage.toLowerCase(Locale.ROOT);
         switch (rawLanguage) {
-            case "ar":
+            case "ar": case "arabic":
                 rawLanguage = "arabic";
                 break;
             case "ko": case "kor":
                 rawLanguage = "korean";
                 break;
-            case "fa":
+            case "fa": case "farsi":
                 rawLanguage = "farsi";
                 break;
             case "zh": case "zho":
                 rawLanguage = "chinese";
                 break;
-            case "ru": case "rus":
+            case "ru": case "rus": case "russian":
                 rawLanguage = "russian";
                 break;
-            case "en": case "eng":
+            case "en": case "eng": case "english":
                 rawLanguage = "english";
                 break;
             default:

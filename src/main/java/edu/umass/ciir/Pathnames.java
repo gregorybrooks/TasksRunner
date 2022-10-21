@@ -34,6 +34,7 @@ public class Pathnames {
     public static boolean skipIndexBuild = false;
     public static boolean skipExampleDocAnnotation = false;
     public static boolean skipRequestDocAnnotation = false;
+    public static boolean skipNeuralIndexBuild = false;
 
     public static boolean includeEventsInFinalResults = false;
     public static boolean checkForSudo = true;
@@ -60,6 +61,7 @@ public class Pathnames {
     public static String queryFileLocation = scratchFileLocation + "queryfiles/";
     public static String logFileLocation = scratchFileLocation + "logfiles/";
     public static String indexLocation = scratchFileLocation + "indexes/";
+    public static String neuralFilesLocation = scratchFileLocation + "indexes/neural/";
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
     public static String anseriniLocation = scratchFileLocation + "galago/bin/";
     public static String galagoBaseLocation = scratchFileLocation + "galago";
@@ -181,6 +183,7 @@ public class Pathnames {
         RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "10"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "false").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
+        skipNeuralIndexBuild = (getFromEnv("skipNeuralIndexBuild", "false").equals("true"));
         skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
         skipRequestDocAnnotation = (getFromEnv("skipAnnotateRequestDocs", "false").equals("true"));
         skipPretrain = (getFromEnv("skipPretrain", "true").equals("true"));
@@ -247,6 +250,8 @@ public class Pathnames {
                 scratchFileLocation + "qrelfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
+        neuralFilesLocation = ensureTrailingSlash(getFromEnv("neuralFilesLocation",
+                scratchFileLocation + "indexes/neural/"));
 
         galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
                 "/home/tasksrunner/galago/bin/"));
