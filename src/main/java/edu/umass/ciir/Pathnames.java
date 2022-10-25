@@ -53,6 +53,7 @@ public class Pathnames {
     public static String getCandidateDocsQueryFormulatorDockerImage = "";
     public static String getPhrasesQueryFormulatorDockerImage = "";
     public static String rerankerDockerImage = "";
+    public static String reranker2DockerImage = "";
 
     public static String tempFileLocation = scratchFileLocation + "tmp/";
     public static String runFileLocation = scratchFileLocation + "runfiles/";
@@ -238,6 +239,12 @@ public class Pathnames {
                 "");
         if (rerankerDockerImage.length() > 0) {
             checkDockerImage(rerankerDockerImage);
+        }
+
+        reranker2DockerImage = getFromEnv("reranker2DockerImage",
+                "");
+        if (reranker2DockerImage.length() > 0) {
+            checkDockerImage(reranker2DockerImage);
         }
 
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",

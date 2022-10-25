@@ -459,7 +459,7 @@ public class TasksRunner {
             addRankedListForLanguage(Pathnames.runFileLocation + submissionId + "."
                     + language + ".Request.RERANKED.out", SearchEngineInterface.toThreeCharForm(language), tasks);
         }
-        addRankedListForLanguage(Pathnames.runFileLocation + submissionId + ".FINAL.out", "combined",
+        addRankedListForLanguage(Pathnames.runFileLocation + submissionId + ".DPR_Baseline_E2E.out", "combined",
                 tasks);
 
         /* Now write the info to the output file */
@@ -555,10 +555,19 @@ public class TasksRunner {
 
         logger.info("Merging multiple language's ranked runfiles into one");
         mergeRerankedRunFiles(filesToMerge);  // round robin merging
-        /* or do merging by score instead of round robin:
-        QueryManager qf = new QueryManager(submissionId, null, mode, tasks, null, eventExtractor);
-        qf.mergeRerankedRunFiles2(filesToMerge);
-         */
+
+        logger.info("Second reranking");
+        QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
+        qf.rerank2();
+
+        logger.info("Merging DPR with Baseline");
+        qf.mergeDPR_Baseline();
+
+        logger.info("Executing neural search");
+        new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
+
+        logger.info("Merging DPR+Baseline with E2E");
+        qf.mergeDPR_Baseline_E2E();
 
         logger.info("Output the final file");
         writeFinalResultsFile();

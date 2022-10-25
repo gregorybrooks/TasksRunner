@@ -194,9 +194,8 @@ public class QueryManager {
     /* vars needed by the Docker version of the reranker:
     $TASK_FILE $DATA_DIR $QLANG $DLANG $RUNFILE_MASK $DEVICE $NUM_CPU $TOPK $OUTPUT_DIR
     */
-    public void callReranker(String currentRunFile, String outputFileName) {
+    public void callReranker(String dockerImageName, String currentRunFile, String outputFileName) {
         try {
-            String dockerImageName = Pathnames.rerankerDockerImage;
             String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
             String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
@@ -522,13 +521,35 @@ public class QueryManager {
     }
 
     public void rerank() {
-        callReranker(runFileName, rerankedRunFile);
+        callReranker(Pathnames.rerankerDockerImage, runFileName, rerankedRunFile);
         // Refresh the in-memory runfile data
         run = new Run(rerankedRunFile);
     }
 
+    public void rerank2() {
+        runFileName = Pathnames.runFileLocation + submissionId + ".FINAL.out";
+        callReranker(Pathnames.reranker2DockerImage, Pathnames.runFileLocation + submissionId + ".FINAL.out",
+                Pathnames.runFileLocation + submissionId + ".DPR.out");
+        // Refresh the in-memory runfile data
+        run = new Run(Pathnames.runFileLocation + submissionId + ".DPR.out");
+    }
+
     private static void copyFile(File source, File dest) throws IOException {
         Files.copy(source.toPath(), dest.toPath(), REPLACE_EXISTING);
+    }
+
+    public void mergeDPR_Baseline() {
+        List<String> filesToMerge = new ArrayList<>();
+        filesToMerge.add(Pathnames.runFileLocation + submissionId + ".DPR.out");
+        filesToMerge.add(Pathnames.runFileLocation + submissionId + ".FINAL.out");
+        reciprocalRankMergeRerankedRunFiles(filesToMerge, Pathnames.runFileLocation + submissionId + ".DPR_Baseline.out");
+    }
+
+    public void mergeDPR_Baseline_E2E() {
+        List<String> filesToMerge = new ArrayList<>();
+        filesToMerge.add(Pathnames.runFileLocation + submissionId + ".DPR_Baseline.out");
+        filesToMerge.add(Pathnames.runFileLocation + "hint_e2e.run");
+        reciprocalRankMergeRerankedRunFiles(filesToMerge, Pathnames.runFileLocation + submissionId + ".DPR_Baseline_E2E.out");
     }
 
     public void copyRunFileToRerankedRunFile() {
@@ -1405,7 +1426,7 @@ public class QueryManager {
                     List<ScoredHit> hits = run.requestRuns.get(requestNum).scoredHits;
                     int rank = 1;
                     for (ScoredHit hit : hits) {
-                        sums.merge(hit.docid, (1.0 / 60 + rank), Double::sum);
+                        sums.merge(hit.docid, (1.0 / (60 + rank)), Double::sum);
                         ++rank;
                     }
                 }
@@ -1518,10 +1539,10 @@ public class QueryManager {
         writer.close();
     }
 
-    public void reciprocalRankMergeRerankedRunFiles(List<String> filesToMerge) {
+    public void reciprocalRankMergeRerankedRunFiles(List<String> filesToMerge, String outFile) {
         try {
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                    new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));
+                    new FileOutputStream(outFile)));
             if (filesToMerge.size() == 1) {
                 /* No merge is needed */
                 copySingleRunFileToMergedRunFile(filesToMerge.get(0),
