@@ -8,7 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$SCRIPT_DIR"
 
 DOCKER_IMAGE_PREFIX="${DOCKER_IMAGE_PREFIX:-better}"
-DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG:-20220725}"
+DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG:-20221010-UMASS}"
 
 # Input data is stored in this directory. Output also will be written here.
 # Make sure the user specified below has read/write access to this directory.
@@ -42,7 +42,7 @@ MODELS_BASE_DIR="${MODELS_BASE_DIR:-false}"
 ISI_HOME=/home/isi
 
 # Flags passed to Docker.
-ADDITIONAL_FLAGS="--env-file=${ENV_FILE} --env BETTER_PATH=${BETTER_PATH}"
+ADDITIONAL_FLAGS="--rm --env-file=${ENV_FILE} --env BETTER_PATH=${BETTER_PATH}"
 ADDITIONAL_FLAGS+=" --env TEST_LANG=${TEST_LANG}"
 ADDITIONAL_FLAGS+=" --env ISI_HOME=${ISI_HOME}"
 ADDITIONAL_FLAGS+=" --env PYTHONIOENCODING=utf8"
@@ -57,8 +57,7 @@ ADDITIONAL_FLAGS+=" --gpus 1"
 
 #ADDITIONAL_FLAGS+=" --user $(id -u):$(id -g) "
 # User and group ID of the Mitre evaluation environment.
-ADDITIONAL_FLAGS+=" --user 1002:1002"
-#ADDITIONAL_FLAGS+=" --user 32241:32241"
+#ADDITIONAL_FLAGS+=" --user 1002:1002"
 
 # The list of stages is in doc/development.md.
 CURRENT_STAGE=""
@@ -75,7 +74,6 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 1. INGEST ----------------"
         CURRENT_STAGE="ingest"
         STARTED="true"
-	echo ${DOCKER_IMAGE_PREFIX}-json-converter:$DOCKER_IMAGE_TAG
         time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/ingest.sh \
              ${DOCKER_IMAGE_PREFIX}-json-converter:$DOCKER_IMAGE_TAG

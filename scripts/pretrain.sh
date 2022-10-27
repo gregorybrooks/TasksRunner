@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ve
 
-SIZE=$1
+#SIZE=$1
 
 #mkdir -p ${MODELS_BASE_DIR_ENGLISH}
 mkdir -p ${MODELS_BASE_DIR}
@@ -14,9 +14,9 @@ cp ${APP_DIR}/ir-tasks.json ${APP_DIR}/train_ir_data.json
 
 echo `date`
 
-if [ $SIZE = "SMALL" ]; then
-    cp variables.env.FARSI.SMALL variables.env.FARSI
-fi
+#if [ $SIZE = "SMALL" ]; then
+#    cp variables.env.FARSI.SMALL variables.env.FARSI
+#fi
 
 # pre-training for English is not needed
 #cp english_dummy_test_data.bp.json ${APP_DIR}/test_data.bp.json
@@ -24,7 +24,7 @@ fi
 
 echo `date`
 
-cp farsi_dummy_test_data.bp.json ${APP_DIR}/test_data.bp.json
+cp test_data.bp.json ${APP_DIR}/test_data.bp.json
 MODELS_BASE_DIR=${MODELS_BASE_DIR} APP_DIR=${APP_DIR} BETTER_PATH=BASIC-A ./run_ie.sh
 
 echo `date`

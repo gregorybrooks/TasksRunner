@@ -6,22 +6,25 @@ import java.util.List;
 public class ExampleDocument {
     private String docid;
     private String docText;
+    private String eventsAsSentences;
     private List<String> highlights;
     private List<Event> events;
     private List<SentenceRange> sentences;
 
-    ExampleDocument(String docid, String docText, List<SentenceRange> sentences) {
+    ExampleDocument(String docid, String docText, List<SentenceRange> sentences, String eventsAsSentences) {
         this.highlights = new ArrayList<>();
         this.sentences = new ArrayList<>(sentences);
         this.docid = docid;
         this.docText = docText;
+        this.eventsAsSentences = eventsAsSentences;
     }
 
-    ExampleDocument(String docid, String docText, List<String> highlights, List<SentenceRange> sentences) {
+    ExampleDocument(String docid, String docText, List<String> highlights, List<SentenceRange> sentences, String eventsAsSentences) {
         this.highlights = new ArrayList<>(highlights);
         this.sentences = new ArrayList<>(sentences);
         this.docid = docid;
         this.docText = docText;
+        this.eventsAsSentences = eventsAsSentences;
     }
 
     ExampleDocument(String docid) {
@@ -36,6 +39,7 @@ public class ExampleDocument {
     ExampleDocument(ExampleDocument other) {
         this.docid = other.docid;
         this.docText = other.docText;
+        this.eventsAsSentences = other.eventsAsSentences;
         this.highlights = new ArrayList<>(other.highlights);
         this.sentences = new ArrayList<>(other.sentences);
     }
@@ -46,6 +50,10 @@ public class ExampleDocument {
 
     public String getDocText() {
         return docText;
+    }
+
+    public String getEventsAsSentences() {
+        return eventsAsSentences;
     }
 
     public List<String> getHighlights() {

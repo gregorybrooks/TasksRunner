@@ -4,9 +4,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class Event /*implements JSONAware*/ {
@@ -54,6 +52,63 @@ public class Event /*implements JSONAware*/ {
             eventList.add(event);
         }
         return eventList;
+    }
+
+    public static String getEventsAsSentencesFromJSON(JSONObject jsonBasicEvents, String docid) {
+        String eventsAsString = "";
+        Map<String, SpanSet> spansMap = new HashMap<>();
+
+        if (!jsonBasicEvents.containsKey("span-sets") || !jsonBasicEvents.containsKey("events")) {
+            return eventsAsString;
+        }
+
+        JSONObject spanSets = (JSONObject) jsonBasicEvents.get("span-sets");
+        for (Iterator iterator3 = spanSets.keySet().iterator(); iterator3.hasNext(); ) {
+            String key3 = (String) iterator3.next();
+            JSONObject spanSet = (JSONObject) spanSets.get(key3);
+            String ssid = docid + "--" + (String) spanSet.get("ssid");
+            SpanSet ss = new SpanSet(docid, ssid);
+            JSONArray spans = (JSONArray) spanSet.get("spans");
+            for (Object oSpan : spans) {
+                JSONObject span = (JSONObject) oSpan;
+                String string = (String) span.get("string");
+                long start = (long) span.get("start");
+                long end = (long) span.get("end");
+                Span s = new Span("", string, start, end, "", 0, 0);
+                ss.spans.add(s);
+            }
+            spansMap.put(ssid, ss);
+        }
+
+        JSONObject eventsToParse = (JSONObject) jsonBasicEvents.get("events");
+        for (Iterator iterator2 = eventsToParse.keySet().iterator(); iterator2.hasNext(); ) {
+            String key2 = (String) iterator2.next();
+            JSONObject event = (JSONObject) eventsToParse.get(key2);
+            String eventid = (String) event.get("eventid");
+            String eventType = (String) event.get("event-type");
+            String anchor = spansMap.get(docid + "--" + ((String) event.get("anchors"))).spans.get(0).string;
+            List<String> agentList = new ArrayList<>();
+            JSONArray agents = (JSONArray) event.get("agents");
+            for (Object oAgent : agents) {
+                String agent = (String) oAgent;
+                agentList.add(spansMap.get(docid + "--" + agent).spans.get(0).string);
+            }
+            List<String> patientList = new ArrayList<>();
+            JSONArray patients = (JSONArray) event.get("patients");
+            for (Object oPatient : patients) {
+                String patient = (String) oPatient;
+                patientList.add(spansMap.get(docid + "--" + patient).spans.get(0).string);
+            }
+            for (String agent : agentList) {
+                eventsAsString += (agent + " ");
+            }
+            eventsAsString += (anchor + " ");
+            for (String patient : patientList) {
+                eventsAsString += (patient + " ");
+            }
+            eventsAsString += ". ";
+        }
+        return eventsAsString;
     }
 
     public static JSONArray getEventsJSON(List<Event> events) {

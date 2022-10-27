@@ -77,11 +77,26 @@ public class Request {
                         sentences.add(new SentenceRange((int) id, (int) start, (int) end, sentence));
                     }
                 }
+                String eventsAsSentences = "";
+                if (reqDoc.containsKey("annotation-sets")) {
+                    JSONObject jsonAnnotationSets = (JSONObject) reqDoc.get("annotation-sets");
+                    if (jsonAnnotationSets.containsKey("basic-events")) {
+                        JSONObject jsonBasicEvents = (JSONObject) jsonAnnotationSets.get("basic-events");
+                        if (Pathnames.IEAllowed) {
+                            // Construct a set of sentences from the Mitre-provided events for this document
+                            // and save them to be added to the doc text later, when example docs are expanded
+                            eventsAsSentences = Event.getEventsAsSentencesFromJSON(jsonBasicEvents, entryKey);
+                            logger.info("Saving this events-as-sentences for docid " + entryKey + ":");
+                            logger.info(eventsAsSentences);
+                        }
+                    }
+                }
+
                 List<String> highlights = new ArrayList<>();
                 if (reqDoc.containsKey("segment-text")) {
                     highlights.add( Task.filterCertainCharacters((String) reqDoc.get("segment-text")));
                 }
-                reqExampleDocs.add(new ExampleDocument(entryKey, docText, highlights, sentences));
+                reqExampleDocs.add(new ExampleDocument(entryKey, docText, highlights, sentences, eventsAsSentences));
             }
         }
 

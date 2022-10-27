@@ -207,7 +207,21 @@ public class Task {
                         sentences.add(new SentenceRange((int) id, (int) start, (int) end, sentence));
                     }
                 }
-                taskExampleDocs.add(new ExampleDocument(docID, docText, sentences));
+                String eventsAsSentences = "";
+                if (taskDoc.containsKey("annotation-sets")) {
+                    JSONObject jsonAnnotationSets = (JSONObject) taskDoc.get("annotation-sets");
+                    if (jsonAnnotationSets.containsKey("basic-events")) {
+                        JSONObject jsonBasicEvents = (JSONObject) jsonAnnotationSets.get("basic-events");
+                        if (Pathnames.IEAllowed) {
+                            // Construct a set of sentences from the Mitre-provided events for this document
+                            // and save them to be added to the doc text later, when example docs are expanded
+                            eventsAsSentences = Event.getEventsAsSentencesFromJSON(jsonBasicEvents, docID);
+                            logger.info("Saving this events-as-sentences for docid " + docID + ":");
+                            logger.info(eventsAsSentences);
+                        }
+                    }
+                }
+                taskExampleDocs.add(new ExampleDocument(docID, docText, sentences, eventsAsSentences));
             }
         }
 

@@ -718,6 +718,7 @@ public class TasksRunner {
         setupLogging();
         logger.info("Submission id is: " + submissionId);
         logger.info("Executing in " + mode + " mode");
+        logger.info("IE Allowed = " + Pathnames.IEAllowed);
 
         if (actions.contains(Action.ENGLISH_INDEX_BUILD)) {
             SearchEngineInterface.getSearchEngine().buildIndexes(Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName);

@@ -255,12 +255,16 @@ public class AnalyticTasks {
         /* OLD WAY */
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
-                d.setDocText(Document.getDocumentWithMap(d.getDocid()));
+                logger.info("Adding this to " + d.getDocid() + "'s text:");
+                logger.info(d.getEventsAsSentences());
+                d.setDocText(Document.getDocumentWithMap(d.getDocid()) + " " + d.getEventsAsSentences());
                 d.setSentences(Document.getDocumentSentences(d.getDocid()));
             }
             for (Request r : t.requests.values()) {
                 for (ExampleDocument d2 : r.reqExampleDocs) {
-                    d2.setDocText(Document.getDocumentWithMap(d2.getDocid()));
+                    logger.info("Adding this to " + d2.getDocid() + "'s text:");
+                    logger.info(d2.getEventsAsSentences());
+                    d2.setDocText(Document.getDocumentWithMap(d2.getDocid()) + " " + d2.getEventsAsSentences());
                     d2.setSentences(Document.getDocumentSentences(d2.getDocid()));
                 }
             }
