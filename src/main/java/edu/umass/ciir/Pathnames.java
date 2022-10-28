@@ -187,7 +187,7 @@ public class Pathnames {
         skipNeuralIndexBuild = (getFromEnv("skipNeuralIndexBuild", "false").equals("true"));
         skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
         skipRequestDocAnnotation = (getFromEnv("skipAnnotateRequestDocs", "false").equals("true"));
-        skipPretrain = (getFromEnv("skipPretrain", "true").equals("false"));
+        skipPretrain = (getFromEnv("skipPretrain", "true").equals("true"));
         skipReranker = (getFromEnv("skipReranker", "false").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
 
