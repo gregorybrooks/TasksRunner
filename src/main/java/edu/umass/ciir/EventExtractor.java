@@ -378,7 +378,7 @@ public class EventExtractor {
         // e.g. script = "./annotate_request_docs.sh.FARSI";
         try {
             String logFile = Pathnames.logFileLocation + script + "." + submissionId + ".log";
-            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+            String sudo = (Pathnames.sudoNeeded ? "sudo " : "");
             String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
                     + sudo
                     + environmentVars

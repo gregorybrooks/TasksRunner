@@ -23,7 +23,7 @@ public class Pathnames {
     public static String preTrainSizeParm = "FULL";    // or "SMALL"
     public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
     public static int RESULTS_CAP = 1000;
-    public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 10;
+    public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 1000;
 
     public static String searchEngine = "galago";
     public static boolean developmentTestingNoDocker = false;
@@ -181,7 +181,7 @@ public class Pathnames {
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
         REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "10"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
-        RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "10"));
+        RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "false").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
         skipNeuralIndexBuild = (getFromEnv("skipNeuralIndexBuild", "false").equals("true"));

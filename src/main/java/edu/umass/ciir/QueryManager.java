@@ -201,6 +201,7 @@ public class QueryManager {
             // if 4 GPUs, 0 is first one, 1 is second one, etc.
 // doesn't seem to work at Mitre:            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             String gpu_parm = " --gpus 1";
+//            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
             String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
             String command = sudo + " docker run --rm"
                     + gpu_parm

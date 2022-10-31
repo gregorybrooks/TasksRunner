@@ -36,7 +36,7 @@ public class TasksRunner {
         SEARCH,
         NEURAL_INDEX_BUILD
     }
-    private final Set<Action> actions = new HashSet<>();
+    private Set<Action> actions = null;
 
     /**
      * Configures the logger for this program.
@@ -105,6 +105,7 @@ public class TasksRunner {
     public void readTaskSetFile(String taskSetFile) {
         try {
             mode = "AUTO";  // the default, even for non-search operations
+            actions = new HashSet<>();
 
             Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(taskSetFile)));
             JSONParser parser = new JSONParser();

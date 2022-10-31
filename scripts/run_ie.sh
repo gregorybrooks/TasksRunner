@@ -74,7 +74,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 1. INGEST ----------------"
         CURRENT_STAGE="ingest"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/ingest.sh \
              ${DOCKER_IMAGE_PREFIX}-json-converter:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
@@ -85,7 +85,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 2. AUGMENT TRAIN DATA WITH PRE-PROCESSING ----------------"
         CURRENT_STAGE="augment-train-data-with-pre-processing"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/augment-train.sh \
              ${DOCKER_IMAGE_PREFIX}-json-converter:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
@@ -95,7 +95,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 3. PREPARE TEST TEXT ----------------"
         CURRENT_STAGE="prepare-test-text"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/prepare-text.sh \
              ${DOCKER_IMAGE_PREFIX}-multilingual-text-prep:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
@@ -105,7 +105,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 4. DETECT TRIGGERS  ----------------"
         CURRENT_STAGE="detect-triggers"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/detect-basic-triggers.sh \
              ${DOCKER_IMAGE_PREFIX}-bert-bio:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
@@ -115,7 +115,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 5. EXTRACT EVENT-EVENT RELATIONS  ----------------"
         CURRENT_STAGE="extract-event-event-relations"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/extract-event-event-relations.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
@@ -125,7 +125,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 6. ATTACH ARGUMENTS  ----------------"
         CURRENT_STAGE="attach-arguments"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/basic-attach-arguments.sh \
              ${DOCKER_IMAGE_PREFIX}-argument-attachment:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
@@ -135,7 +135,7 @@ if [ "$BETTER_PATH" = "BASIC-A" ] || [ "$BETTER_PATH" = "BASIC-B" ] || [ "$BETTE
         echo "---------------- 7. POSTPROCESS ----------------"
         CURRENT_STAGE="postprocess"
         STARTED="true"
-        time docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
+        time sudo docker run --env CURRENT_STAGE=$CURRENT_STAGE $ADDITIONAL_FLAGS \
              --entrypoint $ISI_HOME/scripts/postprocess.sh \
              ${DOCKER_IMAGE_PREFIX}-event-extractor-boston:$DOCKER_IMAGE_TAG
         if [ "$END_STAGE" = "$CURRENT_STAGE" ]; then exit; fi
