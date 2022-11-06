@@ -12,6 +12,7 @@ public class Task {
     public String taskTitle;
     public String taskStmt;
     public String taskNarr;
+    public String taskLink;
     public String taskInScope;
     public Map<String, Request> requests;
     public List<ExampleDocument> taskExampleDocs;
@@ -26,10 +27,11 @@ public class Task {
         return taskLevelQuery;
     }
 
-    Task (String taskNum, String taskTitle, String taskNarr, Map<String, Request> requests) {
+    Task (String taskNum, String taskTitle, String taskNarr, String taskLink, Map<String, Request> requests) {
         this.taskNum = taskNum;
         this.taskTitle = filterCertainCharacters(taskTitle);
         this.taskNarr = filterCertainCharacters(taskNarr);
+        this.taskLink = taskLink;
         this.requests = requests;
         taskExampleDocs = new ArrayList<ExampleDocument>();
         taskRelevantDocTextList = new ArrayList<String>();
@@ -127,8 +129,9 @@ public class Task {
     Task(Task otherTask) {
         this.taskNum = new String(otherTask.taskNum);
         this.taskTitle = (otherTask.taskTitle == null ? null : new String(otherTask.taskTitle));
-        this.taskStmt = (otherTask.taskStmt == null ? null : new String(otherTask.taskStmt));;
+        this.taskStmt = (otherTask.taskStmt == null ? null : new String(otherTask.taskStmt));
         this.taskNarr = (otherTask.taskNarr == null ? null : new String(otherTask.taskNarr));
+        this.taskLink = (otherTask.taskLink == null ? null : new String(otherTask.taskLink));
         this.taskInScope = (otherTask.taskInScope == null ? null : new String(otherTask.taskInScope));
         this.requests = new TreeMap<String,Request>();
         for(Map.Entry<String, Request> entry : otherTask.requests.entrySet()) {
@@ -174,6 +177,7 @@ public class Task {
         this.taskTitle = Task.filterCertainCharacters((String) task.get("task-title"));
         this.taskStmt = Task.filterCertainCharacters((String) task.get("task-stmt"));
         this.taskNarr = Task.filterCertainCharacters((String) task.get("task-narr"));
+        this.taskLink = (String) task.get("task-link");
         this.taskInScope = Task.filterCertainCharacters((String) task.get("task-in-scope"));
 
         Object od = task.get("task-docs");
@@ -246,6 +250,7 @@ public class Task {
             top.put("task-title", task.taskTitle);
             top.put("task-stmt", task.taskStmt);
             top.put("task-narr", task.taskNarr);
+            top.put("task-link", task.taskLink);
 
             List<ExampleDocument> taskDocs = task.taskExampleDocs;
             JSONObject targetDocsArray = new JSONObject();
@@ -273,7 +278,11 @@ public class Task {
                 if (highlights.size() > 0) {
                     highlight = highlights.get(0);
                 }
-                targetExampleDoc.put("highlight", filterQuotes(highlight));
+                /* I am removing the filterQuotes because it was preventing the HITL program from matching the
+                   hilight to the doc text. But will this break the query formulators or rerankers or neural end-to-end?
+                 */
+                //targetExampleDoc.put("highlight", filterQuotes(highlight));
+                targetExampleDoc.put("highlight", highlight);
 
                 JSONArray mitreEvents = new JSONArray();
                 targetExampleDoc.put("mitre-events", mitreEvents);

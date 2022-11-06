@@ -37,3 +37,4 @@ set +e
 cp ${SCRATCH_DIR}/test_data.bp.json.SAVE ${APP_DIR}/test_data.bp.json
 set -e
 rm ${APP_DIR}/train_ir_data.json
+chmod a+rw ${APP_DIR}/results.json

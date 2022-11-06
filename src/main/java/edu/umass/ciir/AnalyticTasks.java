@@ -654,6 +654,7 @@ public class AnalyticTasks {
         String taskNum = "";
         String taskTitle = "";
         String taskNarr = "";
+        String taskLink = "";
         String reqNum = "";
         String reqText = "";
         while ((line = rdr.readLine()) != null) {
@@ -667,7 +668,7 @@ public class AnalyticTasks {
                 Request r = new Request(reqNum, reqText);
                 Map<String,Request> requests = new TreeMap<>();
                 requests.put(reqNum, r);
-                Task t = new Task(taskNum, taskTitle, taskNarr, requests);
+                Task t = new Task(taskNum, taskTitle, taskNarr, taskLink, requests);
                 tasks.put(t.taskNum, t);
             } else if (line.startsWith("<identifier>")) {
                 line = line.replace("<identifier>", "");

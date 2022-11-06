@@ -94,7 +94,12 @@ public class Request {
 
                 List<String> highlights = new ArrayList<>();
                 if (reqDoc.containsKey("segment-text")) {
-                    highlights.add( Task.filterCertainCharacters((String) reqDoc.get("segment-text")));
+                    /* I am removing filterCertainCharacters because it was preventing the HITL program from matching
+                       the highlight to the doc text. But will this break query formulators, rerankers and neural
+                       processors?
+                     */
+                    //highlights.add( Task.filterCertainCharacters((String) reqDoc.get("segment-text")));
+                    highlights.add( (String) reqDoc.get("segment-text"));
                 }
                 reqExampleDocs.add(new ExampleDocument(entryKey, docText, highlights, sentences, eventsAsSentences));
             }
