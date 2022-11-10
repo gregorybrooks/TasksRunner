@@ -626,6 +626,10 @@ public class AnalyticTasks {
     }
 
     public void writeJSONVersion()  {
+        writeJSONVersionToFile(internalAnalyticTasksInfoFileName);
+    }
+
+    public void writeJSONVersionToFile(String fileName)  {
         try {
             JSONArray targetTopArray = new JSONArray();
             for (Map.Entry<String,Task> entry : tasks.entrySet()) {
@@ -633,9 +637,9 @@ public class AnalyticTasks {
                 JSONObject j = Task.convertToJSON(t);
                 targetTopArray.add(j);
             }
-            logger.info("Writing analytic_tasks.json to " + internalAnalyticTasksInfoFileName);
+            logger.info("Writing analytic_tasks.json to " + fileName);
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                    new FileOutputStream(internalAnalyticTasksInfoFileName)));
+                    new FileOutputStream(fileName)));
             writer.write(targetTopArray.toJSONString());
             writer.close();
         } catch (Exception e) {

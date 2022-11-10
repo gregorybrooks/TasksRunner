@@ -83,4 +83,5 @@ public class ExampleDocument {
     public List<SentenceRange> getSentences() {
         return sentences;
     }
+
 }
