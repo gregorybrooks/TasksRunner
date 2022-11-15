@@ -38,10 +38,10 @@ public class GalagoSearchEngine implements SearchEngineInterface {
      * requesting the specified number of scoredHits, producing the specified runfile, using
      * the specified PARTIAL index.
      *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
+     * @param threadCount number of threads galago threaded-batch-search should use
+     * @param N the number of hits to fetch
+     * @param theQueryFileName the qyery file name
+     * @param theRunFileName the run file name
      */
     public void executeAgainstPartialIndex(int threadCount, int N, String theQueryFileName,
                                             String theRunFileName, String taskNum, String submissionId, String language,
@@ -65,41 +65,9 @@ public class GalagoSearchEngine implements SearchEngineInterface {
                 + " --index/full=" + Pathnames.indexLocation + "galago/better-clear-ir-" + language
                 + " --defaultIndexPart=partial --backgroundIndex=full"
                 + arabicPart
-                + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
+                + " --requested=" + N + " " + theQueryFileName;
 
-        logger.info("Executing this command: " + tempCommand);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            // TEMP throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
+        Command.execute(tempCommand, galagoLogFile);
     }
 
     /**
@@ -115,48 +83,15 @@ public class GalagoSearchEngine implements SearchEngineInterface {
                 documentNameList +
                 " --index=" + indexName +
                 " --partialIndex=" + Pathnames.indexLocation + "galago/" + taskLevelIndexName
-                + " " + taskLevelConfFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
+                + " " + taskLevelConfFile;  // this is the way to specify fields for a partial index build
 
-        logger.info("Executing this command: " + tempCommand);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
+        Command.execute(tempCommand, galagoLogFile);
     }
 
     /**
      * Creates a Galago config file specifying the parameters for building the index
      * for this task's top scoredHits. This is the version to be used when building a PARTIAL index.
      * @param taskID the task ID
-     * @return the name of the Galago config file, specific to this task
      */
     private void createGalagoPartialIndexConfFile(String taskID, String language, String taskLevelConfFile) {
         try {
@@ -179,8 +114,11 @@ public class GalagoSearchEngine implements SearchEngineInterface {
                 stemmerList.add("snowball");
                 stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballRussianStemmer");
             } else if (language.equals("farsi")) {
+                // no stemmer needed
             } else if (language.equals("korean")) {
+                // no stemmer needed
             } else if (language.equals("chinese")) {
+                // no stemmer needed
             }
             outputQueries.put("stemmer", stemmerList);
             outputQueries.put("stemmerClass", stemmerClass );
@@ -215,10 +153,10 @@ public class GalagoSearchEngine implements SearchEngineInterface {
      * requesting the specified number of scoredHits, producing the specified runfile, using
      * the specified index.
      *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
+     * @param threadCount the number of threads galago threaded-batch-search should use
+     * @param N the number of hits to fetch
+     * @param theQueryFileName the query file name
+     * @param theRunFileName the run file name
      */
     public void search(int threadCount, int N, String theQueryFileName, String theRunFileName,
                        String submissionId, String language) {
@@ -235,41 +173,11 @@ public class GalagoSearchEngine implements SearchEngineInterface {
                 + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
                 + " --systemName=CLEAR " + arabicParm + "--trec=true --index=" + Pathnames.indexLocation
                       + "galago/better-clear-ir-" + language
-                + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
+                + " --requested=" + N + " " + theQueryFileName;
 
-        logger.info("Executing this command: " + tempCommand);
         logger.info("Run file will be  " + theRunFileName);
 
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
+        Command.execute(tempCommand, galagoLogFile);
     }
 
     private String mustContainString(JSONObject json, String objectName, int lineNo) {
@@ -416,51 +324,29 @@ public class GalagoSearchEngine implements SearchEngineInterface {
         }
     }
 
+    private void deleteLogFile(String galagoLogFile) {
+        try {
+            Files.delete(Paths.get(galagoLogFile));
+        } catch (IOException ignore) {
+            // do nothing
+        }
+    }
+
     /**
      * Builds a Galago index for the target corpus.
      */
     public void buildIndexes(String corpusFile) {
         logger.info("Building indexes");
         Instant start = Instant.now();
-        preprocess(corpusFile);
-        createGalagoConfFiles();
+        preprocess(corpusFile);   // splits the corpus by language
+        createGalagoConfFiles();  // creates language-dependent Galago config files for the create index steps
         for (String language : printWriterMap.keySet()) {
-
+            // build a Galago index for this language's documents
             String galagoLogFile = Pathnames.logFileLocation + "galago_" + language + "_indexbuild.log";
-            String tempCommand = Pathnames.galagoLocation + "galago build " + Pathnames.indexLocation + "galago/" + language + ".conf"
-                    + " >& " + galagoLogFile;
 
-            logger.info("Executing this command: " + tempCommand);
+            String tempCommand = Pathnames.galagoLocation + "galago build " + Pathnames.indexLocation + "galago/" + language + ".conf";
 
-            try {
-                Files.delete(Paths.get(galagoLogFile));
-            } catch (IOException ignore) {
-                // do nothing
-            }
-
-            int exitVal;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines(Paths.get(galagoLogFile), StandardCharsets.UTF_8)) {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("Galago output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read Galago output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal + ". See galago.log.");
-                throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal + ". See galago.log.");
-            }
+            Command.execute(tempCommand, galagoLogFile);
 
             Instant end = Instant.now();
             Duration interval = Duration.between(start, end);
@@ -484,18 +370,24 @@ public class GalagoSearchEngine implements SearchEngineInterface {
                 outputQueries.put("tmpdir", Pathnames.tempFileLocation);
                 JSONArray stemmerList = new JSONArray();
                 JSONObject stemmerClass = new JSONObject();
-                if (language.equals("arabic")) {
-                    stemmerList.add("snowball");
-                    stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-                } else if (language.equals("russian")) {
+                switch (language) {
+                    case "arabic":
+                        stemmerList.add("snowball");
+                        stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
+                        break;
+                    case "russian":
                         stemmerList.add("snowball");
                         stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballRussianStemmer");
-                } else if (language.equals("chinese")) {
-                } else if (language.equals("korean")) {
-                } else {
-                    /* English training corpus */
-                    stemmerList.add("krovetz");
-                    stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+                        break;
+                    case "chinese":
+                        break;
+                    case "korean":
+                        break;
+                    default:
+                        /* English training corpus */
+                        stemmerList.add("krovetz");
+                        stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
+                        break;
                 }
                 outputQueries.put("stemmer", stemmerList);
                 outputQueries.put("stemmerClass", stemmerClass);
@@ -535,5 +427,4 @@ public class GalagoSearchEngine implements SearchEngineInterface {
             /* Add the EXID field, to store the unique ID (docid) for each document. */
             addExid();
     }
-
 }

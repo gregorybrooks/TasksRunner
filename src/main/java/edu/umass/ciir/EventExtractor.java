@@ -318,56 +318,19 @@ public class EventExtractor {
     }
 
     public void annotateExampleDocEvents() {
-        try {
-            String logFile = Pathnames.logFileLocation + "/annotate_example_docs." + submissionId + ".log";
-            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
+        String logFile = Pathnames.logFileLocation + "/annotate_example_docs." + submissionId + ".log";
 
-            String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
-                    + sudo
-                    + " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
-                    + " APP_DIR=" + Pathnames.appFileLocation
-                    + " MODE=" + mode
-                    + " SUBMISSION_ID=" + submissionId
-                    + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
-                    + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
-                    + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                    + " ./annotate_example_docs.sh"
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
+        String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
+                + " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
+                + " APP_DIR=" + Pathnames.appFileLocation
+                + " MODE=" + mode
+                + " SUBMISSION_ID=" + submissionId
+                + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                + " ./annotate_example_docs.sh";
 
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing annotate_example_docs execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("annotate_example_docs output:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from annotate_example_docs, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from annotate_example_docs, exit value is: " + exitVal);
-            }
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+        Command.execute(tempCommand, logFile);
     }
 
     /**
@@ -376,48 +339,12 @@ public class EventExtractor {
      */
     public void runAScript(String script, String environmentVars ) {
         // e.g. script = "./annotate_request_docs.sh.FARSI";
-        try {
-            String logFile = Pathnames.logFileLocation + script + "." + submissionId + ".log";
-            String sudo = (Pathnames.sudoNeeded ? "sudo " : "");
-            String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
-                    + sudo
-                    + environmentVars
-                    + " " + script
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
+        String logFile = Pathnames.logFileLocation + script + "." + submissionId + ".log";
+        String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
+                + environmentVars
+                + " " + script;
 
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception executing " + script, cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from " + script + ", exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from " + script + ", exit value is: " + exitVal);
-            }
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+        Command.execute(tempCommand, logFile);
     }
 
 
@@ -589,14 +516,14 @@ public class EventExtractor {
                     JSONObject entries = (JSONObject) head.get("entries");
                     int idx = 0;
 
-                    for (Iterator iterator = entries.keySet().iterator(); iterator.hasNext(); ) {
+                    for (Object o : entries.keySet()) {
                         idx += 1;
                         if (N > 0) {
                             if (idx > N) {
                                 break;
                             }
                         }
-                        String entryKey = (String) iterator.next();
+                        String entryKey = (String) o;
                         JSONObject entry = (JSONObject) entries.get(entryKey);
                         String[] parts = entryKey.split("--");
                         String docSetType = parts[0];
@@ -616,7 +543,7 @@ public class EventExtractor {
                         for (Iterator iterator3 = spanSets.keySet().iterator(); iterator3.hasNext(); ) {
                             String key3 = (String) iterator3.next();
                             JSONObject spanSet = (JSONObject) spanSets.get(key3);
-                            String ssid = entryKey + "--" + (String) spanSet.get("ssid");
+                            String ssid = entryKey + "--" + spanSet.get("ssid");
                             SpanSet ss = new SpanSet(entryKey, ssid);
                             JSONArray spans = (JSONArray) spanSet.get("spans");
                             for (Object oSpan : spans) {
@@ -649,8 +576,8 @@ public class EventExtractor {
                             JSONObject eventsToParse;
                             eventsToParse = (JSONObject) basic_events.get("events");
 //                            logger.info("Reading from basic events");
-                            for (Iterator iterator2 = eventsToParse.keySet().iterator(); iterator2.hasNext(); ) {
-                                String key2 = (String) iterator2.next();
+                            for (Object value : eventsToParse.keySet()) {
+                                String key2 = (String) value;
                                 JSONObject event = (JSONObject) eventsToParse.get(key2);
                                 String eventid = (String) event.get("eventid");
                                 String eventType = (String) event.get("event-type");

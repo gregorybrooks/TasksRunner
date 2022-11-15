@@ -27,11 +27,6 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
      * using the specified number of threads,
      * requesting the specified number of scoredHits, producing the specified runfile, using
      * the specified PARTIAL index.
-     *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
      */
     public void executeAgainstPartialIndex(int threadCount, int N, String theQueryFileName,
                                            String theRunFileName, String taskNum, String submissionId, String language,
@@ -61,7 +56,6 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
      */
     public void search(int threadCount, int N, String theQueryFileName, String theRunFileName,
                        String submissionId, String language) {
-
         /*
         target/appassembler/bin/SearchCollection
         -index ./openresearch_data/lucene-index-openresearch
@@ -86,42 +80,11 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
                 + " -language " + languageParm
                 + " -qld "
 //                + " -bm25 "
-                + " -sdm "
-                + " >& " + anseriniLogFile;
+                + " -sdm ";
 
-        logger.info("Executing this command: " + tempCommand);
         logger.info("Run file will be  " + theRunFileName);
 
-        try {
-            Files.delete(Paths.get(anseriniLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Anserini execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(anseriniLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Anserini output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Anserini output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Anserini, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Anserini, exit value is: " + exitVal);
-        }
+        Command.execute(tempCommand, anseriniLogFile);
     }
 
     private String mustContainString(JSONObject json, String objectName, int lineNo) {
@@ -219,42 +182,9 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
                     + " -input " + Pathnames.tempFileLocation + language
                     + " -index " + Pathnames.indexLocation + "anserini/better-clear-ir-" + language
                     + " -language " + SearchEngineInterface.toTwoCharForm(language)
-                    + " -optimize -storePositions -storeDocvectors -storeRaw"
-                    + " >& " + anseriniLogFile;
+                    + " -optimize -storePositions -storeDocvectors -storeRaw";
 
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(anseriniLogFile));
-            } catch (IOException ignore) {
-                // do nothing
-            }
-
-            int exitVal;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing Anserini execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines(Paths.get(anseriniLogFile), StandardCharsets.UTF_8)) {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("Anserini output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read Anserini output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from Anserini, exit value is: " + exitVal + ". See "
-                        + anseriniLogFile);
-                throw new TasksRunnerException("Unexpected ERROR from Anserini, exit value is: " + exitVal + ". See "
-                + anseriniLogFile);
-            }
+            Command.execute(tempCommand, anseriniLogFile);
 
             Instant end = Instant.now();
             Duration interval = Duration.between(start, end);

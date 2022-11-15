@@ -85,85 +85,47 @@ public class QueryManager {
     }
 
     private void callQueryFormulator(String dockerImageName) {
-        try {
-            String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
-            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            // if 4 GPUs, 0 is first one, 1 is second one, etc.
-            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-            String command = (sudo + " docker run --rm"
-                    + gpu_parm
-                    + " --env MODE=" + mode
-                    // The query formulators expect the language to be all upper-case
-                    + " --env OUT_LANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
-                    + " --env PHASE=" + phase
-                    + " --env SEARCH_ENGINE=" + Pathnames.searchEngine
-                    + " --env INPUTFILE=" + analyticTasksInfoFilename
-                    + " --env QUERYFILE=" + getKey()
-                    /* For each directory that we want to share between this parent docker container (TasksRunner)
-                     and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
-                     in an environment variable, and we make that path a bind-volume so the child container
-                     can actually access it.
-                     */
-                    + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
-                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
-                    + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation
-                    + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
-                    + " --env galagoLocation=" + Pathnames.galagoLocation
-                    // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
-                    + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
+        String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
+        // if 4 GPUs, 0 is first one, 1 is second one, etc.
+        String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+        String command = ("docker run --rm"
+                + gpu_parm
+                + " --env MODE=" + mode
+                // The query formulators expect the language to be all upper-case
+                + " --env OUT_LANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
+                + " --env PHASE=" + phase
+                + " --env SEARCH_ENGINE=" + Pathnames.searchEngine
+                + " --env INPUTFILE=" + analyticTasksInfoFilename
+                + " --env QUERYFILE=" + getKey()
+                /* For each directory that we want to share between this parent docker container (TasksRunner)
+                 and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
+                 in an environment variable, and we make that path a bind-volume so the child container
+                 can actually access it.
+                 */
+                + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
+                + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                + " --env queryFileLocation=" + Pathnames.queryFileLocation
+                + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
+                + " --env logFileLocation=" + Pathnames.logFileLocation
+                + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
+                + " --env galagoLocation=" + Pathnames.galagoLocation
+                // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
+                + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
 //                    + " --env englishIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en/"
 //                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
 //                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
-                    + " --env targetIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-"
-                    + language
-                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
-                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
-                    + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
-                    + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
+                + " --env targetIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-"
+                + language
+                + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
+                + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
+                + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
+                + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
 
-                    + " " + dockerImageName
-                    + " sh -c ./runit.sh");
-            String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
-            String tempCommand = command + " >& " + logFile;
+                + " " + dockerImageName
+                + " sh -c ./runit.sh");
+        String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
 
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                // do nothing
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing docker image execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("Docker container output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from Docker container, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
-            }
-
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+        Command.execute(command, logFile);
     }
 
     public void buildQueries(String queryFormulator) {
@@ -195,73 +157,40 @@ public class QueryManager {
     $TASK_FILE $DATA_DIR $QLANG $DLANG $RUNFILE_MASK $DEVICE $NUM_CPU $TOPK $OUTPUT_DIR
     */
     public void callReranker(String dockerImageName, String currentRunFile, String outputFileName) {
+        String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
+        // if 4 GPUs, 0 is first one, 1 is second one, etc.
+        // works at Mitre:
+        //String gpu_parm = " --gpus 1";
+        // doesn't seem to work at Mitre:
+        String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+
+        String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
+        String command = "docker run --rm"
+                + gpu_parm
+                + " --env MODE=" + mode
+                + " --env DEVICE=" + deviceParm
+                + " --env TASK_FILE=" + Pathnames.eventExtractorFileLocation + analyticTasksInfoFilename
+                + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
+                + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
+                + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
+                + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
+                + " --env NUM_CPU=8 --env TOPK=100"
+                + " --env RUNFILE=" + runFileName
+                + " -v " + Pathnames.runFileLocation + ":" + Pathnames.runFileLocation
+                + " --env CORPUS_FILE=" + Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName
+                + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
+
+                + " " + dockerImageName
+                + " sh -c ./runit.sh";
+        String logFile = Pathnames.logFileLocation + submissionId + ".reranker-docker-program.out";
+
+        Command.execute(command, logFile);
+
+        // TBD: add submissionId to this file name (must change it in the Docker, too)
         try {
-            String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
-            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            // if 4 GPUs, 0 is first one, 1 is second one, etc.
-// doesn't seem to work at Mitre:            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-            String gpu_parm = " --gpus 1";
-            //String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-
-            String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
-            String command = sudo + " docker run --rm"
-                    + gpu_parm
-                    + " --env MODE=" + mode
-                    + " --env DEVICE=" + deviceParm
-                    + " --env TASK_FILE=" + Pathnames.eventExtractorFileLocation + analyticTasksInfoFilename
-                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
-                    + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
-                    + " --env NUM_CPU=8 --env TOPK=100"
-                    + " --env RUNFILE=" + runFileName
-                    + " -v " + Pathnames.runFileLocation + ":" + Pathnames.runFileLocation
-                    + " --env CORPUS_FILE=" + Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName
-                    + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
-
-                    + " " + dockerImageName
-                    + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + submissionId + ".reranker-docker-program.out";
-            String tempCommand = command + " >& " + logFile;
-
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                // do nothing
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing docker image execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("Docker container output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from Docker container, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
-            }
-
-            // TBD: add submissionId to this file name (must change it in the Docker, too)
             Files.copy(new File(Pathnames.eventExtractorFileLocation + "fused.run").toPath(),
                     new File(outputFileName).toPath(), REPLACE_EXISTING);
-
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
@@ -571,8 +500,6 @@ public class QueryManager {
      * and makes a Map of the generated queries, with request number as key.
      *
      * @return Returns the Map of request number to generated query text.
-     * @throws IOException
-     * @throws ParseException
      */
     private Map<String, String> getGeneratedQueries(String queryFileName) {
         logger.info("Reading query file: " + queryFileName);
@@ -651,8 +578,7 @@ public class QueryManager {
 
     public List<String> getAllDocids(String requestID) {
         if (run.requestRuns.containsKey(requestID)) {
-            List<String> docids = run.requestRuns.get(requestID).docids;
-            return docids;
+            return run.requestRuns.get(requestID).docids;
         } else {
             return new ArrayList<String>();
         }
@@ -809,7 +735,7 @@ public class QueryManager {
         try {
             Files.delete(outFile);
         } catch (IOException ignore) {
-            ;
+            // do nothing
         }
         Charset charset = StandardCharsets.UTF_8;
         try {
@@ -929,7 +855,7 @@ public class QueryManager {
     /**
      * Evaluates a run file, request level.
      * @param phase RAW or RERANKED (added to the file name)
-     * @return
+     * @return evaluation results
      */
     public Map<String, Double> evaluate(String phase) {
         evaluationRequestLevelFileName = Pathnames.evaluationFileLocation + key + "." + phase + ".REQUEST.csv";
@@ -1003,10 +929,6 @@ public class QueryManager {
         /**
          * Calculates the normalized discounted cumulative gain
          * for this request and this ranked set of docs.
-         *
-         * @param requestID The request, with its relevance judgments available.
-         * @param runDocids The ranked scoredHits.
-         * @return The calculated nDCG.
          */
 
         private Map<String, Double> stats = new TreeMap<>();
@@ -1015,9 +937,9 @@ public class QueryManager {
          * of known relevant documents ("R"), instead of a hard cutoff of 10
          * as in his original version.
          *
-         * @param requestID
-         * @param runDocids
-         * @return
+         * @param requestID the request ID
+         * @param runDocids the list of docids
+         * @return the calculated nDCG@R
          */
         private double calculatenDCG(String requestID, List<String> runDocids) {
             List<RelevanceJudgment> judgments = tasks.getPositiveRelevanceJudgments(requestID);
@@ -1051,8 +973,7 @@ public class QueryManager {
                 }
             }
             /* Calculate the normalized discounted cumulative gain */
-            double nCDG = DCG / iDCG;
-            return nCDG;
+            return DCG / iDCG;
         }
 
         /**
@@ -1061,8 +982,6 @@ public class QueryManager {
          * <p>
          * For averaging the evaluation results, we use the MICRO approach.
          *
-         * @throws IOException
-         * @throws InterruptedException
          */
         public Map<String,Double> evaluate() {
             try {
@@ -1437,7 +1356,7 @@ public class QueryManager {
             for (Map.Entry<String, Double> entry : sums.entrySet()) {
                 hitList.add(new RrmHit(entry.getKey(), entry.getValue()));
             }
-            Collections.sort(hitList, (lhs, rhs) -> {
+            hitList.sort((lhs, rhs) -> {
                 // -1 - less than, 1 - greater than, 0 - equal, inverted to get descending
                 return lhs.score > rhs.score ? -1 : (lhs.score < rhs.score ? 1 : 0);
             });
@@ -1470,7 +1389,7 @@ public class QueryManager {
     private void sortHits(Map<String, List<ScoredHit>> requestHits) {
         for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
             List<ScoredHit> hits = entry.getValue();
-            Collections.sort(hits, (lhs, rhs) -> {
+            hits.sort((lhs, rhs) -> {
                 // -1 - less than, 1 - greater than, 0 - equal, inverted to get descending
                 return Float.parseFloat(lhs.score) > Float.parseFloat(rhs.score) ? -1
                         : (Float.parseFloat(lhs.score) < Float.parseFloat(rhs.score)) ? 1 : 0;
