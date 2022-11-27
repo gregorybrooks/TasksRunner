@@ -25,13 +25,13 @@ public interface SearchEngineInterface {
             case "ar": case "arabic":
                 rawLanguage = "arabic";
                 break;
-            case "ko": case "kor":
+            case "ko": case "kor": case "korean":
                 rawLanguage = "korean";
                 break;
             case "fa": case "farsi":
                 rawLanguage = "farsi";
                 break;
-            case "zh": case "zho":
+            case "zh": case "zho": case "chinese":
                 rawLanguage = "chinese";
                 break;
             case "ru": case "rus": case "russian":

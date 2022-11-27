@@ -2,7 +2,7 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.*;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
 import static java.nio.file.StandardCopyOption.*;
 
 public class QueryManager {
@@ -493,6 +493,10 @@ public class QueryManager {
 
     public String getRerankedRunFileName() {
         return rerankedRunFile;
+    }
+
+    public String getRunFileName() {
+        return runFileName;
     }
 
     /**
@@ -1314,6 +1318,118 @@ public class QueryManager {
         }
     }
 
+    /**
+     * Standardize the scores in the runfiles, then merge the rescored runfiles by score.
+     * @param filesToMerge the files to be rescored and merged
+     */
+    public void rescoreRunFilesMinMax(List<String> filesToMerge) {
+        try {
+            List<String> rescoredFiles = new ArrayList<>();
+            for (String fileName : filesToMerge) {
+                String rescoredFileName = fileName + ".rescoredMinMax";
+                PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                        new FileOutputStream(rescoredFileName)));
+                Run run = new QueryManager.Run(fileName);   // read the runfile into memory
+                for (Map.Entry<String, RequestRun> entry: run.requestRuns.entrySet()) {
+                    String requestNum = entry.getKey();
+                    RequestRun requestRun = entry.getValue();
+                    List<ScoredHit> scoredHits = requestRun.scoredHits;
+
+                    double minValue = getMin(scoredHits);
+                    double maxValue = getMax(scoredHits);
+                    // normalize the scores
+                    int rank = 1;
+                    for (ScoredHit hit : scoredHits) {
+                        writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " "
+                                + ((Double.parseDouble(hit.score) - minValue) / (maxValue - minValue)) + " CLEAR");
+                        if (rank > 1000) {
+                            break;
+                        }
+                    }
+                }
+                writer.close();
+                rescoredFiles.add(rescoredFileName);
+            }
+            mergeRerankedRunFilesByScore(rescoredFiles);
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    private double getMax(List<ScoredHit> scoredHits) {
+        double max = Double.MIN_VALUE;
+        for (ScoredHit scoredHit : scoredHits) {
+            if (Double.parseDouble(scoredHit.score) > max) {
+                max = Double.parseDouble(scoredHit.score);
+            }
+        }
+        return max;
+    }
+
+    private double getMin(List<ScoredHit> scoredHits) {
+        double min = Double.MAX_VALUE;
+        for (ScoredHit scoredHit : scoredHits) {
+            if (Double.parseDouble(scoredHit.score) < min) {
+                min = Double.parseDouble(scoredHit.score);
+            }
+        }
+        return min;
+    }
+
+    private double getMean(List<ScoredHit> scoredHits) {
+        double total = 0.0;
+        for (ScoredHit scoredHit : scoredHits) {
+            total += Double.parseDouble(scoredHit.score);
+        }
+        return total / scoredHits.size();
+    }
+
+    private double getStandardDeviation(List<ScoredHit> scoredHits, double mean) {
+        double stddev = 0.0;
+        for (ScoredHit scoredHit : scoredHits) {
+            stddev += Math.pow(Double.parseDouble(scoredHit.score) - mean, 2);
+        }
+        return Math.sqrt(stddev / scoredHits.size());
+    }
+
+    /**
+     * Standardize the scores in the runfiles, then merge the rescored runfiles by score.
+     * @param filesToMerge the files to be rescored and merged
+     */
+    public void rescoreRunFilesZScores(List<String> filesToMerge) {
+        try {
+            List<String> rescoredFiles = new ArrayList<>();
+            for (String fileName : filesToMerge) {
+                String rescoredFileName = fileName + ".rescored";
+                PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                        new FileOutputStream(rescoredFileName)));
+                Run run = new QueryManager.Run(fileName);   // read the runfile into memory
+                for (Map.Entry<String, RequestRun> entry: run.requestRuns.entrySet()) {
+                    String requestNum = entry.getKey();
+                    RequestRun requestRun = entry.getValue();
+                    List<ScoredHit> scoredHits = requestRun.scoredHits;
+
+                    double mean = getMean(scoredHits);
+                    double stddev = getStandardDeviation(scoredHits, mean);
+                    // standardize the scores
+                    int rank = 1;
+                    for (ScoredHit hit : scoredHits) {
+                        writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " "
+                                + ((Double.parseDouble(hit.score) - mean) / stddev) + " CLEAR");
+                        if (rank > 1000) {
+                            break;
+                        }
+                    }
+                }
+                writer.close();
+                rescoredFiles.add(rescoredFileName);
+            }
+            mergeRerankedRunFilesByScore(rescoredFiles);
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
     private List<Run> readRunFiles(List<String> filesToMerge) {
         List<Run> runs = new ArrayList<>();
         for (String fileName : filesToMerge) {
@@ -1375,16 +1491,6 @@ public class QueryManager {
         return requestHits;
     }
 
-    private void mergeHits(Map<String, List<ScoredHit>> requestHits, List<Run> runs) {
-        for (String requestNum : tasks.getRequestIDs()) {
-            for (Run run : runs) {
-                if (run.requestRuns.containsKey(requestNum)) {
-                    requestHits.get(requestNum).addAll(run.requestRuns.get(requestNum).scoredHits);
-                }
-            }
-        }
-    }
-
     /* Sort the ScoredHit lists in place, by score ascending */
     private void sortHits(Map<String, List<ScoredHit>> requestHits) {
         for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
@@ -1397,13 +1503,23 @@ public class QueryManager {
         }
     }
 
+    private void mergeHits(Map<String, List<ScoredHit>> requestHits, List<Run> runs) {
+        for (String requestNum : tasks.getRequestIDs()) {
+            for (Run run : runs) {
+                if (run.requestRuns.containsKey(requestNum)) {
+                    requestHits.get(requestNum).addAll(run.requestRuns.get(requestNum).scoredHits);
+                }
+            }
+        }
+    }
+
     private void writeHitsToMergedRunFile(Map<String, List<ScoredHit>> requestHits, PrintWriter writer) {
         for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
             String requestNum = entry.getKey();
             List<ScoredHit> hits = entry.getValue();
             int rank = 1;
             for (ScoredHit hit : hits) {
-                writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " " + (2000 - rank) + " CLEAR");
+                writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " " + hit.score + " CLEAR");
                 if (rank > 1000) {
                     break;
                 }
@@ -1429,7 +1545,7 @@ public class QueryManager {
         }
     }
 
-    public void mergeRerankedRunFiles2(List<String> filesToMerge) {
+    public void mergeRerankedRunFilesByScore(List<String> filesToMerge) {
         try {
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
                     new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));

@@ -554,11 +554,17 @@ public class TasksRunner {
             doRequestLevelProcessing(requestLevelFormulator, language, filesToMerge);
         }
 
+        QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
+
         logger.info("Merging multiple language's ranked runfiles into one");
-        mergeRerankedRunFiles(filesToMerge);  // round robin merging
+        mergeRerankedRunFilesRoundRobin(filesToMerge);  // round robin merging
+        //qf.mergeRerankedRunFilesByScore(filesToMerge);  // naive score merge
+        // If you use these, remember to also change doRequestLevelProcessing() to not do the Z1 reranking,
+        // which destroys the scores
+        //qf.rescoreRunFilesZScores(filesToMerge);
+        //qf.rescoreRunFilesMinMax(filesToMerge);
 
         logger.info("Second reranking");
-        QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
         qf.rerank2();
 
         logger.info("Merging DPR with Baseline");
@@ -574,57 +580,11 @@ public class TasksRunner {
         writeFinalResultsFile();
     }
 
-    private void doRequestLevelProcessing(String requestLevelFormulator, String language,
-                                          List<String> filesToMerge) {
-        logger.info("Building request-level queries");
-
-        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, "Request", eventExtractor);
-        qf.resetQueries();  // Clears any existing queries read in from an old file
-        qf.buildQueries(requestLevelFormulator);
-
-        logger.info("Executing request-level queries");
-
-        // We want to process all query files produced by the Request-level query formulator.
-        // Make a filter to filter out all but the query files for this Request:
-        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(Pathnames.queryFileLocation + qf.getKey())
-                && (!file.toString().startsWith(Pathnames.queryFileLocation + qf.getKey() + ".TASK."))
-                && (!file.toString().contains(".PRETTY."))
-                && (!file.toString().contains(".NON_TRANSLATED.")));
-
-        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
-                Paths.get(Pathnames.queryFileLocation),
-                filter)) {
-            dirStream.forEach(path -> executeQueryFile(path, language));
-        } catch (IOException cause) {
-            throw new TasksRunnerException(cause);
-        }
-
-        /* Extract events from the request-level scoredHits, to use when re-ranking the request-level results */
-        logger.info("Extracting events from the top Request-level hits");
-        if (Pathnames.skipRequestDocAnnotation) {
-            eventExtractor.copyRequestEventFilesToResultsFiles(); // just copy the files to the expected names
-        } else {
-            eventExtractor.annotateRequestDocEvents();
-        }
-        qf.retrieveEventsFromRequestHits();
-
-        if (Pathnames.skipReranker) {
-            qf.copyRunFileToRerankedRunFile();  // just do the file action that rerank() normally does
-        } else {
-            logger.info("Reranking");
-            qf.rerank();
-            // Evaluate the (reranked) request-level results (they are saved into a file as a side effect)
-/*
-            if (Pathnames.doRequestLevelEvaluation) {
-                logger.info("Evaluating the Request-level hits");
-                Map<String, Double> rstats = qf.evaluate("RERANKED");
-            }
-*/
-        }
-        filesToMerge.add(qf.getRerankedRunFileName());
-    }
-
-    public void mergeRerankedRunFiles(List<String> filesToMerge) {
+    /**
+     * Executes a round-robin merge of the runfiles
+     * @param filesToMerge the list of runfiles to be merged
+     */
+    public void mergeRerankedRunFilesRoundRobin(List<String> filesToMerge) {
         try {
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
                     new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));
@@ -692,6 +652,59 @@ public class TasksRunner {
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
+    }
+
+    private void doRequestLevelProcessing(String requestLevelFormulator, String language,
+                                          List<String> filesToMerge) {
+        logger.info("Building request-level queries");
+
+        QueryManager qf = new QueryManager(submissionId, language, mode, tasks, "Request", eventExtractor);
+        qf.resetQueries();  // Clears any existing queries read in from an old file
+        qf.buildQueries(requestLevelFormulator);
+
+        logger.info("Executing request-level queries");
+
+        // We want to process all query files produced by the Request-level query formulator.
+        // Make a filter to filter out all but the query files for this Request:
+        DirectoryStream.Filter<Path> filter = file -> (file.toString().startsWith(Pathnames.queryFileLocation + qf.getKey())
+                && (!file.toString().startsWith(Pathnames.queryFileLocation + qf.getKey() + ".TASK."))
+                && (!file.toString().contains(".PRETTY."))
+                && (!file.toString().contains(".NON_TRANSLATED.")));
+
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(
+                Paths.get(Pathnames.queryFileLocation),
+                filter)) {
+            dirStream.forEach(path -> executeQueryFile(path, language));
+        } catch (IOException cause) {
+            throw new TasksRunnerException(cause);
+        }
+
+        /* Extract events from the request-level scoredHits, to use when re-ranking the request-level results */
+        logger.info("Extracting events from the top Request-level hits");
+        if (Pathnames.skipRequestDocAnnotation) {
+            eventExtractor.copyRequestEventFilesToResultsFiles(); // just copy the files to the expected names
+        } else {
+            eventExtractor.annotateRequestDocEvents();
+        }
+        qf.retrieveEventsFromRequestHits();
+
+        if (Pathnames.skipReranker) {
+            qf.copyRunFileToRerankedRunFile();  // just do the file action that rerank() normally does
+        } else {
+            logger.info("Reranking");
+            qf.rerank();
+            // Evaluate the (reranked) request-level results (they are saved into a file as a side effect)
+/*
+            if (Pathnames.doRequestLevelEvaluation) {
+                logger.info("Evaluating the Request-level hits");
+                Map<String, Double> rstats = qf.evaluate("RERANKED");
+            }
+*/
+        }
+        filesToMerge.add(qf.getRerankedRunFileName());
+        /* TEMP EXPERIMENT - pass the original run files to the merge instead of the Z1 reranked files
+        filesToMerge.add(qf.getRunFileName());
+         */
     }
 
     private String setScore(String line, int index) {
