@@ -97,7 +97,37 @@ public interface SearchEngineInterface {
                 throw new TasksRunnerException("Invalid language passed to toThreeCharForm: " + canonicalForm);
         }
         return canonicalForm;
+    }
 
+    /**
+     * Returns the ISO 639-3 abbreviation for a language, which is what the ISI event annotator requires.
+     * @param canonicalForm The canonical form of the language (e.g. chinese)
+     * @return The language abbreviation
+     */
+    static String toISIThreeCharForm(String canonicalForm) {
+        switch (canonicalForm) {
+            case "arabic":
+                canonicalForm = "ara";
+                break;
+            case "korean":
+                canonicalForm = "kor";
+                break;
+            case "farsi":
+                canonicalForm = "fas";
+                break;
+            case "chinese":
+                canonicalForm = "zho";
+                break;
+            case "russian":
+                canonicalForm = "rus";
+                break;
+            case "english":
+                canonicalForm = "eng";
+                break;
+            default:
+                throw new TasksRunnerException("Invalid language passed to toISIThreeCharForm: " + canonicalForm);
+        }
+        return canonicalForm;
     }
 
     Map<String, String> getQueries(String queryFileName);

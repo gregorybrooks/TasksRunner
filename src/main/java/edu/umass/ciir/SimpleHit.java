@@ -17,24 +17,28 @@ public class SimpleHit {
     List<SentenceRange> sentences;
     List<Event> events;
     String query;
+    String language;
 
     SimpleHit(String docid, String docText, String translatedDocText, String score, List<SentenceRange> sentences,
-              List<Event> events) {
+              List<Event> events, String language) {
         this.docid = docid;
         this.events = events;
         this.docText = docText;
         this.translatedDocText = translatedDocText;
         this.score = score;
-        this.sentences = new ArrayList<>(sentences);
+        this.sentences = sentences;
+        this.language = language;
     }
 
-    SimpleHit(String docid, String docText, String translatedDocText, List<SentenceRange> sentences, List<Event> events) {
+    SimpleHit(String docid, String docText, String translatedDocText, List<SentenceRange> sentences, List<Event> events,
+              String language) {
         this.docid = docid;
         this.events = events;
         this.docText = docText;
         this.translatedDocText = translatedDocText;
         this.score = "";
-        this.sentences = new ArrayList<>(sentences);
+        this.sentences = sentences;
+        this.language = language;
     }
 
     public void setSentences(List<SentenceRange> sentences) {

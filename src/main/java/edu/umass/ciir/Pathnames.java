@@ -24,6 +24,7 @@ public class Pathnames {
     public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
     public static int RESULTS_CAP = 1000;
     public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 1000;
+    public static int DOCS_TO_PROCESS = 2000;
 
     public static String searchEngine = "galago";
     public static boolean developmentTestingNoDocker = false;
@@ -33,8 +34,11 @@ public class Pathnames {
     public static boolean skipPretrain = false;
     public static boolean skipIndexBuild = false;
     public static boolean skipExampleDocAnnotation = false;
+    public static boolean skipRelevantDocAnnotation = false;
     public static boolean skipRequestDocAnnotation = false;
     public static boolean skipNeuralIndexBuild = false;
+
+    public static String gpusForEventExtractor = "--gpus device=1";
 
     public static boolean includeEventsInFinalResults = false;
     public static boolean checkForSudo = true;
@@ -180,12 +184,14 @@ public class Pathnames {
 
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
         REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "10"));
+        DOCS_TO_PROCESS = Integer.parseInt(getFromEnv("DOCS_TO_PROCESS", "1000"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
         RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "false").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
         skipNeuralIndexBuild = (getFromEnv("skipNeuralIndexBuild", "false").equals("true"));
         skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
+        skipRelevantDocAnnotation = (getFromEnv("skipAnnotateRelevantDocs", "false").equals("true"));
         skipRequestDocAnnotation = (getFromEnv("skipAnnotateRequestDocs", "false").equals("true"));
         skipPretrain = (getFromEnv("skipPretrain", "true").equals("true"));
         skipReranker = (getFromEnv("skipReranker", "false").equals("true"));
@@ -309,5 +315,6 @@ public class Pathnames {
         gpuDevice = getFromEnv("gpuDevice", "");
         rerankerDevice = getFromEnv("rerankerDevice", "cpu");
         MODELS_BASE_DIR = getFromEnv("MODELS_BASE_DIR", MODELS_BASE_DIR);
+        gpusForEventExtractor = getFromEnv("gpusForEventExtractor", gpusForEventExtractor);
     }
 }

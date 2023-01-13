@@ -88,7 +88,7 @@ public class QueryManager {
         String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
         // if 4 GPUs, 0 is first one, 1 is second one, etc.
         String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-        String command = ("docker run --rm"
+        String command = ("sudo docker run --rm"
                 + gpu_parm
                 + " --env MODE=" + mode
                 // The query formulators expect the language to be all upper-case
@@ -165,7 +165,7 @@ public class QueryManager {
         String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
 
         String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
-        String command = "docker run --rm"
+        String command = "sudo docker run --rm"
                 + gpu_parm
                 + " --env MODE=" + mode
                 + " --env DEVICE=" + deviceParm
@@ -209,11 +209,11 @@ public class QueryManager {
                 docText = Document.getDocumentWithMap(td);
                 translatedDocText = "";
             } else {
-                sentences = Document.getArabicDocumentSentences(td);
-                docText = Document.getArabicDocumentWithMap(td);
-                translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
+                sentences = Document.getTargetDocumentSentences(td);
+                docText = Document.getTargetDocumentWithMap(td);
+                translatedDocText = Document.getTranslatedTargetDocumentWithMap(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, null);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, null, null);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
@@ -261,16 +261,15 @@ public class QueryManager {
 
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
-                String fileFromEventExtractor = eventExtractor.constructRequestLevelFileFromEventExtractorFileName(r);
-                String requestHitsEventFileName = eventExtractor.constructRequestLevelEventFileName(r);
-                List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
-                List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum, hits, getDocids(r.reqNum, Pathnames.RESULTS_CAP));
-                eventExtractor.writeEventsAsJson(mergedHits, "REQUESTHITS", requestHitsEventFileName);
-                logger.info(requestHitsEventFileName + " written");
+                List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum,
+                        eventExtractor.readEventFile(eventExtractor.constructRequestLevelFileFromEventExtractorFileName(r), -1),
+                        getDocids(r.reqNum, Pathnames.RESULTS_CAP));
+                eventExtractor.writeEventsAsJson(mergedHits, "REQUESTHITS", eventExtractor.constructRequestLevelEventFileName(r),
+                        Pathnames.REQUEST_HITS_DETAILED);
+                logger.info(eventExtractor.constructRequestLevelEventFileName(r) + " written");
             }
         }
     }
-
 
     /**
      * Number of scoredHits to have full event details.
@@ -292,7 +291,7 @@ public class QueryManager {
                     .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+            Document.buildTargetDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         }
@@ -303,7 +302,7 @@ public class QueryManager {
             createInputFileEntriesFromHits("TaskLevelHit", task.taskNum, hits, simpleEntries);
             if (simpleEntries.size() > 0) {
                 String fileForEventExtractor = eventExtractor.constructTaskLevelFileFromEventExtractorFileName(task);
-                eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+                eventExtractor.writeInputFileForEventExtractor(simpleEntries, fileForEventExtractor);
             }
         }
     }
@@ -322,7 +321,7 @@ public class QueryManager {
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(requestList.parallelStream()
+            Document.buildTargetDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         }
@@ -365,7 +364,7 @@ public class QueryManager {
 //            logger.info("createInputFileEntriesFromHits returned " + simpleEntries.size() + " entries");
             if (simpleEntries.size() > 0) {
                 String fileForEventExtractor = eventExtractor.constructRequestLevelToEventExtractorFileName(r);
-                eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+                eventExtractor.writeInputFileForEventExtractor(simpleEntries, fileForEventExtractor);
             }
         }
     }
@@ -384,7 +383,7 @@ public class QueryManager {
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(requestList.parallelStream()
+            Document.buildTargetDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         }
@@ -406,10 +405,11 @@ public class QueryManager {
                         docText = Document.getDocumentWithMap(td);
                         translatedDocText = "";
                     } else {
-                        docText = Document.getArabicDocumentWithMap(td);
-                        translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
+                        docText = Document.getTargetDocumentWithMap(td);
+                        translatedDocText = Document.getTranslatedTargetDocumentWithMap(td);
                     }
-                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null, null));
+                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null,
+                            null, null));
                 }
                 if (simpleEntries.size() > 0) {
                     String fileName = eventExtractor.constructRequestLevelRerankerFileName(r);
@@ -430,7 +430,7 @@ public class QueryManager {
                     .map(hit -> hit.docid)
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+            Document.buildTargetDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> eventExtractor.readEventFile(eventExtractor.constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
                     .map(hit -> hit.docid)
                     .collect(Collectors.toSet()));
@@ -447,7 +447,8 @@ public class QueryManager {
 
             /* Write out a file that has everything about the task scoredHits that is needed by the final re-ranker */
             String taskHitsEventFileName = eventExtractor.constructTaskLevelEventFileName(t);
-            eventExtractor.writeEventsAsJson(mergedHits, "TASKHITS", taskHitsEventFileName);
+            eventExtractor.writeEventsAsJson(mergedHits, "TASKHITS", taskHitsEventFileName,
+                    Pathnames.REQUEST_HITS_DETAILED);
         }
     }
 

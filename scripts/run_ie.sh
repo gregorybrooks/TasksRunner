@@ -53,7 +53,9 @@ fi
 if [ "$DISABLE_NETWORK" = "true" ]; then
     ADDITIONAL_FLAGS+=" --network none"
 fi
-ADDITIONAL_FLAGS+=" --gpus 1"
+#ADDITIONAL_FLAGS+=" --gpus 1"
+ADDITIONAL_FLAGS+=" "
+ADDITIONAL_FLAGS+=${GPUS}
 
 #ADDITIONAL_FLAGS+=" --user $(id -u):$(id -g) "
 # User and group ID of the Mitre evaluation environment.

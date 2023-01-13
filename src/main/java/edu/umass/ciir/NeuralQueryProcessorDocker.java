@@ -173,7 +173,7 @@ public class NeuralQueryProcessorDocker  {
         String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
 
         String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
-        String command = "docker run --rm"
+        String command = "sudo docker run --rm"
                 + gpu_parm
                 + " --env MODE=" + mode
                 + " --env DEVICE=" + deviceParm

@@ -1,6 +1,7 @@
 package edu.umass.ciir;
 
 import java.util.Comparator;
+import java.util.List;
 
 public class RelevanceJudgment {
 
@@ -31,6 +32,46 @@ public class RelevanceJudgment {
     String when;
     RelevanceJudgmentType judgment;
     String docText;
+    String translatedText;
+    private List<Event> events;
+    private List<SentenceRange> sentences;
+    String language;
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public void setDocText(String docText) {
+        this.docText = docText;
+    }
+
+    public String getTranslatedText() {
+        return translatedText;
+    }
+
+    public List<SentenceRange> getSentences() {
+        return sentences;
+    }
+
+    public List<Event> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<Event> events) {
+        this.events = events;
+    }
+
+    public void setSentences(List<SentenceRange> sentences) {
+        this.sentences = sentences;
+    }
+
+    public void setTranslatedText(String translatedText) {
+        this.translatedText = translatedText;
+    }
 
     public String getRelevanceJudgmentAsString() {
         return judgment.name();
@@ -87,24 +128,30 @@ public class RelevanceJudgment {
         this.when = new String(other.when);
         this.judgment = other.judgment;
         this.docText = other.docText;
+        this.language = other.language;
+        this.sentences = other.sentences;
+        this.language = other.language;
+        this.events = other.events;
     }
 
     RelevanceJudgment(String requestID, String docid, String who, String when,
-                      RelevanceJudgmentType judgment) {
+                      RelevanceJudgmentType judgment, String language) {
         this.requestID = requestID;
         this.docid = docid;
         this.who = who;
         this.when = when;
         this.judgment = judgment;
         this.docText = "";
+        this.language = language;
     }
     RelevanceJudgment(String requestID, String docid, String who, String when,
-                      String judgment) {
+                      String judgment, String language) {
         this.requestID = requestID;
         this.docid = docid;
         this.who = who;
         this.when = when;
         this.docText = "";
+        this.language = language;
         String newJudgment;
         switch (judgment) {
             /* For the official qrel file: */

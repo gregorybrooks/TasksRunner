@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.*;
+import java.util.stream.Stream;
 
 public class TasksRunner {
 
@@ -283,34 +284,113 @@ public class TasksRunner {
         }
     }
 
+    private void updateRelevanceJudgment(Hit hit) {
+        String groupType = hit.hitLevel == HitLevel.REQUEST_LEVEL ? "R" : "T";
+        String requestID = hit.taskID;
+        String docid = hit.docid;
+        Request r = tasks.findRequest(requestID);
+        if (r != null) {
+            for (RelevanceJudgment relevanceJudgment : r.relevanceJudgments) {
+                if (relevanceJudgment.getDocid().equals(docid)) {
+                    relevanceJudgment.setEvents(hit.events);
+                }
+            }
+        }
+    }
+
+    public void annotateSomeCorpusDocs() {
+        long linesInOriginalFile;
+        try {
+            linesInOriginalFile = Files.lines(Paths.get(Pathnames.corpusFileLocation +
+                    Pathnames.targetCorpusFileName)).parallel().count();
+        } catch (IOException e) {
+            throw new TasksRunnerException(e);
+        }
+        int linesPerFile = 3000;
+        // parts 54 and 55 caused errors in the ISI event extractor
+        for (int startIndex = 0, part = 108; (part - 1) * linesPerFile < linesInOriginalFile; ++part) {
+            logger.info("part " + part);
+            startIndex = (part - 1) * linesPerFile;
+            try {
+                eventExtractor.annotateSomeDocs("CORPUS." + part, startIndex, linesPerFile,
+                        Document::getSimpleHitsFromCorpus);
+            } catch (Exception e) {
+                logger.info("part " + part + " failed");
+                throw new TasksRunnerException(e);
+            }
+        }
+    }
+
+    public Map<String,SimpleHit> getSimpleHitsFromRelevantDocs(int startIndex, int numDocsPerFile) {
+        Map<String, SimpleHit> m = new HashMap<>();
+        for (Task task : tasks.getTaskList()) {
+            eventExtractor.createInputFileEntriesFromRelevantDocs(task, m);
+        }
+        return m;
+    }
+
+    public Map<String,SimpleHit> getSimpleHitsFromExampleDocs(int startIndex, int numDocsPerFile) {
+        Map<String, SimpleHit> m = new HashMap<>();
+        for (Task task : tasks.getTaskList()) {
+            eventExtractor.createInputFileEntriesFromExampleDocs(task, m);
+        }
+        return m;
+    }
+
+    public void annotateRelevantDocs() {
+        if (Pathnames.skipRelevantDocAnnotation) {
+            logger.info("Skipping the event annotator for the relevant docs");
+        } else {
+            List<Hit> hits = eventExtractor.annotateSomeDocs("RELEVANT", 0, 0,
+                    this::getSimpleHitsFromRelevantDocs);
+
+/*
+            logger.info("Preparing a file of the relevant docs for the event annotator");
+
+            String fileForEventExtractor = eventExtractor.constructRelevantFileToEventExtractorFileName();
+            Map<String, SimpleHit> entries = new HashMap<>();
+
+            for (Task task : tasks.getTaskList()) {
+                eventExtractor.createInputFileEntriesFromRelevantDocs(task, entries);
+            }
+            eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
+
+            logger.info("Calling the event annotator for relevant docs");
+            eventExtractor.annotateRelevantDocEvents();
+
+            logger.info("Retrieving the file of relevant doc events created by the event annotator");
+*/
+            for (Hit hit : hits) {
+                updateRelevanceJudgment(hit);
+            }
+        }
+    }
 
     public void annotateExampleDocs() {
-        logger.info("Preparing a file of the example docs for the event annotator");
-
-        String fileForEventExtractor = eventExtractor.constructExampleFileToEventExtractorFileName();
-        Map<String, SimpleHit> entries = new HashMap<>();
-
-        for (Task task : tasks.getTaskList()) {
-            eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
-        }
-
-        eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
-
         if (Pathnames.skipExampleDocAnnotation) {
-            eventExtractor.copyExampleDocEventFileToResultsFile();  // just copy the file to the expected name
+            logger.info("Skipping the event annotator for the example docs");
         } else {
+            List<Hit> hits = eventExtractor.annotateSomeDocs("EXAMPLES", 0, 0,
+                    this::getSimpleHitsFromExampleDocs);
+/*
+            logger.info("Preparing a file of the example docs for the event annotator");
+
+            String fileForEventExtractor = eventExtractor.constructExampleFileToEventExtractorFileName();
+            Map<String, SimpleHit> entries = new HashMap<>();
+
+            for (Task task : tasks.getTaskList()) {
+                eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
+            }
+            eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
+
+            logger.info("Calling the event annotator for the example docs");
             eventExtractor.annotateExampleDocEvents();
-        }
 
-        logger.info("Retrieving the file of example doc events created by the event annotator");
-
-        String fileFromEventExtractor = eventExtractor.constructExampleFileFromEventExtractorFileName();
-
-        List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
-
-        for (Hit hit : hits) {
-            updateSentenceIDs(hit);
-            updateTaskOrRequest(hit);
+            logger.info("Retrieving the file of example doc events created by the event annotator");
+*/
+            for (Hit hit : hits) {
+                updateTaskOrRequest(hit);
+            }
         }
 
     }
@@ -542,6 +622,16 @@ public class TasksRunner {
 
     private void doSearch(String taskLevelFormulator, String requestLevelFormulator) {
         annotateExampleDocs();  // call ISI event extractor to add events to the example docs
+        annotateRelevantDocs();  // call ISI event extractor to add events to the relevant docs
+        /* Now write out files with a simpler format for the ISI events. */
+/*
+        eventExtractor.writeEventsAsJson(
+                eventExtractor.readEventFile(eventExtractor.constructExampleFileFromEventExtractorFileName(), -1),
+                "EXAMPLES", eventExtractor.constructExampleEventFileName(), 999999);
+        eventExtractor.writeEventsAsJson(
+                eventExtractor.readEventFile(eventExtractor.constructRelevantFileFromEventExtractorFileName(), -1),
+                "RELEVANT", eventExtractor.constructRelevantEventFileName(), 999999);
+*/
 
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators and re-rankers to use */
         tasks.writeJSONVersion();
@@ -752,6 +842,10 @@ public class TasksRunner {
 
         eventExtractor = new EventExtractor(tasks, mode, submissionId);
 
+        /* One-time action: get events for some documents in the target corpus: */
+        annotateSomeCorpusDocs();
+
+
         if (actions.contains(Action.PRETRAIN)) {
             eventExtractor.preTrainEventAnnotator();
         }
@@ -776,6 +870,7 @@ public class TasksRunner {
                 throw new TasksRunnerException("INVALID PROCESSING MODEL");
             }
         }
+
         logger.info("PROCESSING COMPLETE");
 
         for(Handler h : logger.getHandlers())

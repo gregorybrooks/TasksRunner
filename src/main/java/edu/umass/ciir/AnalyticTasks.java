@@ -2,12 +2,9 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JsonObject;
-import org.json.simple.Jsonable;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import javax.print.Doc;
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
@@ -242,10 +239,6 @@ public class AnalyticTasks {
         /* OLD WAY: */
         // Build the list of docids to pass to Document.buildDocMap
         Set<String> uniqueDocids = new HashSet<>();
-        if (Pathnames.expandQrelDocuments) {
-            for (RelevanceJudgmentKey k : relevanceJudgments.keySet())
-                uniqueDocids.add(k.docid);
-        }
         for (String docid : getAllExampleDocIDs()) {
             uniqueDocids.add(docid);
         }
@@ -255,15 +248,15 @@ public class AnalyticTasks {
         /* OLD WAY */
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
-                logger.info("Adding this to " + d.getDocid() + "'s text:");
-                logger.info(d.getEventsAsSentences());
+//                logger.info("Adding this to " + d.getDocid() + "'s text:");
+//                logger.info(d.getEventsAsSentences());
                 d.setDocText(Document.getDocumentWithMap(d.getDocid()) + " " + d.getEventsAsSentences());
                 d.setSentences(Document.getDocumentSentences(d.getDocid()));
             }
             for (Request r : t.requests.values()) {
                 for (ExampleDocument d2 : r.reqExampleDocs) {
-                    logger.info("Adding this to " + d2.getDocid() + "'s text:");
-                    logger.info(d2.getEventsAsSentences());
+//                   logger.info("Adding this to " + d2.getDocid() + "'s text:");
+//                    logger.info(d2.getEventsAsSentences());
                     d2.setDocText(Document.getDocumentWithMap(d2.getDocid()) + " " + d2.getEventsAsSentences());
                     d2.setSentences(Document.getDocumentSentences(d2.getDocid()));
                 }
@@ -274,19 +267,21 @@ public class AnalyticTasks {
         Expand all positive relevance judgment docs
         (but not if the relevance judgments are for a corpus we don't have)
         */
-        /*
         if (Pathnames.expandQrelDocuments) {
+            Set<String> uniqueRelevantDocids = new HashSet<>();
+            for (RelevanceJudgmentKey k : relevanceJudgments.keySet())
+                uniqueRelevantDocids.add(k.docid);
+            Document.buildTargetDocMap(uniqueRelevantDocids);
             for (Map.Entry<RelevanceJudgmentKey, RelevanceJudgment> entry : relevanceJudgments.entrySet()) {
                 RelevanceJudgmentKey k = entry.getKey();
                 RelevanceJudgment j = entry.getValue();
                 if (j.judgment.isRelevant()) {
-                    // Don't expand judgments of "not relevant"
-
-                    j.docText = Document.getDocumentWithMap(k.docid);
+                    j.setDocText(Document.getTargetDocumentWithMap(k.docid));
+                    j.setSentences(Document.getTargetDocumentSentences(k.docid));
+                    j.setLanguage(Document.getLanguage(k.docid));
                 }
             }
         }
-        */
     }
 
     private class RelevanceJudgmentKey {
@@ -328,7 +323,7 @@ public class AnalyticTasks {
                 String requestID = tokens[0];
                 String docid = tokens[1];
                 String judgment = tokens[2];
-                RelevanceJudgment j = new RelevanceJudgment(requestID, docid, "", "", judgment);
+                RelevanceJudgment j = new RelevanceJudgment(requestID, docid, "", "", judgment, "");
                 RelevanceJudgmentKey jk = new RelevanceJudgmentKey(requestID,docid);
                 relevanceJudgments.put(jk, j);
                 line = qrelReader.readLine();
@@ -349,7 +344,7 @@ public class AnalyticTasks {
         RelevanceJudgmentKey jk = new RelevanceJudgmentKey(requestID,docid);
         RelevanceJudgment j = relevanceJudgments.get(jk);
         if (j == null) { // for unjudged, assume not relevant
-            return new RelevanceJudgment(requestID, docid, "", "", "0");
+            return new RelevanceJudgment(requestID, docid, "", "", "0", "");
         } else {
             return j;
         }

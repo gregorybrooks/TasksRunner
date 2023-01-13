@@ -5,15 +5,17 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
+
 import static java.nio.file.StandardCopyOption.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import java.util.*;
-import java.util.logging.Level;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -37,12 +39,12 @@ public class EventExtractor {
     }
 
     /**
-     * Creates a JSON file containing the entries, in the format that the
-     * Mitre evaluation expects.
+     * Creates a JSON file containing the specified entries, in the format that the
+     * ISI event extractor expects (which is the same as the official BETTER format for an IE input file)
      * @param entries a map of key to text-to-be-processed-for-events
      * @return the total number of characters in the text fields
      */
-    public int writeInputFileMitreFormat(Map<String,SimpleHit> entries, String fileForExtractor)  {
+    public int writeInputFileForEventExtractor(Map<String,SimpleHit> entries, String fileForExtractor)  {
         int tot_chars = 0;
         try {
             JSONObject outermostEntry = new JSONObject();
@@ -68,15 +70,18 @@ public class EventExtractor {
                 annotationSets.put("basic-events", basicEvents);
                 docEntry.put("annotation-sets", annotationSets);
                 docEntry.put("doc-id", key);
+                docEntry.put("lang", SearchEngineInterface.toISIThreeCharForm(hit.language)); // ISO 639-3
                 docEntry.put("entry-id", key);
                 JSONArray segmentSections = new JSONArray();
-                List<SentenceRange> sentences = hit.sentences;
-                for (SentenceRange sentence : sentences) {
-                    JSONObject segmentSection = new JSONObject();
-                    segmentSection.put("start", sentence.start);
-                    segmentSection.put("end", sentence.end);
-                    segmentSection.put("structural-element", "Sentence");
-                    segmentSections.add(segmentSection);
+                if (hit.sentences != null) {
+                    List<SentenceRange> sentences = hit.sentences;
+                    for (SentenceRange sentence : sentences) {
+                        JSONObject segmentSection = new JSONObject();
+                        segmentSection.put("start", sentence.start);
+                        segmentSection.put("end", sentence.end);
+                        segmentSection.put("structural-element", "Sentence");
+                        segmentSections.add(segmentSection);
+                    }
                 }
                 docEntry.put("segment-sections", segmentSections);
 
@@ -242,24 +247,26 @@ public class EventExtractor {
             List<Event> events = null;
             String docText;
             String translatedDocText;
+            String language;
             if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
                 events = Document.getEnglishDocumentEvents(td);
                 sentences = Document.getDocumentSentences(td);
                 docText = Document.getDocumentWithMap(td);
+                language = "english";
                 translatedDocText = "";
             } else {
 //                logger.info("Looking for events for docid " + td);
-                events = Document.getArabicDocumentEvents(td);
+                events = Document.getTargetDocumentEvents(td);
 //                logger.info("Lookup returned " + events == null ? "NULL" : "non-NULL");
-                sentences = Document.getArabicDocumentSentences(td);
-                docText = Document.getArabicDocumentWithMap(td);
-                translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
+                sentences = Document.getTargetDocumentSentences(td);
+                docText = Document.getTargetDocumentWithMap(td);
+                translatedDocText = Document.getTranslatedTargetDocumentWithMap(td);
+                language = Document.getLanguage(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, events);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, events, language);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
-
 
     /**
      * Number of scoredHits to have full event details.
@@ -289,6 +296,8 @@ public class EventExtractor {
     public String constructRequestLevelEventFileName(Request r) {
         return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.events.json";
     }
+
+
     public String constructRequestLevelSimpleFileName(Request r) {
         return Pathnames.eventExtractorFileLocation + submissionId + "." + r.reqNum + ".REQUESTHITS.SIMPLE.json";
     }
@@ -297,70 +306,247 @@ public class EventExtractor {
     }
 
     public String constructExampleFileFromEventExtractorFileName() {
-        return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.json.results.json";
+        return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.results.json";
     }
     public String constructExampleFileToEventExtractorFileName() {
         return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.json";
     }
+    public String constructExampleEventFileName() {
+        return Pathnames.eventExtractorFileLocation + submissionId + ".EXAMPLES.events.json";
+    }
+    public String constructRelevantFileFromEventExtractorFileName() {
+        return Pathnames.eventExtractorFileLocation + submissionId + ".RELEVANT.results.json";
+    }
+    public String constructRelevantFileToEventExtractorFileName() {
+        return Pathnames.eventExtractorFileLocation + submissionId + ".RELEVANT.json";
+    }
+    public String constructRelevantEventFileName() {
+        return Pathnames.eventExtractorFileLocation + submissionId + ".RELEVANT.events.json";
+    }
 
+    /**
+     * Creates a map of SimpleHits for the relevant documents for each Request in the specified Task. Each SimpleHit has the
+     * document text, translated text, sentences, and language, which are needed by the ISI event annotator.
+     * The key for each SimpleHit has enough information to allow us to determine which example document is which
+     * in the output file from the ISI event annotator.
+     * @param t The Task
+     * @param m The map to fill in (OUTPUT)
+     */
+    public void createInputFileEntriesFromRelevantDocs(Task t, Map<String,SimpleHit> m) {
+        for (Request r : t.getRequests().values()) {
+            for (RelevanceJudgment relevanceJudgment : r.relevanceJudgments) {
+                SimpleHit hit = new SimpleHit(relevanceJudgment.getDocid(), relevanceJudgment.getDocText(),
+                        relevanceJudgment.getTranslatedText(), relevanceJudgment.getSentences(), null,
+                        relevanceJudgment.getLanguage());
+                m.put("RequestRelevantDoc" + "--" + r.reqNum + "--" + relevanceJudgment.getDocid(), hit);
+            }
+        }
+    }
+
+    /**
+     * Calls the ISI event annotator for all of the relevant documents that are in the RELEVANT.json file created by
+     * createInputFileEntriesFromRelevantDocs().
+     */
+    public void annotateRelevantDocEvents() {
+        runAScript("./annotate_relevant_docs.sh",
+                " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
+                + " APP_DIR=" + Pathnames.appFileLocation
+                + " GPUS=" + Pathnames.gpusForEventExtractor
+                + " MODE=" + mode
+                + " SUBMISSION_ID=" + submissionId
+                + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                + " CORPUS_DIR=" + Pathnames.corpusFileLocation);
+    }
+
+    private int findSentence(long start, List<SentenceRange> sentences) {
+        for (SentenceRange sentence : sentences) {
+            if (start >= sentence.start && start <= sentence.end) {
+                return sentence.id;
+            }
+        }
+        return -1;
+    }
+
+    private int splitFile(String baseFilename, int linesPerFile)  {
+        /* each filename should be baseFileName +  ".N.json" */
+        /* N should start at 1 not 0 */
+        String inputFileName = baseFilename + ".json";
+        long lines = 0;
+        try {
+            lines = Files.lines(Paths.get(inputFileName)).parallel().count();
+        } catch (IOException e) {
+            throw new TasksRunnerException(e);
+        }
+        logger.info("splitFile, baseFilename is " + baseFilename + ", linesPerFile is " + linesPerFile
+                + ", line count is " + lines);
+        int startIndex = 0;
+        int part = 1;
+        while ((part - 1) * linesPerFile < lines) {
+            logger.info("part " + part);
+            try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                        new FileOutputStream(baseFilename + "." + part + ".json")))) {
+                startIndex = (part - 1) * linesPerFile;
+                logger.info("startIndex is " + startIndex + ", limit is " + (startIndex + linesPerFile));
+                try (Stream<String> stream = Files.lines(Paths.get(inputFileName))) {
+                    stream.skip(startIndex).limit(startIndex + linesPerFile).forEach(writer::println);
+                } catch (IOException e) {
+                    throw new TasksRunnerException(e);
+                }
+            } catch (Exception e) {
+                throw new TasksRunnerException(e);
+            }
+            ++part;
+        }
+        logger.info("Returning " + (part - 1) + " parts");
+        return part - 1;
+    }
+
+    private int splitJSONFile(String baseFilename, int linesPerFile)  {
+        /* each filename should be baseFileName +  ".N.json" */
+        /* N should start at 1 not 0 */
+        String inputFileName = baseFilename + ".json";
+        List<Hit> hits = readEventFile(inputFileName, -1);
+
+        int startIndex = 0;
+        int part = 1;
+        while ((part - 1) * linesPerFile < hits.size()) {
+            logger.info("part " + part);
+            try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(baseFilename + "." + part + ".json")))) {
+                startIndex = (part - 1) * linesPerFile;
+                logger.info("startIndex is " + startIndex + ", limit is " + (startIndex + linesPerFile));
+                hits.stream().skip(startIndex).limit(startIndex + linesPerFile).forEach(writer::println);
+            } catch (Exception e) {
+                throw new TasksRunnerException(e);
+            }
+            ++part;
+        }
+        logger.info("Returning " + (part - 1) + " parts");
+        return part - 1;
+    }
+    /**
+     * Calls the ISI event extractor to get the events in the specified documents.
+     * Creates files in the eventExtractorFileLocation directory. Calls a script.
+     * @param name a name for this set of documents, like "EXAMPLES" or "RELEVANT" or "CORPUS"
+     * @param getSimpleHits a function that returns the list of documents, expressed as a list of SimpleHits
+     * @return the list of documents with their events added, expressed as a list of Hits
+     * It also writes the list of documents with their events and other information to a file as a side effect
+     * (the ...events.json file).
+     */
+    public List<Hit> annotateSomeDocs(String name, int startIndex, int numDocsPerFile,
+                                      BiFunction<Integer, Integer, Map<String, SimpleHit>> getSimpleHits) {
+        /* Write out the documents to a file to send to the ISI event extractor */
+        writeInputFileForEventExtractor(getSimpleHits.apply(startIndex, numDocsPerFile),
+                Pathnames.eventExtractorFileLocation + submissionId + "." + name + ".json");
+
+//        int numberOfParts = splitFile(Pathnames.eventExtractorFileLocation + submissionId + "." + name, 6000);
+
+        /* Run the ISI event extractor */
+        List<Hit> totalHits = new ArrayList<>();
+
+//        for (int currentPart = 1; currentPart <= numberOfParts; ++currentPart) {
+//            String currentName = name + "." + currentPart;
+
+            runAScript("./annotate_docs.sh",
+                    " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
+                            + " APP_DIR=" + Pathnames.appFileLocation
+                            + " GPUS=" + Pathnames.gpusForEventExtractor
+                            + " MODE=" + mode
+                            + " SUBMISSION_ID=" + submissionId
+                            + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                            + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                            + " CORPUS_DIR=" + Pathnames.corpusFileLocation
+                            + " NAME=" + name);
+
+            /* Read in the results of the event extractor, which is the same set of documents but with events added to them */
+            List<Hit> hits = readEventFile(Pathnames.eventExtractorFileLocation + submissionId + "." + name + ".results.json", -1);
+
+            /* Load all documents referenced in the list into memory (including their translated texts and sentence details) */
+            Document.buildTargetDocMap(hits.stream().map(hit -> hit.docid).collect(Collectors.toSet()));
+            for (Hit d : hits) {
+            /* Now that we have access to the document's sentences, add the IDs of the sentences the events occur in.
+               This is something the ISI event extractor did not do. */
+                for (Event event : d.events) {
+                    event.sentenceID = findSentence(event.anchorSpan.start, Document.getTargetDocumentSentences(d.docid));
+                }
+                /* The ISI event annotator did not preserve the translated document text even if we sent it. Add it here. */
+                d.translatedDocText = Document.getTranslatedTargetDocumentWithMap(d.docid);
+            }
+
+            /* Write out the documents, with their events and other information, to a file for use downstream */
+            writeEventsAsJson(hits, name,
+                    Pathnames.eventExtractorFileLocation + submissionId + "." + name + ".events.json",
+                    999999);
+            totalHits.addAll(hits);
+//        }
+        return totalHits;
+    }
+
+    /**
+     * Creates a map of SimpleHits for the example documents for the Task and for each Request. Each SimpleHit has the
+     * document text and sentences, which are needed by the ISI event annotator. The key for each SimpleHit has enough
+     * information to allow us to determine which example document is which in the output file from the ISI event annotator.
+     * @param t The Task
+     * @param m The map to fill in (OUTPUT)
+     */
     public void createInputFileEntriesFromExampleDocs(Task t, Map<String,SimpleHit> m) {
         for (ExampleDocument d : t.taskExampleDocs) {
-            SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences(), null);
+            SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences(), null,
+                    "english");
             m.put("TaskExampleDoc" + "--" + t.taskNum + "--" + d.getDocid(), hit);
         }
         for (Request r : t.getRequests().values()) {
             for (ExampleDocument d : r.reqExampleDocs) {
-                SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences(), null);
+                SimpleHit hit = new SimpleHit(d.getDocid(), d.getDocText(), "", d.getSentences(),
+                        null, "english");
                 m.put("TaskExampleDoc" + "--" + t.taskNum + "--" + d.getDocid(), hit);
                 m.put("RequestExampleDoc" + "--" + r.reqNum + "--" + d.getDocid(), hit);
             }
         }
     }
 
+    /**
+     * Calls the ISI event annotator for all of the example documents that are in the EXAMPLES.json file created by
+     * createInputFileEntriesFromExampleDocs().
+     */
     public void annotateExampleDocEvents() {
-        String logFile = Pathnames.logFileLocation + "/annotate_example_docs." + submissionId + ".log";
-
-        String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
-                + " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
+        runAScript("./annotate_example_docs.sh",
+                " MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
                 + " APP_DIR=" + Pathnames.appFileLocation
+                + " GPUS=" + Pathnames.gpusForEventExtractor
                 + " MODE=" + mode
                 + " SUBMISSION_ID=" + submissionId
                 + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
                 + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
-                + " CORPUS_DIR=" + Pathnames.corpusFileLocation
-                + " ./annotate_example_docs.sh";
-
-        Command.execute(tempCommand, logFile);
+                + " CORPUS_DIR=" + Pathnames.corpusFileLocation);
     }
 
     /**
-     * A side-effect of this script is that it copies the REQUESTHITS.json files to REQUESTHITS.json.results.json files,
-     * so it must be called even if you don't actually call the ISI event extractor
+     * Runs the provided script after changing to the scripts directory. Output from the script goes to a logfile.
+     * The provided environment variable definitions are passed to the script.
+     * @param script The script to run, e.g. "./annotate_events.sh"
+     * @param environmentVars The set of environment variable definitions to pass to the script. For instance,
+     *                        MODE=AUTO SUBMISSION_ID=xyz
      */
     public void runAScript(String script, String environmentVars ) {
         // e.g. script = "./annotate_request_docs.sh.FARSI";
-        String logFile = Pathnames.logFileLocation + script + "." + submissionId + ".log";
-        String tempCommand = "cd " + Pathnames.scriptFileLocation + " && "
-                + environmentVars
-                + " " + script;
-
-        Command.execute(tempCommand, logFile);
+        Command.execute("cd " + Pathnames.scriptFileLocation + " && " + environmentVars + " " + script,
+                Pathnames.logFileLocation + script.replace("./", "") + "." + submissionId + ".log");
     }
 
-
     public void annotateProvidedFileEvents() {
-        logger.info("Calling event annotator for test_data.bp.json file");
+        logger.info("Calling event annotator for user-supplied test_data.bp.json file");
 
-        String script = "./annotate_provided_file.sh";
-        String trainingDirs = "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR;
-        String environmentVars = trainingDirs
-                + " APP_DIR=" + Pathnames.appFileLocation
-                + " MODE=" + mode
-                + " SUBMISSION_ID=" + submissionId
-                + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
-                + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
-                + " CORPUS_DIR=" + Pathnames.corpusFileLocation;
-        runAScript(script, environmentVars);
+        runAScript("./annotate_provided_file.sh",
+                "MODELS_BASE_DIR=" + Pathnames.MODELS_BASE_DIR
+                        + " APP_DIR=" + Pathnames.appFileLocation
+                        + " MODE=" + mode
+                        + " GPUS=" + Pathnames.gpusForEventExtractor
+                        + " SUBMISSION_ID=" + submissionId
+                        + " SCRATCH_DIR=" + Pathnames.scratchFileLocation
+                        + " EVENT_EXTRACTOR_FILES_DIRECTORY=" + Pathnames.eventExtractorFileLocation
+                        + " CORPUS_DIR=" + Pathnames.corpusFileLocation);
     }
 
     private void copyFile(String source, String dest) {
@@ -377,6 +563,11 @@ public class EventExtractor {
             String fileForEventExtractor = constructRequestLevelToEventExtractorFileName(request);
             copyFile(fileForEventExtractor, fileForEventExtractor + ".results.json");
         }
+    }
+
+    public void copyRelevantDocEventFileToResultsFile() {
+        String source = constructRelevantFileToEventExtractorFileName();
+        copyFile(constructRelevantFileToEventExtractorFileName(), constructRelevantFileFromEventExtractorFileName());
     }
 
     public void copyExampleDocEventFileToResultsFile() {
@@ -430,7 +621,7 @@ public class EventExtractor {
         logger.info("PRE-TRAINING COMPLETE");
     }
 
-    public void writeEventsAsJson(List<Hit> hits, String type, String eventHumanReadableFile) {
+    public void writeEventsAsJson(List<Hit> hits, String type, String eventHumanReadableFile, int limit) {
         try {
             searchHits = new ArrayList<>();
 
@@ -445,7 +636,8 @@ public class EventExtractor {
                 hit.put("groupType", h.hitLevel == HitLevel.REQUEST_LEVEL ? "R" : "T");
                 hit.put("docid", h.docid);
 
-                if (idx > Pathnames.REQUEST_HITS_DETAILED) {
+//                if (idx > Pathnames.REQUEST_HITS_DETAILED) {
+                if (idx > limit) {
                     hit.put("docText", "");
                     hit.put("translatedDocText", "");
                     JSONArray segmentSections = new JSONArray();
@@ -463,7 +655,7 @@ public class EventExtractor {
                     if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
                         sentences = Document.getDocumentSentences(h.docid);
                     } else {
-                        sentences = Document.getArabicDocumentSentences(h.docid);
+                        sentences = Document.getTargetDocumentSentences(h.docid);
                     }
                     if (sentences == null) {
                         System.out.println("Should not happen");

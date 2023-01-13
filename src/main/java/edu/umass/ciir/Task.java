@@ -220,8 +220,8 @@ public class Task {
                             // Construct a set of sentences from the Mitre-provided events for this document
                             // and save them to be added to the doc text later, when example docs are expanded
                             eventsAsSentences = Event.getEventsAsSentencesFromJSON(jsonBasicEvents, docID);
-                            logger.info("Saving this events-as-sentences for docid " + docID + ":");
-                            logger.info(eventsAsSentences);
+//                            logger.info("Saving this events-as-sentences for docid " + docID + ":");
+//                            logger.info(eventsAsSentences);
                         }
                     }
                 }
