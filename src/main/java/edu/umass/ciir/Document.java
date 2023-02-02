@@ -87,8 +87,11 @@ public class Document {
     }
 
     public static void getDocumentWithGalago(String docid, String indexPath, Map<String,String> map,
-                                             Map<String,List<SentenceRange>> sentenceMap, boolean includeSentences) {
+                                             Map<String,List<SentenceRange>> sentenceMap, boolean includeSentences,
+                                             Map<String, List<Event>> eventMap) {
         try {
+            List<Event> events = new ArrayList<>();
+
             Parameters queryParams = Parameters.create();
             queryParams.set ("index", indexPath);
             queryParams.set ("requested",1000);
@@ -111,6 +114,7 @@ public class Document {
             }
 
             map.put(docid, docText);
+            eventMap.put(docid, events);
             sentenceMap.put(docid, sentences);
         }
         catch (Exception ex) {
@@ -147,7 +151,8 @@ public class Document {
         if (isEnglishCorpus) {
             logger.info("Using Galago method");
             for (String docid : uniqueDocIDs) {
-                getDocumentWithGalago(docid, Pathnames.englishIndexLocation, map, sentenceMap, true);
+                getDocumentWithGalago(docid, Pathnames.englishIndexLocation, map, sentenceMap, true,
+                        eventMap);
             }
         } else {
 /*
