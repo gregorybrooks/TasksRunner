@@ -72,4 +72,5 @@ COPY --chown=tasksrunner programfiles /home/tasksrunner/programfiles
 COPY --chown=tasksrunner runit.sh /home/tasksrunner
 COPY --chown=tasksrunner scripts /home/tasksrunner/scripts
 COPY --chown=tasksrunner target /home/tasksrunner/target
+COPY --chown=tasksrunner *.json /home/tasksrunner/
 

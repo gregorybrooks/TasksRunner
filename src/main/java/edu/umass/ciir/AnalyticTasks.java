@@ -2,12 +2,9 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JsonObject;
-import org.json.simple.Jsonable;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import javax.print.Doc;
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
@@ -24,6 +21,7 @@ public class AnalyticTasks {
     private String tasksAndRequestsFile = "";
     private String supplementalFile = "";
     private String mode = "";
+    private String submissionId;
     private boolean sparse = false;
 
     /**
@@ -57,74 +55,25 @@ public class AnalyticTasks {
      * Also reads in the file containing the relevance judgments for these requests.
      * See the log file called better-components.log for activity from these components.
      *
-     * @param taskFileNameParm the filename (not the full path) of the input file
-     *
      * A note about exceptions: there are no exceptions that the caller is expected to handle
      * during execution--all exceptions are returned as the unchecked exception BetterComponentException,
      * which should terminate your program and contains the root cause exception and the
      * higher-level exception that gives it context.
-     * @throws BetterComponentException (unchecked exception) if something goes wrong.
      */
-    /**
-     *
-     */
-    public AnalyticTasks() {
-        setDefaults();
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode) {
-        setDefaults();
+    public AnalyticTasks(String mode, String submissionId) {
+        this.sparse = false;
         this.mode = mode;
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode, String taskFileNameParm) {
-        setDefaults();
-        this.mode = mode;
-        this.taskFileName = taskFileNameParm;
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode, boolean sparse) {
-        setDefaults();
-        this.mode = mode;
-        this.sparse = sparse;
-        openFiles();
-    }
-
-    public AnalyticTasks(Boolean sparse) {
-        setDefaults();
-        this.sparse = sparse;
-        openFiles();
-    }
-
-    public AnalyticTasks(String mode, String taskFileNameParm, Boolean sparse) {
-        setDefaults();
-        this.mode = mode;
-        this.taskFileName = taskFileNameParm;
-        this.sparse = sparse;
+        this.submissionId = submissionId;
+        this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
+                + submissionId + ".analytic_tasks.json";
+        taskFileName = Pathnames.tasksFileName;
         openFiles();
     }
 
     private void setDefaults() {
-        this.mode = Pathnames.mode;  // default to the env file
         this.internalAnalyticTasksInfoFileName = Pathnames.eventExtractorFileLocation
-                + mode + ".analytic_tasks.json";
-        String tempTaskFileName = "";
-        switch (mode) {
-            case "AUTO":
-                taskFileName = Pathnames.tasksFileNameAUTO;
-                break;
-            case "AUTO-HITL":
-                taskFileName = Pathnames.tasksFileNameAUTOHITL;
-                break;
-            case "HITL":
-                taskFileName = Pathnames.tasksFileNameHITL;
-                break;
-            default:
-                throw new TasksRunnerException("Invalid mode: " + mode + ". Must be AUTO, AUTO-HITL, or HITL");
-        }
+                + submissionId + ".analytic_tasks.json";
+        taskFileName = Pathnames.tasksFileName;
         this.sparse = false;
     }
 
@@ -147,26 +96,14 @@ public class AnalyticTasks {
                     readTaskFileFarsi();
                 }
             } catch (Exception e) {
-                System.out.println("ERROR: Problem reading tasks file " + tasksAndRequestsFile
-                        + ". Check your tasksFileNameXXX setting (one for each mode): ");
-                System.out.println("You are running in " + mode + " mode.");
-                if (mode.equals("AUTO")) {
-                    System.out.println("tasksFileNameAUTO = " + Pathnames.tasksFileNameAUTO);
-                } else if (mode.equals("AUTO-HITL")) {
-                    System.out.println("tasksFileNameAUTOHITL = " + Pathnames.tasksFileNameAUTOHITL);
-                } else if (mode.equals("HITL")) {
-                    System.out.println("tasksFileNameHITL = " + Pathnames.tasksFileNameHITL);
-                }
-                throw e;
+                throw new TasksRunnerException(e);
             }
 
             if (!sparse) {
-                if (mode.equals("HITL")) {
+//                if (mode.equals("HITL")) {
 //                    logger.info("Opening supplemental task definition file " + supplementalFile);
 //                    readSupplementalFile();
-                      logger.info("Not using the supplemental task definition file");
-                }
-
+//                }
 
                 /* Get relevance judgments for these requests.
                  * Unless there are no relevance judgments available for this analytic task file / corpus
@@ -189,10 +126,6 @@ public class AnalyticTasks {
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
-    }
-
-    public String getMode() {
-        return mode;
     }
 
     public String getInternalAnalyticTasksInfoFileName() {
@@ -289,6 +222,7 @@ public class AnalyticTasks {
      */
     private void expandRelevantAndExampleDocs() {
         /* New way: doctext and sentences are already in the ir-tasks.json and have been loaded into memory */
+        /*
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
                 Document.addDocToMap(d.getDocid(), d.getDocText());
@@ -301,52 +235,53 @@ public class AnalyticTasks {
                 }
             }
         }
-        /* OLD WAY:
+        */
+        /* OLD WAY: */
         // Build the list of docids to pass to Document.buildDocMap
         Set<String> uniqueDocids = new HashSet<>();
-        if (Pathnames.expandQrelDocuments) {
-            for (RelevanceJudgmentKey k : relevanceJudgments.keySet())
-                uniqueDocids.add(k.docid);
-        }
         for (String docid : getAllExampleDocIDs()) {
             uniqueDocids.add(docid);
         }
         Document.buildDocMap(uniqueDocids);
-        */
 
         /* Expand all task and request example docs */
-        /* OLD WAY:
+        /* OLD WAY */
         for (Task t : tasks.values()) {
             for (ExampleDocument d : t.taskExampleDocs) {
-                d.setDocText(Document.getDocumentWithMap(d.getDocid()));
+//                logger.info("Adding this to " + d.getDocid() + "'s text:");
+//                logger.info(d.getEventsAsSentences());
+                d.setDocText(Document.getDocumentWithMap(d.getDocid()) + " " + d.getEventsAsSentences());
                 d.setSentences(Document.getDocumentSentences(d.getDocid()));
             }
             for (Request r : t.requests.values()) {
                 for (ExampleDocument d2 : r.reqExampleDocs) {
-                    d2.setDocText(Document.getDocumentWithMap(d2.getDocid()));
+//                   logger.info("Adding this to " + d2.getDocid() + "'s text:");
+//                    logger.info(d2.getEventsAsSentences());
+                    d2.setDocText(Document.getDocumentWithMap(d2.getDocid()) + " " + d2.getEventsAsSentences());
                     d2.setSentences(Document.getDocumentSentences(d2.getDocid()));
                 }
             }
         }
-         */
 
         /*
         Expand all positive relevance judgment docs
         (but not if the relevance judgments are for a corpus we don't have)
         */
-        /*
         if (Pathnames.expandQrelDocuments) {
+            Set<String> uniqueRelevantDocids = new HashSet<>();
+            for (RelevanceJudgmentKey k : relevanceJudgments.keySet())
+                uniqueRelevantDocids.add(k.docid);
+            Document.buildTargetDocMap(uniqueRelevantDocids);
             for (Map.Entry<RelevanceJudgmentKey, RelevanceJudgment> entry : relevanceJudgments.entrySet()) {
                 RelevanceJudgmentKey k = entry.getKey();
                 RelevanceJudgment j = entry.getValue();
                 if (j.judgment.isRelevant()) {
-                    // Don't expand judgments of "not relevant"
-
-                    j.docText = Document.getDocumentWithMap(k.docid);
+                    j.setDocText(Document.getTargetDocumentWithMap(k.docid));
+                    j.setSentences(Document.getTargetDocumentSentences(k.docid));
+                    j.setLanguage(Document.getLanguage(k.docid));
                 }
             }
         }
-        */
     }
 
     private class RelevanceJudgmentKey {
@@ -388,7 +323,7 @@ public class AnalyticTasks {
                 String requestID = tokens[0];
                 String docid = tokens[1];
                 String judgment = tokens[2];
-                RelevanceJudgment j = new RelevanceJudgment(requestID, docid, "", "", judgment);
+                RelevanceJudgment j = new RelevanceJudgment(requestID, docid, "", "", judgment, "");
                 RelevanceJudgmentKey jk = new RelevanceJudgmentKey(requestID,docid);
                 relevanceJudgments.put(jk, j);
                 line = qrelReader.readLine();
@@ -409,7 +344,7 @@ public class AnalyticTasks {
         RelevanceJudgmentKey jk = new RelevanceJudgmentKey(requestID,docid);
         RelevanceJudgment j = relevanceJudgments.get(jk);
         if (j == null) { // for unjudged, assume not relevant
-            return new RelevanceJudgment(requestID, docid, "", "", "0");
+            return new RelevanceJudgment(requestID, docid, "", "", "0", "");
         } else {
             return j;
         }
@@ -686,6 +621,10 @@ public class AnalyticTasks {
     }
 
     public void writeJSONVersion()  {
+        writeJSONVersionToFile(internalAnalyticTasksInfoFileName);
+    }
+
+    public void writeJSONVersionToFile(String fileName)  {
         try {
             JSONArray targetTopArray = new JSONArray();
             for (Map.Entry<String,Task> entry : tasks.entrySet()) {
@@ -693,9 +632,9 @@ public class AnalyticTasks {
                 JSONObject j = Task.convertToJSON(t);
                 targetTopArray.add(j);
             }
-            logger.info("Writing analytic_tasks.json to " + internalAnalyticTasksInfoFileName);
+            logger.info("Writing analytic_tasks.json to " + fileName);
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                    new FileOutputStream(internalAnalyticTasksInfoFileName)));
+                    new FileOutputStream(fileName)));
             writer.write(targetTopArray.toJSONString());
             writer.close();
         } catch (Exception e) {
@@ -714,6 +653,7 @@ public class AnalyticTasks {
         String taskNum = "";
         String taskTitle = "";
         String taskNarr = "";
+        String taskLink = "";
         String reqNum = "";
         String reqText = "";
         while ((line = rdr.readLine()) != null) {
@@ -727,7 +667,7 @@ public class AnalyticTasks {
                 Request r = new Request(reqNum, reqText);
                 Map<String,Request> requests = new TreeMap<>();
                 requests.put(reqNum, r);
-                Task t = new Task(taskNum, taskTitle, taskNarr, requests);
+                Task t = new Task(taskNum, taskTitle, taskNarr, taskLink, requests);
                 tasks.put(t.taskNum, t);
             } else if (line.startsWith("<identifier>")) {
                 line = line.replace("<identifier>", "");
@@ -931,9 +871,4 @@ public class AnalyticTasks {
         });
     }
 
-    /**
-     * A public entry point function, needed to create the executable jar file.
-     * @param args no arguments are expected
-     */
-    public static void main(String[] args) { }
 }

@@ -2,20 +2,18 @@ package edu.umass.ciir;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.*;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
 import static java.nio.file.StandardCopyOption.*;
 
 public class QueryManager {
@@ -24,6 +22,8 @@ public class QueryManager {
     public Map<String, String> nonTranslatedQueries;
 
     public Run run;
+    private String mode;
+    private String language;
     private String queryFileName;
     private String queryFileFullPathName;
     private String queryFileNameOnly;
@@ -36,20 +36,27 @@ public class QueryManager {
     private long runTime = 0;
     private String rerankedRunFile;
     private String phase;
+    private String submissionId;
     private EventExtractor eventExtractor;
     private static final Logger logger = Logger.getLogger("TasksRunner");
 
-    public QueryManager(AnalyticTasks tasks, String queryFormulationName, String phase, EventExtractor eventExtractor) {
+    public QueryManager(String submissionId, String language, String mode, AnalyticTasks tasks, String phase,
+                        EventExtractor eventExtractor) {
         try {
             this.tasks = tasks;
             this.phase = phase;
+            this.mode = mode;
+            this.language = language;
+            this.submissionId = submissionId;
             this.eventExtractor = eventExtractor;
             taskFileNameGeneric = tasks.getTaskFileName();
             // When the query formulation name is a Docker image name, it might be qualified
             // with the owner's name and a "/", which confuses things when the formulation name
             // is used in a pathname, so change the "/" to a "-"
-            queryFormulationName = queryFormulationName.replace("/", "-");
-            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
+//            queryFormulationName = queryFormulationName.replace("/", "-");
+//            this.key =  tasks.getMode() + "." + phase + "." + queryFormulationName;
+//            this.key =  submissionId + "." + language + "." + phase + "." + queryFormulationName;
+            this.key =  submissionId + "." + language + "." + phase;
             queryFileNameOnly = key + ".queries.json";
             queryFileFullPathName = Pathnames.queryFileLocation + queryFileNameOnly;
             queryFileName = queryFileFullPathName; // for historical reasons
@@ -58,7 +65,9 @@ public class QueryManager {
             evaluationRequestLevelFileName = Pathnames.evaluationFileLocation + "/" + key + ".REQUEST.csv";
 
             queries = getGeneratedQueries(queryFileName);
+            /*
             nonTranslatedQueries = getGeneratedQueries(queryFileName + ".NON_TRANSLATED");
+             */
             rerankedRunFile = Pathnames.runFileLocation + key + ".RERANKED.out";
 
             run = new Run();
@@ -67,89 +76,56 @@ public class QueryManager {
         }
     }
 
+    private String getTaskLevelKey() {
+        return submissionId + "." + language + "." + "Task";
+    }
+
+    private String getTaskLevelIndexName(String taskNum) {
+        return getTaskLevelKey() + "." + taskNum + ".PARTIAL";
+    }
+
     private void callQueryFormulator(String dockerImageName) {
-        try {
-            String mode = Pathnames.mode;
-            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
-            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-            String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
-            // if 4 GPUs, 0 is first one, 1 is second one, etc.
-            String command = sudo + " docker run --rm"
-                    + gpu_parm
-                    + " --env MODE=" + mode
-                    + " --env OUT_LANG=" + language
-                    + " --env PHASE=" + phase
-                    + " --env INPUTFILE=" + analyticTasksInfoFilename
-                    + " --env QUERYFILE=" + getKey()
-                    /* For each directory that we want to share between this parent docker container (TasksRunner)
-                     and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
-                     in an environment variable, and we make that path a bind-volume so the child container
-                     can actually access it.
-                     */
-/*
-                    + " --env eventExtractorFileLocation=$eventExtractorFileLocation"
-                    + " --env queryFileLocation=$queryFileLocation"
-                    + " -v $eventExtractorFileLocation:$eventExtractorFileLocation"
-                    + " -v $queryFileLocation:$queryFileLocation"
-*/
-                    + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
-                    + " --env queryFileLocation=" + Pathnames.queryFileLocation
-                    + " --env logFileLocation=" + Pathnames.logFileLocation + mode + "/"
-                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
-                    + " -v " + Pathnames.logFileLocation + mode + "/" + ":" + Pathnames.logFileLocation + mode + "/"
-                    + " --env galagoLocation=" + Pathnames.galagoLocation
-                    // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
-                    + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                    + " --env englishIndexLocation=" + Pathnames.englishIndexLocation + "/"
-                    + " -v " + Pathnames.englishIndexLocation + ":" + Pathnames.englishIndexLocation
-                    + " --env targetIndexLocation=" + Pathnames.targetIndexLocation + "/"
-                    + " -v " + Pathnames.targetIndexLocation + ":" + Pathnames.targetIndexLocation
-                    + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
-                    + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
+        String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
+        // if 4 GPUs, 0 is first one, 1 is second one, etc.
+        String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+        String command = ("sudo docker run --rm"
+                + gpu_parm
+                + " --env MODE=" + mode
+                // The query formulators expect the language to be all upper-case
+                + " --env OUT_LANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
+                + " --env PHASE=" + phase
+                + " --env SEARCH_ENGINE=" + Pathnames.searchEngine
+                + " --env INPUTFILE=" + analyticTasksInfoFilename
+                + " --env QUERYFILE=" + getKey()
+                /* For each directory that we want to share between this parent docker container (TasksRunner)
+                 and the child docker container (TaskQueryBuilder1 e.g.), we pass the pathname
+                 in an environment variable, and we make that path a bind-volume so the child container
+                 can actually access it.
+                 */
+                + " --env eventExtractorFileLocation=" + Pathnames.eventExtractorFileLocation
+                + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                + " --env queryFileLocation=" + Pathnames.queryFileLocation
+                + " -v " + Pathnames.queryFileLocation + ":" + Pathnames.queryFileLocation
+                + " --env logFileLocation=" + Pathnames.logFileLocation
+                + " -v " + Pathnames.logFileLocation + ":" + Pathnames.logFileLocation
+                + " --env galagoLocation=" + Pathnames.galagoLocation
+                // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
+                + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
+//                    + " --env englishIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en/"
+//                    + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
+//                    + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-en"
+                + " --env targetIndexLocation=" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-"
+                + language
+                + " -v " + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
+                + ":" + Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language
+                + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
+                + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
 
-                    + " " + dockerImageName
-                    + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/" + phase + ".query-formulator.out";
-            String tempCommand = command + " >& " + logFile;
+                + " " + dockerImageName
+                + " sh -c ./runit.sh");
+        String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
 
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                // do nothing
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing docker image execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("Docker container output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from Docker container, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
-            }
-
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
+        Command.execute(command, logFile);
     }
 
     public void buildQueries(String queryFormulator) {
@@ -180,206 +156,47 @@ public class QueryManager {
     /* vars needed by the Docker version of the reranker:
     $TASK_FILE $DATA_DIR $QLANG $DLANG $RUNFILE_MASK $DEVICE $NUM_CPU $TOPK $OUTPUT_DIR
     */
-    public void callReranker(String currentRunFile, String outputFileName) {
+    public void callReranker(String dockerImageName, String currentRunFile, String outputFileName) {
+        String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
+        // if 4 GPUs, 0 is first one, 1 is second one, etc.
+        // works at Mitre:
+        //String gpu_parm = " --gpus 1";
+        // doesn't seem to work at Mitre:
+        String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
+
+        String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
+        String command = "sudo docker run --rm"
+                + gpu_parm
+                + " --env MODE=" + mode
+                + " --env DEVICE=" + deviceParm
+                + " --env TASK_FILE=" + Pathnames.eventExtractorFileLocation + analyticTasksInfoFilename
+                + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
+                + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
+                + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
+                + " --env QLANG=en --env DLANG=" + (Pathnames.runGetCandidateDocs ? "ENGLISH" : language.toUpperCase(Locale.ROOT))
+                + " --env RUNFILE_MASK='" + submissionId + ".[req-num].REQUESTHITS.events.json'"
+                + " --env NUM_CPU=8 --env TOPK=100"
+                + " --env RUNFILE=" + runFileName
+                + " -v " + Pathnames.runFileLocation + ":" + Pathnames.runFileLocation
+                + " --env CORPUS_FILE=" + Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName
+                + " -v " + Pathnames.corpusFileLocation + ":" + Pathnames.corpusFileLocation
+
+                + " " + dockerImageName
+                + " sh -c ./runit.sh";
+        String logFile = Pathnames.logFileLocation + submissionId + ".reranker-docker-program.out";
+
+        Command.execute(command, logFile);
+
+        // TBD: add submissionId to this file name (must change it in the Docker, too)
         try {
-            String mode = Pathnames.mode;
-            String dockerImageName = Pathnames.rerankerDockerImage;
-            String analyticTasksInfoFilename = mode + ".analytic_tasks.json";
-            String sudo = (Pathnames.sudoNeeded ? "sudo" : "");
-            String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-            String language = Pathnames.runGetCandidateDocs ? "ENGLISH" : Pathnames.targetLanguage.toString();
-            // if 4 GPUs, 0 is first one, 1 is second one, etc.
-            String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
-            String command = sudo + " docker run --rm"
-                    + gpu_parm
-                    + " --env MODE=" + mode
-                    + " --env DEVICE=" + deviceParm
-                    + " --env TASK_FILE=" + Pathnames.eventExtractorFileLocation + analyticTasksInfoFilename
-                    + " -v " + Pathnames.eventExtractorFileLocation + ":" + Pathnames.eventExtractorFileLocation
-                    + " --env DATA_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env OUTPUT_DIR=" + Pathnames.eventExtractorFileLocation
-                    + " --env QLANG=en --env DLANG=" + language
-                    + " --env RUNFILE_MASK='" + mode + ".[req-num].REQUESTHITS.events.json'"
-                    + " --env NUM_CPU=8 --env TOPK=100"
-
-                    + " " + dockerImageName
-                    + " sh -c ./runit.sh";
-            String logFile = Pathnames.logFileLocation + mode + "/reranker-docker-program.out";
-            String tempCommand = command + " >& " + logFile;
-
-            logger.info("Executing this command: " + tempCommand);
-
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                // do nothing
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing docker image execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("Docker container output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from Docker container, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from Docker container, exit value is: " + exitVal);
-            }
-
             Files.copy(new File(Pathnames.eventExtractorFileLocation + "fused.run").toPath(),
                     new File(outputFileName).toPath(), REPLACE_EXISTING);
-
         } catch (Exception e) {
             throw new TasksRunnerException(e);
         }
     }
 
-    public void callRerankerOLD(String currentRunFile, String outputFileName) {
-        try {
-            String logFile = Pathnames.logFileLocation + Pathnames.mode + "/reranker.log";
-            String tempCommand = "cd " + Pathnames.programFileLocation + "BETTER-prod && PYTHONPATH=" + Pathnames.programFileLocation + "BETTER-prod "
-                    + "CUDA_VISIBLE_DEVICES=3 python3 "
-                    + Pathnames.programFileLocation + "BETTER-prod/src/document_reader.py --data_dir="
-                    + Pathnames.eventExtractorFileLocation
-                    + " --task_file=" + tasks.getInternalAnalyticTasksInfoFileName()
-                    + " --prefix=" + tasks.getMode() + "."
-                    + " >& " + logFile;
-            logger.info("Executing this command: " + tempCommand);
 
-            try {
-                Files.delete(Paths.get(logFile));
-            } catch (IOException ignore) {
-                ;
-            }
-
-            int exitVal = 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                processBuilder.command("bash", "-c", tempCommand);
-                Process process = processBuilder.start();
-
-                exitVal = process.waitFor();
-            } catch (Exception cause) {
-                logger.log(Level.SEVERE, "Exception doing reranker execution", cause);
-                throw new TasksRunnerException(cause);
-            } finally {
-                StringBuilder builder = new StringBuilder();
-                try (Stream<String> stream = Files.lines( Paths.get(logFile), StandardCharsets.UTF_8))
-                {
-                    stream.forEach(s -> builder.append(s).append("\n"));
-                    logger.info("reranker output log:\n" + builder.toString());
-                } catch (IOException ignore) {
-                    // logger.info("IO error trying to read output file. Ignoring it");
-                }
-            }
-            if (exitVal != 0) {
-                logger.log(Level.SEVERE, "Unexpected ERROR from reranker, exit value is: " + exitVal);
-                throw new TasksRunnerException("Unexpected ERROR from reranker, exit value is: " + exitVal);
-            }
-            Files.copy(new File(Pathnames.eventExtractorFileLocation + "path_to_runs/fused.run").toPath(),
-                    new File(outputFileName).toPath(), REPLACE_EXISTING);
-
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
-
-    }
-
-    private int findSentence(long start, List<SentenceRange> sentences) {
-        for (SentenceRange sentence : sentences) {
-            if (start >= sentence.start && start <= sentence.end) {
-                return sentence.id;
-            }
-        }
-        return -1;
-    }
-
-    private void updateSentenceIDs (Hit d) {
-        List<Event> events = d.events;
-        for (Event event : events) {
-            String docid = d.docid;
-            long start = (long) event.anchorSpan.start;
-            List<SentenceRange> sentences = Document.getDocumentSentences(docid);
-            int statementID = findSentence(start, sentences);
-            event.sentenceID = statementID;
-        }
-    }
-
-    private void updateTaskOrRequest(Hit hit) {
-//        logger.info("In updateTaskOrRequest, hit.taskID is " + hit.taskID + ", length is " + hit.taskID.length());
-        String groupType = hit.hitLevel == HitLevel.REQUEST_LEVEL ? "R" : "T";
-        if (groupType.equals("T")) {
-            String taskID = hit.taskID;
-            String docid = hit.docid;
-            Task t = tasks.findTask(taskID);
-            if (t != null) {
-                for (ExampleDocument d : t.taskExampleDocs) {
-                    if (d.getDocid().equals(docid)) {
-                        d.setEvents(hit.events);
-                    }
-                }
-            }
-        } else {
-            String requestID = hit.taskID;
-            String docid = hit.docid;
-//            logger.info("docid is " + docid);  // DEBUG
-//            logger.info("Looking for request " + requestID);  // DEBUG
-            Request r = tasks.findRequest(requestID);
-            if (r != null) {
-                for (ExampleDocument d : r.reqExampleDocs) {
-                    if (d.getDocid().equals(docid)) {
-                        d.setEvents(hit.events);
-                    }
-                }
-            }
-        }
-    }
-
-
-    public void annotateExampleDocs() {
-        logger.info("Preparing a file of the example docs for the event annotator");
-
-        if (!Pathnames.skipExampleDocAnnotation) {
-            logger.info("Skipping example doc event annotation");
-        } else {
-            String fileForEventExtractor = eventExtractor.constructExampleToEventExtractorFileName();
-            Map<String, SimpleHit> entries = new HashMap<>();
-
-            for (Task task : tasks.getTaskList()) {
-                eventExtractor.createInputFileEntriesFromExampleDocs(task, entries);
-            }
-
-            eventExtractor.writeInputFileMitreFormat(entries, fileForEventExtractor);
-
-            eventExtractor.annotateExampleDocEvents();
-        }
-
-        logger.info("Retrieving the file of example doc events created by the event annotator");
-
-        String fileFromEventExtractor = eventExtractor.constructExampleFileFromEventExtractorFileName();
-
-        List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
-
-        for (Hit hit : hits) {
-            updateSentenceIDs(hit);
-            updateTaskOrRequest(hit);
-        }
-
-    }
 
     public void createInputFileEntriesFromHits(String docSetType, String taskOrRequestID,
                                                List<String> hits, Map<String,SimpleHit> m) {
@@ -392,11 +209,11 @@ public class QueryManager {
                 docText = Document.getDocumentWithMap(td);
                 translatedDocText = "";
             } else {
-                sentences = Document.getArabicDocumentSentences(td);
-                docText = Document.getArabicDocumentWithMap(td);
-                translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
+                sentences = Document.getTargetDocumentSentences(td);
+                docText = Document.getTargetDocumentWithMap(td);
+                translatedDocText = Document.getTranslatedTargetDocumentWithMap(td);
             }
-            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, null);
+            SimpleHit hit = new SimpleHit(td, docText, translatedDocText, sentences, null, null);
             m.put(docSetType + "--" + taskOrRequestID + "--" + td, hit);
         }
     }
@@ -444,16 +261,15 @@ public class QueryManager {
 
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
-                String fileFromEventExtractor = eventExtractor.constructRequestLevelFileFromEventExtractorFileName(r);
-                String requestHitsEventFileName = eventExtractor.constructRequestLevelEventFileName(r);
-                List<Hit> hits = eventExtractor.readEventFile(fileFromEventExtractor, -1);
-                List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum, hits, getDocids(r.reqNum, Pathnames.RESULTS_CAP));
-                eventExtractor.writeEventsAsJson(mergedHits, "REQUESTHITS", requestHitsEventFileName);
-                logger.info(requestHitsEventFileName + " written");
+                List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum,
+                        eventExtractor.readEventFile(eventExtractor.constructRequestLevelFileFromEventExtractorFileName(r), -1),
+                        getDocids(r.reqNum, Pathnames.RESULTS_CAP));
+                eventExtractor.writeEventsAsJson(mergedHits, "REQUESTHITS", eventExtractor.constructRequestLevelEventFileName(r),
+                        Pathnames.REQUEST_HITS_DETAILED);
+                logger.info(eventExtractor.constructRequestLevelEventFileName(r) + " written");
             }
         }
     }
-
 
     /**
      * Number of scoredHits to have full event details.
@@ -475,7 +291,7 @@ public class QueryManager {
                     .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+            Document.buildTargetDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> qf.getDocids(t.taskNum, TASK_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         }
@@ -486,11 +302,10 @@ public class QueryManager {
             createInputFileEntriesFromHits("TaskLevelHit", task.taskNum, hits, simpleEntries);
             if (simpleEntries.size() > 0) {
                 String fileForEventExtractor = eventExtractor.constructTaskLevelFileFromEventExtractorFileName(task);
-                eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+                eventExtractor.writeInputFileForEventExtractor(simpleEntries, fileForEventExtractor);
             }
         }
     }
-
 
     /**
      * Creates an input file to give to the event extractor, of the top scoredHits for each request.
@@ -506,7 +321,7 @@ public class QueryManager {
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(requestList.parallelStream()
+            Document.buildTargetDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         }
@@ -549,7 +364,7 @@ public class QueryManager {
 //            logger.info("createInputFileEntriesFromHits returned " + simpleEntries.size() + " entries");
             if (simpleEntries.size() > 0) {
                 String fileForEventExtractor = eventExtractor.constructRequestLevelToEventExtractorFileName(r);
-                eventExtractor.writeInputFileMitreFormat(simpleEntries, fileForEventExtractor);
+                eventExtractor.writeInputFileForEventExtractor(simpleEntries, fileForEventExtractor);
             }
         }
     }
@@ -568,7 +383,7 @@ public class QueryManager {
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(requestList.parallelStream()
+            Document.buildTargetDocMap(requestList.parallelStream()
                     .flatMap(r -> getDocids(r.reqNum, Pathnames.REQUEST_HITS_DETAILED).stream())
                     .collect(Collectors.toSet()));
         }
@@ -590,10 +405,11 @@ public class QueryManager {
                         docText = Document.getDocumentWithMap(td);
                         translatedDocText = "";
                     } else {
-                        docText = Document.getArabicDocumentWithMap(td);
-                        translatedDocText = Document.getTranslatedArabicDocumentWithMap(td);
+                        docText = Document.getTargetDocumentWithMap(td);
+                        translatedDocText = Document.getTranslatedTargetDocumentWithMap(td);
                     }
-                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null, null));
+                    simpleEntries.put(td, new SimpleHit(td, docText, translatedDocText, score, null,
+                            null, null));
                 }
                 if (simpleEntries.size() > 0) {
                     String fileName = eventExtractor.constructRequestLevelRerankerFileName(r);
@@ -614,7 +430,7 @@ public class QueryManager {
                     .map(hit -> hit.docid)
                     .collect(Collectors.toSet()));
         } else {
-            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
+            Document.buildTargetDocMap(tasks.getTaskList().parallelStream()
                     .flatMap(t -> eventExtractor.readEventFile(eventExtractor.constructTaskLevelFileFromEventExtractorFileName(t), -1).stream())
                     .map(hit -> hit.docid)
                     .collect(Collectors.toSet()));
@@ -631,14 +447,57 @@ public class QueryManager {
 
             /* Write out a file that has everything about the task scoredHits that is needed by the final re-ranker */
             String taskHitsEventFileName = eventExtractor.constructTaskLevelEventFileName(t);
-            eventExtractor.writeEventsAsJson(mergedHits, "TASKHITS", taskHitsEventFileName);
+            eventExtractor.writeEventsAsJson(mergedHits, "TASKHITS", taskHitsEventFileName,
+                    Pathnames.REQUEST_HITS_DETAILED);
         }
     }
 
     public void rerank() {
-        callReranker(runFileName, rerankedRunFile);
+        callReranker(Pathnames.rerankerDockerImage, runFileName, rerankedRunFile);
         // Refresh the in-memory runfile data
         run = new Run(rerankedRunFile);
+    }
+
+    public void rerank2() {
+        runFileName = Pathnames.runFileLocation + submissionId + ".FINAL.out";
+        callReranker(Pathnames.reranker2DockerImage, Pathnames.runFileLocation + submissionId + ".FINAL.out",
+                Pathnames.runFileLocation + submissionId + ".DPR.out");
+        // Refresh the in-memory runfile data
+        run = new Run(Pathnames.runFileLocation + submissionId + ".DPR.out");
+    }
+
+    private static void copyFile(File source, File dest) throws IOException {
+        Files.copy(source.toPath(), dest.toPath(), REPLACE_EXISTING);
+    }
+
+    public void mergeDPR_Baseline() {
+        List<String> filesToMerge = new ArrayList<>();
+        filesToMerge.add(Pathnames.runFileLocation + submissionId + ".DPR.out");
+        filesToMerge.add(Pathnames.runFileLocation + submissionId + ".FINAL.out");
+        reciprocalRankMergeRerankedRunFiles(filesToMerge, Pathnames.runFileLocation + submissionId + ".DPR_Baseline.out");
+    }
+
+    public void mergeDPR_Baseline_E2E() {
+        List<String> filesToMerge = new ArrayList<>();
+        filesToMerge.add(Pathnames.runFileLocation + submissionId + ".DPR_Baseline.out");
+        filesToMerge.add(Pathnames.runFileLocation + "hint_e2e.run");
+        reciprocalRankMergeRerankedRunFiles(filesToMerge, Pathnames.runFileLocation + submissionId + ".DPR_Baseline_E2E.out");
+    }
+
+    public void copyRunFileToRerankedRunFile() {
+        try {
+            copyFile(new File(runFileName), new File(rerankedRunFile));
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public String getRerankedRunFileName() {
+        return rerankedRunFile;
+    }
+
+    public String getRunFileName() {
+        return runFileName;
     }
 
     /**
@@ -646,38 +505,19 @@ public class QueryManager {
      * and makes a Map of the generated queries, with request number as key.
      *
      * @return Returns the Map of request number to generated query text.
-     * @throws IOException
-     * @throws ParseException
      */
     private Map<String, String> getGeneratedQueries(String queryFileName) {
         logger.info("Reading query file: " + queryFileName);
-        Map<String, String> queriesMap = new HashMap<>();
-        try {
-            File tempFile = new File(queryFileName);
-            if (tempFile.exists()) {
-                Reader reader = new BufferedReader(new InputStreamReader(
-                        new FileInputStream(queryFileName)));
-                JSONParser parser = new JSONParser();
-                JSONObject head = (JSONObject) parser.parse(reader);
-                JSONArray queries = (JSONArray) head.get("queries");
-                for (Object oRequest : queries) {
-                    JSONObject r = (JSONObject) oRequest;
-                    String reqNum = (String) r.get("number");
-                    String reqText = (String) r.get("text");
-                    queriesMap.put(reqNum, reqText);
-                }
-            }
-        } catch (Exception ex) {
-            throw new TasksRunnerException(ex);
-        }
-        return queriesMap;
+        return SearchEngineInterface.getSearchEngine().getQueries(queryFileName);
     }
 
     public void resetQueries() {
         if (queries.size() > 0)
             queries.clear();
+        /*
         if (nonTranslatedQueries.size() > 0)
             nonTranslatedQueries.clear();
+         */
     }
 
     public Map<String,String> getQueries() { return queries; }
@@ -694,7 +534,7 @@ public class QueryManager {
         }
     }
 
-    private String getTaskIDFromRequestID(String requestID) {
+    public static String getTaskIDFromRequestID(String requestID) {
         String thisTaskID;
         if (Pathnames.analyticTasksFileFormat.equals("FARSI")) {
             thisTaskID = requestID;
@@ -713,7 +553,7 @@ public class QueryManager {
      */
     private void writeQueryFile(String taskID, String outputFileName) {
         // Output the query list as a JSON file,
-        // in the format Galago's batch-search expects as input
+        // in the format the search engine's search program expects as input
         try {
             JSONArray qlist = new JSONArray();
             for (Map.Entry<String, String> entry : queries.entrySet()) {
@@ -743,8 +583,7 @@ public class QueryManager {
 
     public List<String> getAllDocids(String requestID) {
         if (run.requestRuns.containsKey(requestID)) {
-            List<String> docids = run.requestRuns.get(requestID).docids;
-            return docids;
+            return run.requestRuns.get(requestID).docids;
         } else {
             return new ArrayList<String>();
         }
@@ -773,18 +612,6 @@ public class QueryManager {
         return "";
     }
 
-    public class ScoredHit {
-        public String docid;
-        public String score;
-        ScoredHit(String docid, String score) {
-            this.docid = docid;
-            this.score = score;
-        }
-        ScoredHit(ScoredHit other) {
-            this.docid = other.docid;
-            this.score = other.score;
-        }
-    }
     /**
      * Within the solution are multiple Tasks, and each Task has multiple Requests.
      * This class represents the results of running the query for a Request.
@@ -796,8 +623,8 @@ public class QueryManager {
         public List<MissingDoc> missingDocs;
 
         RequestRun(String requestID, List<String> docids, List<ScoredHit> scoredHits) {
-            logger.info("Adding a RequestRun for Request " + requestID);
-            logger.info(docids.size() + " docids");
+//            logger.info("Adding a RequestRun for Request " + requestID);
+//            logger.info(docids.size() + " docids");
             this.requestID = requestID;
             this.docids = docids;
             this.missingDocs = null;
@@ -806,7 +633,7 @@ public class QueryManager {
     }
 
     /**
-     * Represents the results of a particular query formulation's Galago execution.
+     * Represents the results of a particular query formulation's execution.
      */
     public class Run {
         public Map<String, RequestRun> requestRuns = new HashMap<String, RequestRun>();
@@ -814,7 +641,7 @@ public class QueryManager {
             readFile(theRunFileName);
         }
         /**
-         * Reads in the file that was output from Galago's batch-search function,
+         * Reads in the file that was output from the search engine's search function,
          * which is the top x scoredHits for each of the Requests in the input file.
          */
         Run() {
@@ -822,7 +649,7 @@ public class QueryManager {
         }
 
         /**
-         * Reads in the file that was output from Galago's batch-search function,
+         * Reads in the file that was output from the search engine's search function,
          * which is the top x scoredHits for each of the Requests in the input file.
          */
         private void readFile(String theRunFileName) {
@@ -913,7 +740,7 @@ public class QueryManager {
         try {
             Files.delete(outFile);
         } catch (IOException ignore) {
-            ;
+            // do nothing
         }
         Charset charset = StandardCharsets.UTF_8;
         try {
@@ -922,6 +749,9 @@ public class QueryManager {
                 Path inFile=Paths.get(runFile);
                 List<String> lines = Files.readAllLines(inFile, charset);
                 logger.info(lines.size() + " lines");
+                if (lines.size() == 0) {
+                    throw new TasksRunnerException("Task-level runfile " + runFile + " is empty! Task-level query bad?");
+                }
                 Files.write(outFile, lines, charset, StandardOpenOption.CREATE,
                         StandardOpenOption.APPEND);
             }
@@ -933,17 +763,16 @@ public class QueryManager {
     }
 
     /**
-     * For each task, executes the task's request queryfile with Galago's batch-search,
-     * using a single Galago thread, getting 1000 scoredHits, producing a task-level
+     * For each task, executes the task's request queryfile, getting 1000 scoredHits, producing a task-level
      * runfile, using the task's task-level index built previously from the task's top scoredHits.
      * Also, it creates an event extractor input file for each task, while the scoredHits
      * are in memory.
      */
-    public void executeRequestQueries(String taskLevelFormulationName, int numResults) {
+    public void executeRequestQueries(int numResults) {
         // When the query formulation name is a Docker image name, it might be qualified
         // with the owner's name and a "/", which confuses things when the formulation name
         // is used in a pathname, so change the "/" to a "-"
-        String finalTaskLevelFormulationName = taskLevelFormulationName.replace("/", "-");
+        //String finalTaskLevelFormulationName = taskLevelFormulationName.replace("/", "-");
 
         AtomicLong totalRunTime = new AtomicLong(0);
         List<String> runFiles = new CopyOnWriteArrayList<>();
@@ -953,12 +782,12 @@ public class QueryManager {
             runFiles.add(theRunFileName);
             String queryFileName = Pathnames.queryFileLocation + key + ".TASK." + t.taskNum + ".queries.json";
 
-            String taskLevelKey = tasks.getMode() + ".Task."
-                    + finalTaskLevelFormulationName;
-            String indexName = Pathnames.indexLocation + taskLevelKey + "." + t.taskNum + ".PARTIAL";
             logger.info("Executing request queries for task " + t.taskNum);
 
-            executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName, indexName, t.taskNum);
+            GalagoSearchEngine galagoSearchEngine = new GalagoSearchEngine();
+            galagoSearchEngine.executeAgainstPartialIndex(1, numResults, queryFileName, theRunFileName,
+                    t.taskNum, submissionId, language, getTaskLevelIndexName(t.taskNum));
+            run = new Run(theRunFileName);  // Get new run file into memory
 
             totalRunTime.getAndAdd(runTime);
         });
@@ -968,178 +797,37 @@ public class QueryManager {
 
         runTime = totalRunTime.get();
     }
-
-    /**
-     * Executes the default queryfile with Galago's batch-search,
-     * using the default number of Galago batch threads,
-     * requesting N scoredHits, producing the default runfile, using the Arabic index.
-     * @param N the number of scoredHits to get
-     */
-    public void execute(int N) {
-/*
-        if (queries.size() == 1) {
-            execute(1, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
-        } else {
-            execute(3, N, queryFileName, runFileName, Pathnames.targetIndexLocation);
-        }
-*/
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago2.log";
-        Galago galago = new Galago((Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) ?
-                Pathnames.englishIndexLocation : Pathnames.targetIndexLocation,
-                Pathnames.mode, galagoLogFile, Pathnames.galagoLocation);
-        galago.search(queries, runFileName, N);
-
-        run = new Run(runFileName);  // Get new run file into memory
-    }
-
-    /**
-     * Executes the specified queryfile with Galago's batch-search,
-     * using the specified number of Galago batch threads,
-     * requesting the specified number of scoredHits, producing the specified runfile, using
-     * the specified index.
-     *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
-     * @param indexName
-     */
-    private void execute(int threadCount, int N, String theQueryFileName, String theRunFileName, String indexName) {
-        Instant start = Instant.now();
-
-        String command = "galago threaded-batch-search";
-        if (threadCount == 1) {
-            command = "galago batch-search";
-        }
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago.log";
-        String arabicParm = "";
-        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
-            arabicParm = "--defaultTextPart=postings.snowball ";
-        }
-        String tempCommand = Pathnames.galagoLocation + command
-                + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
-                + " --systemName=CLEAR " + arabicParm + "--trec=true --index=" + indexName
-                + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
-
-        logger.info("Executing this command: " + tempCommand);
-        logger.info("Run file will be  " + theRunFileName);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
-        run = new Run(theRunFileName);  // Get new run file into memory
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        runTime  = interval.toMinutes();
-    }
-
-    /**
-     * Executes the specified queryfile with Galago's batch-search,
-     * using the specified number of Galago batch threads,
-     * requesting the specified number of scoredHits, producing the specified runfile, using
-     * the specified PARTIAL index.
-     *
-     * @param threadCount
-     * @param N
-     * @param theQueryFileName
-     * @param theRunFileName
-     * @param indexName
-     */
-    private void executeAgainstPartialIndex(int threadCount, int N, String theQueryFileName,
-                                            String theRunFileName, String indexName, String taskID) {
-        Instant start = Instant.now();
-
-        String command = "galago threaded-batch-search";
-        if (threadCount == 1) {
-            command = "galago batch-search";
-        }
-        String arabicPart = "";
-        if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
-            arabicPart = " --defaultTextPart=postings.snowball";
-        }
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_executeAgainstPartial.log";
-        String tempCommand = Pathnames.galagoLocation + command
-                + " --outputFile=" + theRunFileName + " --threadCount=" + threadCount
-                + " --systemName=CLEAR --trec=true "
-                + " --index/partial=" + indexName
-                + " --index/full=" + Pathnames.targetIndexLocation
-                + " --defaultIndexPart=partial --backgroundIndex=full"
-                + arabicPart
-                + " --requested=" + N + " " + theQueryFileName + " >& " + galagoLogFile;
-
-        logger.info("Executing this command: " + tempCommand);
-        logger.info("Run file will be  " + runFileName);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            // TEMP throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
-        run = new Run(theRunFileName);  // Get new run file into memory
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        runTime  = interval.toMinutes();
-    }
-
     /**
      * Builds a Galago index on the top scoredHits for each task.
      */
     public void buildTaskLevelIndexes() {
-        tasks.getTaskList().parallelStream().forEach(t ->  buildTaskPartialIndex(t.taskNum));
+        GalagoSearchEngine galagoSearchEngine = new GalagoSearchEngine();
+        tasks.getTaskList().parallelStream().forEach(t ->
+                {
+                    createTaskDocIDListFromHits(t.taskNum);
+                    galagoSearchEngine.buildTaskPartialIndex(t.taskNum, submissionId,
+                Pathnames.indexLocation + Pathnames.searchEngine + "/better-clear-ir-" + language,
+                            Pathnames.taskCorpusFileLocation + key + "." + t.taskNum + ".DOC_LIST.txt",
+                            getTaskLevelIndexName(t.taskNum), language,
+                            Pathnames.taskCorpusFileLocation + key + "." + t.taskNum + ".conf");
+                }
+                );
+    }
+    /**
+     * Asks the search engine to executes the default queryfile,
+     * requesting N scoredHits, producing the default runfile, using the target index for the current language.
+     * @param N the number of scoredHits to get
+     */
+    public void execute(int N) {
+//        GalagoSearchEngine galagoIndex = new GalagoSearchEngine();
+        SearchEngineInterface searchEngine = SearchEngineInterface.getSearchEngine();
+        if (queries.size() == 1) {
+            searchEngine.search(1, N, queryFileName, runFileName, submissionId, language);
+        } else {
+            searchEngine.search(3, N, queryFileName, runFileName, submissionId, language);
+        }
+
+        run = new Run(runFileName);  // Get new run file into memory
     }
 
     /**
@@ -1149,6 +837,9 @@ public class QueryManager {
      */
     private void createTaskDocIDListFromHits(String taskID) {
         List<String> docids = this.getAllDocids(taskID);
+        if (docids.size() == 0) {
+            throw new TasksRunnerException("No hits from Task " + taskID + " Task-level query! Query execution probably failed.");
+        }
         String outputFile = Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt";
         try {
             PrintWriter writer = new PrintWriter(outputFile);
@@ -1162,114 +853,6 @@ public class QueryManager {
         }
     }
 
-    /**
-     * Builds a Galago partial index on the top scoredHits for this task.
-     * @param taskID the task ID
-     */
-    public void buildTaskPartialIndex(String taskID) {
-        createTaskDocIDListFromHits(taskID);
-
-        String confFile = createGalagoPartialIndexConfFile(taskID);
-        Instant start = Instant.now();
-
-        String galagoLogFile = Pathnames.logFileLocation + Pathnames.mode + "/galago_" + taskID + "_indexbuild.log";
-        String tempCommand = Pathnames.galagoLocation + "galago build-partial-index --documentNameList=" +
-                Pathnames.taskCorpusFileLocation + key + "." + taskID + ".DOC_LIST.txt" +
-                " --index=" + Pathnames.targetIndexLocation +
-                " --partialIndex=" + Pathnames.indexLocation + key + "." + taskID + ".PARTIAL "
-                + confFile + " >& " + galagoLogFile;  // this is the way to specify fields for a partial index build
-
-        logger.info("Executing this command: " + tempCommand);
-
-        try {
-            Files.delete(Paths.get(galagoLogFile));
-        } catch (IOException ignore) {
-            ;
-        }
-
-        int exitVal = 0;
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("bash", "-c", tempCommand);
-            Process process = processBuilder.start();
-
-            exitVal = process.waitFor();
-        } catch (Exception cause) {
-            logger.log(Level.SEVERE, "Exception doing Galago execution", cause);
-            throw new TasksRunnerException(cause);
-        } finally {
-            StringBuilder builder = new StringBuilder();
-            try (Stream<String> stream = Files.lines( Paths.get(galagoLogFile), StandardCharsets.UTF_8))
-            {
-                stream.forEach(s -> builder.append(s).append("\n"));
-                logger.info("Galago output log:\n" + builder.toString());
-            } catch (IOException ignore) {
-                // logger.info("IO error trying to read Galago output file. Ignoring it");
-            }
-        }
-        if (exitVal != 0) {
-            logger.log(Level.SEVERE, "Unexpected ERROR from Galago, exit value is: " + exitVal);
-            throw new TasksRunnerException("Unexpected ERROR from Galago, exit value is: " + exitVal);
-        }
-
-        Instant end = Instant.now();
-        Duration interval = Duration.between(start, end);
-        long runTime  = interval.toMinutes();
-        logger.info("Galago run time (minutes):\n" + runTime);
-    }
-
-    /**
-     * Creates a Galago config file specifying the parameters for building the index
-     * for this task's top scoredHits. This is the version to be used when building a PARTIAL index.
-     * @param taskID the task ID
-     * @return the name of the Galago config file, specific to this task
-     */
-    private String createGalagoPartialIndexConfFile(String taskID) {
-        String taskLevelConfFile;
-        try {
-            JSONObject outputQueries = new JSONObject();
-            outputQueries.put("mode", "local" );
-            outputQueries.put("fieldIndex", true);
-            outputQueries.put("tmpdir", Pathnames.tempFileLocation );
-
-            JSONArray stemmerList = new JSONArray();
-            JSONObject stemmerClass = new JSONObject();
-            if (!Pathnames.runGetCandidateDocs && Pathnames.targetLanguage == Pathnames.Language.ARABIC) {
-                stemmerList.add("krovetz");
-                stemmerList.add("snowball");
-                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-                stemmerClass.put("snowball", "org.lemurproject.galago.core.parse.stem.SnowballArabicStemmer");
-            } else if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguage == Pathnames.Language.ENGLISH) {
-                stemmerList.add("krovetz");
-                stemmerClass.put("krovetz", "org.lemurproject.galago.core.parse.stem.KrovetzStemmer");
-            } else if (Pathnames.targetLanguage == Pathnames.Language.FARSI) {
-            }
-            outputQueries.put("stemmer", stemmerList);
-            outputQueries.put("stemmerClass", stemmerClass );
-
-            JSONObject tokenizer = new JSONObject();
-            JSONArray fields = new JSONArray();
-            fields.add("exid");
-            tokenizer.put("fields", fields);
-            JSONObject formats = new JSONObject();
-            formats.put("exid", "string");
-            tokenizer.put("formats", formats);
-            outputQueries.put("tokenizer", tokenizer);
-            outputQueries.put("galagoJobDir", Pathnames.galagoJobDirLocation + taskID);
-            outputQueries.put("deleteJobDir", true);
-            outputQueries.put("mem", "40g");
-
-            taskLevelConfFile = Pathnames.taskCorpusFileLocation + key + "." + taskID + ".conf";
-            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                    new FileOutputStream(taskLevelConfFile)));
-            writer.write(outputQueries.toJSONString());
-            writer.close();
-        } catch (Exception cause) {
-            throw new TasksRunnerException(cause);
-        }
-        return taskLevelConfFile;
-    }
-
     public Map<String, EvaluationStats> evaluateTaskLevel() {
         return new EvaluatorTaskLevel().evaluate();
     }
@@ -1277,7 +860,7 @@ public class QueryManager {
     /**
      * Evaluates a run file, request level.
      * @param phase RAW or RERANKED (added to the file name)
-     * @return
+     * @return evaluation results
      */
     public Map<String, Double> evaluate(String phase) {
         evaluationRequestLevelFileName = Pathnames.evaluationFileLocation + key + "." + phase + ".REQUEST.csv";
@@ -1351,10 +934,6 @@ public class QueryManager {
         /**
          * Calculates the normalized discounted cumulative gain
          * for this request and this ranked set of docs.
-         *
-         * @param requestID The request, with its relevance judgments available.
-         * @param runDocids The ranked scoredHits.
-         * @return The calculated nDCG.
          */
 
         private Map<String, Double> stats = new TreeMap<>();
@@ -1363,9 +942,9 @@ public class QueryManager {
          * of known relevant documents ("R"), instead of a hard cutoff of 10
          * as in his original version.
          *
-         * @param requestID
-         * @param runDocids
-         * @return
+         * @param requestID the request ID
+         * @param runDocids the list of docids
+         * @return the calculated nDCG@R
          */
         private double calculatenDCG(String requestID, List<String> runDocids) {
             List<RelevanceJudgment> judgments = tasks.getPositiveRelevanceJudgments(requestID);
@@ -1399,8 +978,7 @@ public class QueryManager {
                 }
             }
             /* Calculate the normalized discounted cumulative gain */
-            double nCDG = DCG / iDCG;
-            return nCDG;
+            return DCG / iDCG;
         }
 
         /**
@@ -1409,8 +987,6 @@ public class QueryManager {
          * <p>
          * For averaging the evaluation results, we use the MICRO approach.
          *
-         * @throws IOException
-         * @throws InterruptedException
          */
         public Map<String,Double> evaluate() {
             try {
@@ -1719,7 +1295,7 @@ public class QueryManager {
      * @param writer the PrintWriter
      */
     private void addEvents(String requestID, PrintWriter writer) {
-        String fileName = Pathnames.eventExtractorFileLocation + Pathnames.mode + "."
+        String fileName = Pathnames.eventExtractorFileLocation + submissionId + "."
             + requestID + ".REQUESTHITS.json.results.json";
         File f = new File(fileName);
         if (f.exists()) {
@@ -1743,140 +1319,278 @@ public class QueryManager {
         }
     }
 
-    public void writeFinalResultsFile() {
-        Map<String, Map<String, List<ScoredHit>>> tasks = new HashMap<>();
-        String fileName = rerankedRunFile;
-        File f = new File(fileName);
-        if (f.exists()) {
-            logger.info("Reading reranked run file " + fileName);
-            try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = line.split("[ \t]+");
-                    if (tokens.length != 6) {
-                        throw new TasksRunnerException("Bad runfile line: " + line);
-                    }
-                    String requestID = tokens[0];
-                    String docid = tokens[2];
-                    String score = tokens[4];
-                    String taskID = getTaskIDFromRequestID(requestID);
-                    ScoredHit scoredHit = new ScoredHit(docid, score);
-                    if (tasks.containsKey(taskID)) {
-                        Map<String, List<ScoredHit>> requests = tasks.get(taskID);
-                        if (requests.containsKey(requestID)) {
-                            List<ScoredHit> hitlist = requests.get(requestID);
-                            if (hitlist.size() < Pathnames.RESULTS_CAP) {
-                                hitlist.add(scoredHit);
-                            }
-                        } else {
-                            List<ScoredHit> requestScoredHits = new ArrayList<>();
-                            requestScoredHits.add(scoredHit);
-                            requests.put(requestID, requestScoredHits);
-                        }
-                    } else {
-                        Map<String, List<ScoredHit>> requests = new HashMap<>();
-                        List<ScoredHit> requestScoredHits = new ArrayList<>();
-                        requestScoredHits.add(scoredHit);
-                        requests.put(requestID, requestScoredHits);
-                        tasks.put(taskID, requests);
-                    }
-                }
-            } catch (IOException e) {
-                throw new TasksRunnerException(e);
-            }
-            /* Now write the info to the output file */
-            try {
+    /**
+     * Standardize the scores in the runfiles, then merge the rescored runfiles by score.
+     * @param filesToMerge the files to be rescored and merged
+     */
+    public void rescoreRunFilesMinMax(List<String> filesToMerge) {
+        try {
+            List<String> rescoredFiles = new ArrayList<>();
+            for (String fileName : filesToMerge) {
+                String rescoredFileName = fileName + ".rescoredMinMax";
                 PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-                        new FileOutputStream(Pathnames.appFileLocation + "results.json")));
+                        new FileOutputStream(rescoredFileName)));
+                Run run = new QueryManager.Run(fileName);   // read the runfile into memory
+                for (Map.Entry<String, RequestRun> entry: run.requestRuns.entrySet()) {
+                    String requestNum = entry.getKey();
+                    RequestRun requestRun = entry.getValue();
+                    List<ScoredHit> scoredHits = requestRun.scoredHits;
 
-                JSONObject topLevel = new JSONObject();
-                topLevel.put("format-type", "ir-results");
-                topLevel.put("format-version", "v1");
-                topLevel.put("corpus-id", "release-foo");
-
-                writer.println("{");
-                writer.println("\"format-type\": \"ir-results\",");
-                writer.println("\"format-version\": \"v1\",");
-                writer.println("\"corpus-id\": \"release-1\",");
-                writer.println("\"search-results\": {" );
-                /* search-results dict: */
-                JSONObject searchResults = new JSONObject();
-                int numTasks = tasks.size();
-                int currentTaskIdx = 0;
-                for (String taskID : tasks.keySet()) {
-                    ++currentTaskIdx;
-                    writer.println("  \"" + taskID + "\": {");
-                    writer.println("    \"task\": \"" + taskID + "\",");
-                    writer.println("    \"requests\": {");
-
-                    JSONObject searchResult = new JSONObject();
-                    Map<String, List<ScoredHit>> requests = tasks.get(taskID);
-                    JSONObject jsonRequests = new JSONObject();
-                    int numRequests = requests.size();
-                    int currentRequestIdx = 0;
-                    for (String requestID : requests.keySet()) {
-                        ++currentRequestIdx;
-                        writer.println("      \"" + requestID + "\": {");
-                        writer.println("        \"request\": \"" + requestID + "\",");
-                        writer.println("        \"ranking\": [");
-
-                        List<ScoredHit> scoredHits = requests.get(requestID);
-                        JSONObject jsonRequest = new JSONObject();
-                        JSONArray ranking = new JSONArray();
-                        int numHits = scoredHits.size();
-                        int currentHitIdx = 0;
-                        for (ScoredHit scoredHit : scoredHits) {
-                            ++currentHitIdx;
-                            JSONObject jsonHit = new JSONObject();
-                            String hitLine = "          { \"docid\": \"" + scoredHit.docid + "\", \"score\": " + scoredHit.score + " }";
-                            if (currentHitIdx < numHits) {
-                                hitLine += ",";
-                            }
-                            writer.println(hitLine);
-                            jsonHit.put("docid", scoredHit.docid);
-                            jsonHit.put("score", scoredHit.score);
-                            ranking.add(jsonHit);
+                    double minValue = getMin(scoredHits);
+                    double maxValue = getMax(scoredHits);
+                    // normalize the scores
+                    int rank = 1;
+                    for (ScoredHit hit : scoredHits) {
+                        writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " "
+                                + ((Double.parseDouble(hit.score) - minValue) / (maxValue - minValue)) + " CLEAR");
+                        if (rank > 1000) {
+                            break;
                         }
-                        // end of ranking - time for the events
-
-                        if (Pathnames.includeEventsInFinalResults) {
-                            writer.println("        ],");
-                            addEvents(requestID, writer);
-                        } else {
-                            writer.println("        ]");  // no comma
-                        }
-
-                        if (currentRequestIdx < numRequests) {
-                            writer.println("      },");  // end of this request
-                        } else {
-                            writer.println("      }");  // end of this request
-                        }
-                        jsonRequest.put("ranking", ranking);
-                        jsonRequest.put("request", requestID);
-                        jsonRequests.put(requestID, jsonRequest);
                     }
-                    writer.println("    }");  // end of requests
-                    if (currentTaskIdx < numTasks) {
-                        writer.println("  },");  // end of this task
-                    } else {
-                        writer.println("  }");  // end of this task
-                    }
-                    searchResult.put("requests", jsonRequests);
-                    searchResult.put("task", taskID);
-                    searchResults.put(taskID, searchResult);
                 }
-                writer.println("}");  // end of search-results
-                writer.println("}");  // end of file
-                topLevel.put("search-results", searchResults);
-
-                // writer.write(topLevel.toJSONString());
                 writer.close();
-            } catch (Exception cause) {
-                throw new TasksRunnerException(cause);
+                rescoredFiles.add(rescoredFileName);
             }
-        }
-        else {
-            throw new TasksRunnerException("Run file " + runFileName + " does not exist");
+            mergeRerankedRunFilesByScore(rescoredFiles);
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
         }
     }
+
+    private double getMax(List<ScoredHit> scoredHits) {
+        double max = Double.MIN_VALUE;
+        for (ScoredHit scoredHit : scoredHits) {
+            if (Double.parseDouble(scoredHit.score) > max) {
+                max = Double.parseDouble(scoredHit.score);
+            }
+        }
+        return max;
+    }
+
+    private double getMin(List<ScoredHit> scoredHits) {
+        double min = Double.MAX_VALUE;
+        for (ScoredHit scoredHit : scoredHits) {
+            if (Double.parseDouble(scoredHit.score) < min) {
+                min = Double.parseDouble(scoredHit.score);
+            }
+        }
+        return min;
+    }
+
+    private double getMean(List<ScoredHit> scoredHits) {
+        double total = 0.0;
+        for (ScoredHit scoredHit : scoredHits) {
+            total += Double.parseDouble(scoredHit.score);
+        }
+        return total / scoredHits.size();
+    }
+
+    private double getStandardDeviation(List<ScoredHit> scoredHits, double mean) {
+        double stddev = 0.0;
+        for (ScoredHit scoredHit : scoredHits) {
+            stddev += Math.pow(Double.parseDouble(scoredHit.score) - mean, 2);
+        }
+        return Math.sqrt(stddev / scoredHits.size());
+    }
+
+    /**
+     * Standardize the scores in the runfiles, then merge the rescored runfiles by score.
+     * @param filesToMerge the files to be rescored and merged
+     */
+    public void rescoreRunFilesZScores(List<String> filesToMerge) {
+        try {
+            List<String> rescoredFiles = new ArrayList<>();
+            for (String fileName : filesToMerge) {
+                String rescoredFileName = fileName + ".rescored";
+                PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                        new FileOutputStream(rescoredFileName)));
+                Run run = new QueryManager.Run(fileName);   // read the runfile into memory
+                for (Map.Entry<String, RequestRun> entry: run.requestRuns.entrySet()) {
+                    String requestNum = entry.getKey();
+                    RequestRun requestRun = entry.getValue();
+                    List<ScoredHit> scoredHits = requestRun.scoredHits;
+
+                    double mean = getMean(scoredHits);
+                    double stddev = getStandardDeviation(scoredHits, mean);
+                    // standardize the scores
+                    int rank = 1;
+                    for (ScoredHit hit : scoredHits) {
+                        writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " "
+                                + ((Double.parseDouble(hit.score) - mean) / stddev) + " CLEAR");
+                        if (rank > 1000) {
+                            break;
+                        }
+                    }
+                }
+                writer.close();
+                rescoredFiles.add(rescoredFileName);
+            }
+            mergeRerankedRunFilesByScore(rescoredFiles);
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    private List<Run> readRunFiles(List<String> filesToMerge) {
+        List<Run> runs = new ArrayList<>();
+        for (String fileName : filesToMerge) {
+            runs.add(new QueryManager.Run(fileName));
+        }
+        if (runs.size() == 0) {
+            throw new TasksRunnerException("Must be >0 run files to merge");
+        }
+        return runs;
+    }
+
+    private class RrmHit {
+        public String docid;
+        public Double score;
+        RrmHit(String docid, Double score) {
+            this.docid = docid;
+            this.score = score;
+        }
+        RrmHit(RrmHit other) {
+            this.docid = other.docid;
+            this.score = other.score;
+        }
+    }
+
+    private Map<String, List<RrmHit>> reciprocalRankMerge(List<Run> runs) {
+        Map<String, List<RrmHit>> requestHits = new HashMap<>();
+        for (String requestNum : tasks.getRequestIDs()) {
+            Map<String, Double> sums = new HashMap<>();
+            for (Run run : runs) {
+                if (run.requestRuns.containsKey(requestNum)) {
+                    List<ScoredHit> hits = run.requestRuns.get(requestNum).scoredHits;
+                    int rank = 1;
+                    for (ScoredHit hit : hits) {
+                        sums.merge(hit.docid, (1.0 / (60 + rank)), Double::sum);
+                        ++rank;
+                    }
+                }
+            }
+            List<RrmHit> hitList = new ArrayList<>();
+            for (Map.Entry<String, Double> entry : sums.entrySet()) {
+                hitList.add(new RrmHit(entry.getKey(), entry.getValue()));
+            }
+            hitList.sort((lhs, rhs) -> {
+                // -1 - less than, 1 - greater than, 0 - equal, inverted to get descending
+                return lhs.score > rhs.score ? -1 : (lhs.score < rhs.score ? 1 : 0);
+            });
+            requestHits.put(requestNum, hitList);
+        }
+        return requestHits;
+    }
+
+    private Map<String, List<ScoredHit>> mergeRequestHits(List<Run> runs) {
+        Map<String, List<ScoredHit>> requestHits = new HashMap<>();
+        for (String requestNum : tasks.getRequestIDs()) {
+            requestHits.put(requestNum, new ArrayList<>());
+        }
+        mergeHits(requestHits, runs);
+        sortHits(requestHits);
+        return requestHits;
+    }
+
+    /* Sort the ScoredHit lists in place, by score ascending */
+    private void sortHits(Map<String, List<ScoredHit>> requestHits) {
+        for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
+            List<ScoredHit> hits = entry.getValue();
+            hits.sort((lhs, rhs) -> {
+                // -1 - less than, 1 - greater than, 0 - equal, inverted to get descending
+                return Float.parseFloat(lhs.score) > Float.parseFloat(rhs.score) ? -1
+                        : (Float.parseFloat(lhs.score) < Float.parseFloat(rhs.score)) ? 1 : 0;
+            });
+        }
+    }
+
+    private void mergeHits(Map<String, List<ScoredHit>> requestHits, List<Run> runs) {
+        for (String requestNum : tasks.getRequestIDs()) {
+            for (Run run : runs) {
+                if (run.requestRuns.containsKey(requestNum)) {
+                    requestHits.get(requestNum).addAll(run.requestRuns.get(requestNum).scoredHits);
+                }
+            }
+        }
+    }
+
+    private void writeHitsToMergedRunFile(Map<String, List<ScoredHit>> requestHits, PrintWriter writer) {
+        for (Map.Entry<String, List<ScoredHit>> entry : requestHits.entrySet()) {
+            String requestNum = entry.getKey();
+            List<ScoredHit> hits = entry.getValue();
+            int rank = 1;
+            for (ScoredHit hit : hits) {
+                writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " " + hit.score + " CLEAR");
+                if (rank > 1000) {
+                    break;
+                }
+            }
+        }
+        writer.close();
+    }
+
+    private void copySingleRunFileToMergedRunFile(String singleFile, String mergedFile) {
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(mergedFile)));
+            BufferedReader reader = new BufferedReader(new FileReader(singleFile));
+            String line = reader.readLine();
+            while (line != null) {
+                writer.println(line);
+                line = reader.readLine();
+            }
+            reader.close();
+            writer.close();
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
+    public void mergeRerankedRunFilesByScore(List<String> filesToMerge) {
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(Pathnames.runFileLocation + submissionId + ".FINAL.out")));
+            if (filesToMerge.size() == 1) {
+                /* No merge is needed */
+                copySingleRunFileToMergedRunFile(filesToMerge.get(0),
+                        Pathnames.runFileLocation + submissionId + ".FINAL.out");
+            } else {
+                writeHitsToMergedRunFile(mergeRequestHits(readRunFiles(filesToMerge)), writer);
+            }
+            } catch (Exception e) {
+                throw new TasksRunnerException(e);
+            }
+        }
+
+    private void writeRrmHitsToMergedRunFile(Map<String, List<RrmHit>> requestHits, PrintWriter writer) {
+        for (Map.Entry<String, List<RrmHit>> entry : requestHits.entrySet()) {
+            String requestNum = entry.getKey();
+            List<RrmHit> hits = entry.getValue();
+            int rank = 1;
+            for (RrmHit hit : hits) {
+                writer.println(requestNum + " Q0 " + hit.docid + " " + rank++ + " " + (2000 - rank) + " CLEAR");
+                if (rank > 1000) {
+                    break;
+                }
+            }
+        }
+        writer.close();
+    }
+
+    public void reciprocalRankMergeRerankedRunFiles(List<String> filesToMerge, String outFile) {
+        try {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(
+                    new FileOutputStream(outFile)));
+            if (filesToMerge.size() == 1) {
+                /* No merge is needed */
+                copySingleRunFileToMergedRunFile(filesToMerge.get(0),
+                        Pathnames.runFileLocation + submissionId + ".FINAL.out");
+            } else {
+                writeRrmHitsToMergedRunFile(reciprocalRankMerge(readRunFiles(filesToMerge)), writer);
+            }
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
 }

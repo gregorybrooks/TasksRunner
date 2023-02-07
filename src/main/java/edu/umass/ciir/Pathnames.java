@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Pathnames of the files used by the program, and settings such as 'mode' and 'runIRPhase2'.
+ * Pathnames of the files used by the program, and settings such as 'targetCorpusFileName'.
  * The default values are set here, but when the program starts if there is an environment var
  * with the same name, its value will override the default.
  * So you should source a file that exports all of these that you don't want the default for
@@ -22,30 +22,33 @@ public class Pathnames {
 
     public static String preTrainSizeParm = "FULL";    // or "SMALL"
     public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
-    public static boolean useTaskSetFile = false;
     public static int RESULTS_CAP = 1000;
+    public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 1000;
+    public static int DOCS_TO_PROCESS = 2000;
+
+    public static String searchEngine = "galago";
+    public static boolean developmentTestingNoDocker = false;
+    public static boolean IEAllowed = true;
 
     public static boolean skipReranker = false;
     public static boolean skipPretrain = false;
     public static boolean skipIndexBuild = false;
     public static boolean skipExampleDocAnnotation = false;
+    public static boolean skipRelevantDocAnnotation = false;
+    public static boolean skipRequestDocAnnotation = false;
+    public static boolean skipNeuralIndexBuild = false;
+
+    public static String gpusForEventExtractor = "--gpus device=1";
 
     public static boolean includeEventsInFinalResults = false;
     public static boolean checkForSudo = true;
     public static boolean doTaskLevelEvaluation = false;
     public static boolean doRequestLevelEvaluation = false;
-    public static boolean runEnglishIndexBuild = false;
-    public static boolean runPreTrain = false;
-    public static boolean runIndexBuild = false;
-
-    public static boolean runGetIEFromFile = false;
-    public static boolean runSearch = false;
-    public static boolean runGetCandidateDocs = false;
-    public static boolean runGetPhrases = false;
 
     public static ProcessingModel processingModel = ProcessingModel.TWO_STEP;
-
-    public static String scratchFileLocation = "/mnt/scratch/BETTER_DRY_RUN/scratch/clear_ir/";
+    public static boolean runGetCandidateDocs = false;  // disable this operation for now
+    public static boolean targetLanguageIsEnglish = false; // disable this mode of operation for now
+    public static String scratchFileLocation = "/mnt/scratch/BETTER_DRY_RUN/scratch/";
     public static String corpusFileLocation = "/mnt/scratch/BETTER_DRY_RUN/corpus/";
     public static String appFileLocation = "/mnt/scratch/BETTER_DRY_RUN/app/";
     public static String requestLevelQueryFormulatorDockerImage = "";
@@ -54,6 +57,7 @@ public class Pathnames {
     public static String getCandidateDocsQueryFormulatorDockerImage = "";
     public static String getPhrasesQueryFormulatorDockerImage = "";
     public static String rerankerDockerImage = "";
+    public static String reranker2DockerImage = "";
 
     public static String tempFileLocation = scratchFileLocation + "tmp/";
     public static String runFileLocation = scratchFileLocation + "runfiles/";
@@ -62,100 +66,68 @@ public class Pathnames {
     public static String queryFileLocation = scratchFileLocation + "queryfiles/";
     public static String logFileLocation = scratchFileLocation + "logfiles/";
     public static String indexLocation = scratchFileLocation + "indexes/";
-    public static String englishIndexName = "BETTER-DryRun-v3";
-    public static String englishIndexLocation = indexLocation + englishIndexName;
-    public static String targetIndexName = "BETTER-DryRun-v3";
-    public static String targetIndexLocation = indexLocation + targetIndexName;
+    public static String neuralFilesLocation = scratchFileLocation + "indexes/neural/";
     public static String galagoLocation = scratchFileLocation + "galago/bin/";
+    public static String anseriniLocation = scratchFileLocation + "galago/bin/";
     public static String galagoBaseLocation = scratchFileLocation + "galago";
     public static String programFileLocation = "/home/tasksrunner/programfiles/";
+    public static String scriptFileLocation = "/home/tasksrunner/scripts/";
     public static String eventExtractorFileLocation = scratchFileLocation + "eventextractorfiles/";
-    public static String translationTableLocation = programFileLocation + "translation_tables/";
     public static String taskCorpusFileLocation = scratchFileLocation + "taskcorpusfiles/";
     public static String galagoJobDirLocation = scratchFileLocation + "galago_job_dir/";
-    public static String targetCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
-    public static String englishCorpusFileName = "english/BETTER-English-IR-data.v1.jl";
-    public static String tasksFileNameAUTO = "dry-run-topics.auto.json";
-    public static String tasksFileNameAUTOHITL = "dry-run-topics.auto-hitl.json";
-    public static String tasksFileNameHITL = "dry-run-topics.hitl.json";
-    public static String qrelFileName = "req-qrels";
-    public static String isTargetEnglish = "true";
-    public static boolean targetLanguageIsEnglish = true;
-    public static Language targetLanguage = Language.ENGLISH;
+    public static String targetCorpusFileName = "";
+    public static String englishCorpusFileName = "";
+    public static String tasksFileName = "ir-tasks.json";
+    public static String qrelFileName = "IR-relevance-assessments.qrels";
     public static String supplementalFileName = "supplemental_info.json";
-    public static boolean readQrelFile = true;
-    public static boolean expandQrelDocuments = true;
-    public static String mode = "";
+    public static boolean readQrelFile = false;
+    public static boolean expandQrelDocuments = false;
     public static String corpusFileFormat = "BETTER";
     public static String analyticTasksFileFormat = "BETTER";
     public static boolean sudoNeeded = true;
     public static String gpuDevice = "";
     public static String rerankerDevice = "";
-    public static String MODELS_BASE_DIR_ENGLISH = "";
-    public static String MODELS_BASE_DIR_FARSI = "";
-    public static String MODELS_BASE_DIR_ARABIC = "";
     public static String MODELS_BASE_DIR = "";
 
-// english training as english and arabic
-/*
-    public static String scratchLocation = "/home/glbrooks/BETTER/";
-    public static String targetCorpusFileName = "english-training-corpus.jl";
-    public static String englishCorpusFileName = "english-training-corpus.jl";
-    public static String tasksFileName = "ir-hitl-performer-tasks.fixed.json";
-    public static String englishIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
-    public static String targetIndexLocation = "/home/glbrooks/BETTER/indexes/BETTER-IR-English-Training-v1";
-    public static String isTargetEnglish = "true";
-    public static boolean targetLanguageIsEnglish = true;
-    public static String supplementalFileName = "supplemental_info.json";
-    public static boolean readQrelFile = false;
-    public static boolean expandQrelDocuments = false;
-    public static String qrelFileName = "";
-    public static String mode = "";
-    public static boolean doTaskLevelEvaluation = false;
-    public static boolean doRequestLevelEvaluation = false;
-    public static boolean runPreprocess = false;
-    public static boolean runIndexBuild = false;
-    public static boolean runIRPhase1 = false;
-    public static boolean runIRPhase2 = false;
-    public static boolean runIRPhase3 = false;
-*/
     public static void checkDockerImage (String imageName) {
-        int exitVal = 0;
-        int numLines = 0;
-        try {
-            // String command = "sudo docker image ls " + imageName + " | wc -l ";
-            List builders;
-            if (Pathnames.sudoNeeded) {
-                builders = Arrays.asList(
-                        new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
-                        new ProcessBuilder("wc", "-l"));
-            } else {
-                builders = Arrays.asList(
-                        new ProcessBuilder("docker", "image", "ls", imageName),
-                        new ProcessBuilder("wc", "-l"));
-            }
-            List<Process> processes = ProcessBuilder.startPipeline(builders);
-            Process process = processes.get(processes.size() - 1);
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.length() == 0) {
-                    continue;
+        if (!developmentTestingNoDocker) {  /* This doesn't work in the JetBrains debugger */
+            int exitVal = 0;
+            int numLines = 0;
+            try {
+                // String command = "sudo docker image ls " + imageName + " | wc -l ";
+                List builders;
+                if (Pathnames.sudoNeeded) {
+                    builders = Arrays.asList(
+                            new ProcessBuilder("sudo", "docker", "image", "ls", imageName),
+                            new ProcessBuilder("wc", "-l"));
+                } else {
+                    builders = Arrays.asList(
+                            new ProcessBuilder("docker", "image", "ls", imageName),
+                            new ProcessBuilder("wc", "-l"));
                 }
-                numLines = Integer.parseInt(line.strip());
+                List<Process> processes = ProcessBuilder.startPipeline(builders);
+                Process process = processes.get(processes.size() - 1);
+
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.length() == 0) {
+                        continue;
+                    }
+                    numLines = Integer.parseInt(line.strip());
+                }
+                exitVal = process.waitFor();
+            } catch (Exception e) {
+                throw new TasksRunnerException(e);
             }
-            exitVal = process.waitFor();
-        } catch (Exception e) {
-            throw new TasksRunnerException(e);
-        }
-        if (exitVal != 0) {
-            throw new TasksRunnerException("Unexpected ERROR while executing docker command. Exit value is " + exitVal);
-        }
-        if (numLines < 2) {
-            System.out.println();
-            throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
+            if (exitVal != 0) {
+                throw new TasksRunnerException("Unexpected ERROR while executing docker command. Exit value is " + exitVal);
+            }
+            if (numLines < 2) {
+                System.out.println();
+                throw new TasksRunnerException("Docker image " + imageName + " not found on your system");
+            }
         }
     }
 
@@ -167,8 +139,7 @@ public class Pathnames {
     public enum ProcessingModel {
         TWO_STEP,
         ONE_STEP,
-        NEURAL,
-        GET_CANDIDATE_DOCS
+        NEURAL
     }
 
     public enum Language {
@@ -182,14 +153,18 @@ public class Pathnames {
     }
 
     private static String getFromEnv(String key, String default_value, Required required) {
-        if (env.containsKey(key)) {
-            return env.get(key);
-        } else {
-            if (required == Required.REQUIRED) {
-                throw new TasksRunnerException(default_value);
-            } else {
-                return default_value;
+//        if (env.containsKey(key)) {
+//            return env.get(key);
+        /* To run successfully in the JetBrains debugger, you can't use containsKey() */
+        for (String candidate : env.keySet()) {
+            if (candidate.trim().equals(key)) {
+                return env.get(candidate);
             }
+        }
+        if (required == Required.REQUIRED) {
+            throw new TasksRunnerException(default_value);
+        } else {
+            return default_value;
         }
     }
 
@@ -203,20 +178,24 @@ public class Pathnames {
 
     static {
 
+        // Set this to true in the environment vars if you are testing on cessnock, outside of a Docker container
+        developmentTestingNoDocker = (getFromEnv("developmentTestingNoDocker", "false").equals("true"));
+        searchEngine = getFromEnv("searchEngine", "galago");
+
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
-        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "1000"));
+        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "10"));
+        DOCS_TO_PROCESS = Integer.parseInt(getFromEnv("DOCS_TO_PROCESS", "1000"));
         RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
-        includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "true").equals("true"));
+        RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "1000"));
+        includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "false").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
+        skipNeuralIndexBuild = (getFromEnv("skipNeuralIndexBuild", "false").equals("true"));
         skipExampleDocAnnotation = (getFromEnv("skipAnnotateExampleDocs", "false").equals("true"));
+        skipRelevantDocAnnotation = (getFromEnv("skipAnnotateRelevantDocs", "false").equals("true"));
+        skipRequestDocAnnotation = (getFromEnv("skipAnnotateRequestDocs", "false").equals("true"));
         skipPretrain = (getFromEnv("skipPretrain", "true").equals("true"));
         skipReranker = (getFromEnv("skipReranker", "false").equals("true"));
-        useTaskSetFile = (getFromEnv("useTaskSetFile", "false").equals("true"));
         checkForSudo = (getFromEnv("checkForSudo", "true").equals("true"));
-        runEnglishIndexBuild = (getFromEnv("runEnglishIndexBuild", "false").equals("true"));
-        runPreTrain = (getFromEnv("runPreTrain", "false").equals("true"));
-        runIndexBuild = (getFromEnv("runIndexBuild", "false").equals("true"));
-        runGetIEFromFile = (getFromEnv("runIEPhase", "false").equals("true"));
 
         processingModel = ProcessingModel.valueOf((getFromEnv("processingModel", "TWO_STEP")));
 
@@ -268,6 +247,12 @@ public class Pathnames {
             checkDockerImage(rerankerDockerImage);
         }
 
+        reranker2DockerImage = getFromEnv("reranker2DockerImage",
+                "");
+        if (reranker2DockerImage.length() > 0) {
+            checkDockerImage(reranker2DockerImage);
+        }
+
         queryFileLocation = ensureTrailingSlash(getFromEnv("queryFileLocation",
                 scratchFileLocation + "queryfiles/"));
         runFileLocation = ensureTrailingSlash(getFromEnv("runFileLocation",
@@ -278,24 +263,36 @@ public class Pathnames {
                 scratchFileLocation + "qrelfiles/"));
         indexLocation = ensureTrailingSlash(getFromEnv("indexLocation",
                 scratchFileLocation + "indexes/"));
-        targetIndexName = getFromEnv("targetIndexName",
-                "MISSING ENV VAR: targetIndexName", Required.REQUIRED);
-        targetIndexLocation = getFromEnv("targetIndexLocation",
-                indexLocation + targetIndexName);
-        englishIndexName = getFromEnv("englishIndexName", "MISSING ENV VAR: englishIndexName",
-                Required.REQUIRED);
-        englishIndexLocation = getFromEnv("englishIndexLocation",
-                indexLocation + englishIndexName);
+        neuralFilesLocation = ensureTrailingSlash(getFromEnv("neuralFilesLocation",
+                scratchFileLocation + "indexes/neural/"));
 
         galagoLocation = ensureTrailingSlash(getFromEnv("galagoLocation",
                 "/home/tasksrunner/galago/bin/"));
+        if (developmentTestingNoDocker) {
+            galagoLocation = "/mnt/scratch/BETTER/dev/tools/galago-dev/core/target/appassembler/bin/";
+        }
+
         galagoBaseLocation = galagoLocation.replace("/bin/","");
+
+        anseriniLocation = ensureTrailingSlash(getFromEnv("anseriniLocation",
+                "/home/tasksrunner/anserini/target/appassembler/bin/"));
+        if (developmentTestingNoDocker) {
+            anseriniLocation = "/mnt/scratch/LEMUR_PROJECT/dev/anserini/target/appassembler/bin/";
+        }
+
         programFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
                 "/home/tasksrunner/programfiles/"));
+        if (developmentTestingNoDocker) {
+            programFileLocation = "/mnt/scratch/BETTER/dev/tools/TasksRunner/programfiles/";
+        }
+
+        scriptFileLocation = ensureTrailingSlash(getFromEnv("programFileLocation",
+                "/home/tasksrunner/scripts/"));
+        if (developmentTestingNoDocker) {
+            scriptFileLocation = "/mnt/scratch/BETTER/dev/tools/TasksRunner/scripts";
+        }
         eventExtractorFileLocation = ensureTrailingSlash(getFromEnv("eventExtractorFileLocation",
                 scratchFileLocation + "eventextractorfiles/"));
-        translationTableLocation = ensureTrailingSlash(getFromEnv("translationTableLocation",
-                programFileLocation + "translation_tables/"));
         taskCorpusFileLocation = ensureTrailingSlash(getFromEnv("taskCorpusFileLocation",
                 scratchFileLocation + "taskcorpusfiles/"));
         galagoJobDirLocation = ensureTrailingSlash(getFromEnv("galagoJobDirLocation",
@@ -305,35 +302,19 @@ public class Pathnames {
                 "MISSING ENV VAR: targetCorpusFileName", Required.REQUIRED);
         englishCorpusFileName = getFromEnv("englishCorpusFileName",
                 "MISSING ENV VAR: englishCorpusFileName", Required.REQUIRED);
-        tasksFileNameAUTO = getFromEnv("tasksFileNameAUTO",
-                "MISSING ENV VAR: tasksFileNameAUTO", Required.REQUIRED);
-        tasksFileNameAUTOHITL = getFromEnv("tasksFileNameAUTOHITL",
-                "MISSING ENV VAR: tasksFileNameAUTOHITL", Required.REQUIRED);
-        tasksFileNameHITL = getFromEnv("tasksFileNameHITL",
-                "MISSING ENV VAR: tasksFileNameHITL", Required.REQUIRED);
+        tasksFileName = getFromEnv("tasksFileName","ir-tasks.json");
         supplementalFileName = getFromEnv("supplementalFileName", "supplemental_info.json");
-        qrelFileName = getFromEnv("qrelFileName","");
-        readQrelFile = (getFromEnv("readQrelFile", "true").equals("true"));
-        expandQrelDocuments = (getFromEnv("expandQrelDocuments", "true").equals("true"));
-        mode = getFromEnv("mode", "AUTO");
-        corpusFileFormat = getFromEnv("corpusFileFormat", "MISSING ENV VAR: corpusFileFormat",
-                Required.REQUIRED);
-        analyticTasksFileFormat = getFromEnv("analyticTasksFileFormat",
-                "MISSING ENV VAR: analyticTasksFileFormat", Required.REQUIRED);
-        doRequestLevelEvaluation = (getFromEnv("doRequestLevelEvaluation", "true").equals("true"));
-        doTaskLevelEvaluation = (getFromEnv("doTaskLevelEvaluation", "true").equals("true"));
-        isTargetEnglish = getFromEnv("isTargetEnglish", isTargetEnglish);
-        targetLanguageIsEnglish = (isTargetEnglish.equals("true"));
-        targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
-                Required.REQUIRED));
+        qrelFileName = getFromEnv("qrelFileName","IR-relevance-assessments.qrels");
+        readQrelFile = (getFromEnv("readQrelFile", "false").equals("true"));
+        expandQrelDocuments = (getFromEnv("expandQrelDocuments", "false").equals("true"));
+        corpusFileFormat = getFromEnv("corpusFileFormat", "BETTER");
+        analyticTasksFileFormat = getFromEnv("analyticTasksFileFormat","BETTER");
+        doRequestLevelEvaluation = (getFromEnv("doRequestLevelEvaluation", "false").equals("true"));
+        doTaskLevelEvaluation = (getFromEnv("doTaskLevelEvaluation", "false").equals("true"));
         sudoNeeded = (getFromEnv("sudoNeeded", "true").equals("true"));
         gpuDevice = getFromEnv("gpuDevice", "");
         rerankerDevice = getFromEnv("rerankerDevice", "cpu");
         MODELS_BASE_DIR = getFromEnv("MODELS_BASE_DIR", MODELS_BASE_DIR);
-        MODELS_BASE_DIR_ENGLISH = getFromEnv("MODELS_BASE_DIR_ENGLISH", MODELS_BASE_DIR_ENGLISH);
-        MODELS_BASE_DIR_FARSI = getFromEnv("MODELS_BASE_DIR_FARSI", MODELS_BASE_DIR_FARSI);
-        MODELS_BASE_DIR_ARABIC = getFromEnv("MODELS_BASE_DIR_ARABIC", MODELS_BASE_DIR_ARABIC);
-        targetLanguage = Language.valueOf(getFromEnv("targetLanguage", "MISSING ENV VAR: targetLanguage",
-                Required.REQUIRED));
+        gpusForEventExtractor = getFromEnv("gpusForEventExtractor", gpusForEventExtractor);
     }
 }
