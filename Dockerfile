@@ -49,6 +49,7 @@ RUN pip3 install spacy
 # Create user with sudo powers
 RUN useradd -m tasksrunner && \
     usermod -aG sudo tasksrunner && \
+    usermod -aG docker tasksrunner && \
     echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers && \
     cp /root/.bashrc /home/tasksrunner/ && \
     chown -R --from=root tasksrunner /home/tasksrunner

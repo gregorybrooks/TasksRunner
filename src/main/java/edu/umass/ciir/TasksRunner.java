@@ -843,8 +843,7 @@ public class TasksRunner {
         eventExtractor = new EventExtractor(tasks, mode, submissionId);
 
         /* One-time action: get events for some documents in the target corpus: */
-        annotateSomeCorpusDocs();
-
+        //annotateSomeCorpusDocs();
 
         if (actions.contains(Action.PRETRAIN)) {
             eventExtractor.preTrainEventAnnotator();
@@ -879,7 +878,11 @@ public class TasksRunner {
         }
     }
 
-    public static void main(String[] args) {
+    public List<SearchHit> getSearchHits() {
+        return eventExtractor.getSearchHits();
+    }
+
+    public static void mainProcess(String[] args) {
 
         if (Pathnames.checkForSudo) {
             boolean hasSudo = false;

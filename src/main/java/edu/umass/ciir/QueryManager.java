@@ -88,7 +88,7 @@ public class QueryManager {
         String analyticTasksInfoFilename = submissionId + ".analytic_tasks.json";
         // if 4 GPUs, 0 is first one, 1 is second one, etc.
         String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
-        String command = ("sudo docker run --rm"
+        String command = (Pathnames.sudoNeeded ? "sudo " : "") + "docker run --rm"
                 + gpu_parm
                 + " --env MODE=" + mode
                 // The query formulators expect the language to be all upper-case
@@ -122,7 +122,7 @@ public class QueryManager {
                 + " -v " + Pathnames.qrelFileLocation + ":" + Pathnames.qrelFileLocation
 
                 + " " + dockerImageName
-                + " sh -c ./runit.sh");
+                + " sh -c ./runit.sh";
         String logFile = Pathnames.logFileLocation + submissionId + "." + phase + ".query-formulator.out";
 
         Command.execute(command, logFile);
@@ -165,7 +165,7 @@ public class QueryManager {
         String gpu_parm = (!Pathnames.gpuDevice.equals("") ? " --gpus device=" + Pathnames.gpuDevice : "");
 
         String deviceParm = Pathnames.rerankerDevice;   // cuda:0 or cpu
-        String command = "sudo docker run --rm"
+        String command = (Pathnames.sudoNeeded ? "sudo " : "") + "docker run --rm"
                 + gpu_parm
                 + " --env MODE=" + mode
                 + " --env DEVICE=" + deviceParm
