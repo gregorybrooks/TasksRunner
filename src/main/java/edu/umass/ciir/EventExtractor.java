@@ -663,7 +663,8 @@ public class EventExtractor {
 
                     List<Event> events = h.events;
                     JSONArray eventsArray = Event.getEventsJSON(events);
-                    hit.put("isi-events", eventsArray);
+//                    hit.put("isi-events", eventsArray);
+                    hit.put("events", eventsArray);
                 }
                 topLevel.add(hit);
                 searchHits.add(new SearchHit(hit));
