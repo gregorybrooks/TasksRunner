@@ -68,7 +68,8 @@ public class TasksRunner {
      * Sets up logging for this program.
      */
     public void setupLogging() {
-        String logFileName = Pathnames.logFileLocation + "/tasks-runner." + submissionId + ".log";
+//        String logFileName = Pathnames.logFileLocation + "/tasks-runner." + submissionId + ".log";
+        String logFileName = Pathnames.logFileLocation + "/tasks-runner.log";
         configureLogger(logFileName);
     }
 
@@ -402,7 +403,7 @@ public class TasksRunner {
         tasks.writeJSONVersion();
 
         logger.info("Building Task-level phrases-to-be-annotated files");
-        QueryManager qf = new QueryManager(submissionId, "ENGLISH", mode, tasks,
+        QueryManager qf = new QueryManager(submissionId, "english", mode, tasks,
                  "Task", eventExtractor);
         qf.buildQueries(Pathnames.getPhrasesQueryFormulatorDockerImage);
     }
@@ -621,8 +622,8 @@ public class TasksRunner {
 
 
     private void doSearch(String taskLevelFormulator, String requestLevelFormulator) {
-        annotateExampleDocs();  // call ISI event extractor to add events to the example docs
-        annotateRelevantDocs();  // call ISI event extractor to add events to the relevant docs
+        //annotateExampleDocs();  // call ISI event extractor to add events to the example docs
+        //annotateRelevantDocs();  // call ISI event extractor to add events to the relevant docs
         /* Now write out files with a simpler format for the ISI events. */
 /*
         eventExtractor.writeEventsAsJson(
@@ -819,7 +820,7 @@ public class TasksRunner {
      */
     void process()  {
 
-        setupLogging();
+        //setupLogging();
         logger.info("Submission id is: " + submissionId);
         logger.info("Executing in " + mode + " mode");
         logger.info("IE Allowed = " + Pathnames.IEAllowed);

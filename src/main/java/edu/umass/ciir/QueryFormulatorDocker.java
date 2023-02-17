@@ -57,8 +57,8 @@ public class QueryFormulatorDocker extends QueryFormulator {
                 + " --env galagoLocation=" + Pathnames.galagoLocation
                 // must define volume for galago, not galago/bin, so it can see the galago/lib files, too:
                 + " -v " + Pathnames.galagoBaseLocation + ":" + Pathnames.galagoBaseLocation
-                + " --env englishIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-en/"
-                + " -v " + Pathnames.indexLocation + "better-clear-ir-en" + ":" + Pathnames.indexLocation + "better-clear-ir-en"
+                + " --env englishIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-english/"
+                + " -v " + Pathnames.indexLocation + "better-clear-ir-english" + ":" + Pathnames.indexLocation + "better-clear-ir-english"
                 + " --env targetIndexLocation=" + Pathnames.indexLocation + "better-clear-ir-" + language + "/"
                 + " -v " + Pathnames.indexLocation + "better-clear-ir-" + language + ":" + Pathnames.indexLocation + "better-clear-ir-" + language
                 + " --env qrelFile=" + Pathnames.qrelFileLocation + Pathnames.qrelFileName
