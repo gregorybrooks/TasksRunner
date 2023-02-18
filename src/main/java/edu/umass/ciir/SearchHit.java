@@ -36,6 +36,14 @@ public class SearchHit {
             SentenceRange sr = new SentenceRange(id, start, end, text);
             this.sentenceRanges.add(sr);
         }
+        JSONArray JSONevents = (JSONArray) jsonObject.get("events");
+        for (Object oEvent : JSONevents) {
+            JSONObject event = (JSONObject) oEvent;
+            String eventType = (String) event.get("eventType");
+            Event sr = new Event(eventType);
+            this.events.add(sr);
+        }
+
     }
 
     SearchHit(String docid, String docText, String translatedDocText, List<Event> events, List<SentenceRange> sentenceRanges,
@@ -50,6 +58,22 @@ public class SearchHit {
     @JsonProperty("isRelevant")
     public boolean getIsRelevant() {
         return this.isRelevant;
+    }
+
+    public boolean isRelevant() {
+        return isRelevant;
+    }
+
+    public void setEvents(List<Event> events) {
+        this.events = events;
+    }
+
+    public void setRelevant(boolean relevant) {
+        isRelevant = relevant;
+    }
+
+    public void setSentenceRanges(List<SentenceRange> sentenceRanges) {
+        this.sentenceRanges = sentenceRanges;
     }
 
     public void setIsRelevant(boolean relevant) {

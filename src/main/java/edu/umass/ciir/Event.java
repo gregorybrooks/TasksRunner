@@ -7,6 +7,7 @@ import org.json.simple.JSONObject;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 public class Event /*implements JSONAware*/ {
@@ -27,6 +28,10 @@ public class Event /*implements JSONAware*/ {
 
     Event() {}
 
+    Event(String eventType) {
+        this.eventType = eventType;
+    }
+
     Event(String entryKey, String docSetType, String taskOrRequestID, String docid, String eventid,
           String eventType, String anchor, List<String> agentList, List<String> patientList) {
         this.entryKey = entryKey;
@@ -40,8 +45,108 @@ public class Event /*implements JSONAware*/ {
         this.patientList = patientList;
     }
 
-    private void setSentenceID(int id) {
-        this.sentenceID = id;
+    public String getEntryKey() {
+        return entryKey;
+    }
+
+    public void setEntryKey(String entryKey) {
+        this.entryKey = entryKey;
+    }
+
+    public String getDocSetType() {
+        return docSetType;
+    }
+
+    public void setDocSetType(String docSetType) {
+        this.docSetType = docSetType;
+    }
+
+    public String getTaskOrRequestID() {
+        return taskOrRequestID;
+    }
+
+    public void setTaskOrRequestID(String taskOrRequestID) {
+        this.taskOrRequestID = taskOrRequestID;
+    }
+
+    public String getDocid() {
+        return docid;
+    }
+
+    public void setDocid(String docid) {
+        this.docid = docid;
+    }
+
+    public String getEventid() {
+        return eventid;
+    }
+
+    public void setEventid(String eventid) {
+        this.eventid = eventid;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public int getSentenceID() {
+        return sentenceID;
+    }
+
+    public void setSentenceID(int sentenceID) {
+        this.sentenceID = sentenceID;
+    }
+
+    public String getAnchor() {
+        return anchor;
+    }
+
+    public void setAnchor(String anchor) {
+        this.anchor = anchor;
+    }
+
+    public Span getAnchorSpan() {
+        return anchorSpan;
+    }
+
+    public void setAnchorSpan(Span anchorSpan) {
+        this.anchorSpan = anchorSpan;
+    }
+
+    public List<String> getAgentList() {
+        return agentList;
+    }
+
+    public void setAgentList(List<String> agentList) {
+        this.agentList = agentList;
+    }
+
+    public List<SpanSet> getAgentSpans() {
+        return agentSpans;
+    }
+
+    public void setAgentSpans(List<SpanSet> agentSpans) {
+        this.agentSpans = agentSpans;
+    }
+
+    public List<String> getPatientList() {
+        return patientList;
+    }
+
+    public void setPatientList(List<String> patientList) {
+        this.patientList = patientList;
+    }
+
+    public List<SpanSet> getPatientSpans() {
+        return patientSpans;
+    }
+
+    public void setPatientSpans(List<SpanSet> patientSpans) {
+        this.patientSpans = patientSpans;
     }
 
     // WARNING: This is currently limited to getting only eventType
@@ -115,6 +220,14 @@ public class Event /*implements JSONAware*/ {
         }
         return eventsArray;
     }
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.docid);
+    }
 
+    @Override
+    public String toString() {
+        return "Event{" + this.docid + '}';
+    }
 }
 
