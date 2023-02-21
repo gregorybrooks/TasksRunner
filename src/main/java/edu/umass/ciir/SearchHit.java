@@ -36,14 +36,7 @@ public class SearchHit {
             SentenceRange sr = new SentenceRange(id, start, end, text);
             this.sentenceRanges.add(sr);
         }
-        JSONArray JSONevents = (JSONArray) jsonObject.get("events");
-        for (Object oEvent : JSONevents) {
-            JSONObject event = (JSONObject) oEvent;
-            String eventType = (String) event.get("eventType");
-            Event sr = new Event(eventType);
-            this.events.add(sr);
-        }
-
+        this.events = Event.getEventListFromShortFormJSON( (JSONArray) jsonObject.get("events"));
     }
 
     SearchHit(String docid, String docText, String translatedDocText, List<Event> events, List<SentenceRange> sentenceRanges,
