@@ -20,54 +20,35 @@ import java.util.stream.Stream;
 public class Document {
 
     private static final Logger logger = Logger.getLogger("TasksRunner");
-
-
-
     private static Map<String, DocumentDetails> docMap = new ConcurrentHashMap<>();
-//    private static Map<String,String> docMap = new ConcurrentHashMap<>();
-//    private static Map<String,String> arabicDocMap = new ConcurrentHashMap<>();
-//    private static Map<String,String> translatedArabicDocMap = new ConcurrentHashMap<>();
-//    private static Map<String,List<SentenceRange>> arabicDocSentencesMap = new ConcurrentHashMap<>();
-//    private static Map<String,List<SentenceRange>> englishDocSentencesMap = new ConcurrentHashMap<>();
-//    private static Map<String,List<Event>> arabicDocEventsMap = new ConcurrentHashMap<>();
-//    private static Map<String,List<Event>> englishDocEventsMap = new ConcurrentHashMap<>();
 
     public static void buildDocMap(Set<String> uniqueDocIDs) {
         if (!Pathnames.englishCorpusFileName.isEmpty()) {
             String corpus = Pathnames.corpusFileLocation + Pathnames.englishCorpusFileName;
-            buildDocMap(uniqueDocIDs, corpus, docMap, /*englishDocSentencesMap, null, englishDocEventsMap,*/
-                    true);
+            buildDocMap(uniqueDocIDs, corpus, docMap, true);
         }
     }
 
     public static void buildTargetDocMap(Set<String> uniqueDocIDs) {
         String corpus = Pathnames.corpusFileLocation + Pathnames.targetCorpusFileName;
-        buildDocMap(uniqueDocIDs, corpus, docMap,/*arabicDocMap, arabicDocSentencesMap, translatedArabicDocMap, arabicDocEventsMap,*/
-                false);
+        buildDocMap(uniqueDocIDs, corpus, docMap, false);
     }
 
-    public static void getDocumentWithGrep (String docid, String corpus, Map<String, DocumentDetails> map
-                                            /*Map<String,String> map,
-                                                    Map<String,List<SentenceRange>> sentenceMap,
-                                            Map<String,String> translatedMap, Map<String, List<Event>> eventMap*/) {
+    public static void getDocumentWithGrep (String docid, String corpus, Map<String, DocumentDetails> map) {
         String command = "grep";
-//        String grepText = "\"id\": \"" + docid + "\"";
         String grepText = docid;
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                command, grepText,
-                corpus);
+        ProcessBuilder processBuilder = new ProcessBuilder(command, grepText, corpus);
         int exitVal = 0;
         logger.info("Calling " + command + " " + grepText + " " + corpus);
         try {
             Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.length() == 0) {
                     continue;
                 }
-                doALine(line, map/*, sentenceMap, translatedMap, eventMap*/);
+                doALine(line, map);
             }
             exitVal = process.waitFor();
         } catch (Exception e) {
@@ -131,9 +112,7 @@ public class Document {
     }
 
     private static void buildDocMap(Set<String> uniqueDocIDs, String corpus, Map<String, DocumentDetails> map,
-                                    /*Map<String,String> map,
-                                    Map<String,List<SentenceRange>> sentenceMap, Map<String,String> translatedMap,
-                                    Map<String, List<Event>> eventMap,*/ boolean isEnglishCorpus) {
+                                     boolean isEnglishCorpus) {
 //        AtomicInteger idx = new AtomicInteger(0);
         logger.info("Building document map for " + uniqueDocIDs.size() + " docs from corpus file "
         + corpus);
@@ -157,7 +136,7 @@ public class Document {
             try (Stream<String> stream = Files.lines(Paths.get(corpus))) {
                 stream.parallel().filter(l -> getGoodOnes(l, uniqueDocIDs))
                         .forEach(line -> {
-                            doALine(line, map/*, sentenceMap, translatedMap, eventMap*/);
+                            doALine(line, map);
                         });
             } catch (IOException e) {
                 throw new TasksRunnerException(e);
@@ -176,10 +155,7 @@ public class Document {
         }
     }
 
-    private static void doALine(String line, Map<String, DocumentDetails> map
-                                /*Map<String,String> map,
-                         Map<String,List<SentenceRange>> sentenceMap, Map<String, String> translatedMap,
-                                Map<String, List<Event>> eventMap */) {
+    private static void doALine(String line, Map<String, DocumentDetails> map) {
         JSONParser parser = new JSONParser();
         JSONObject json = null;
         try {
