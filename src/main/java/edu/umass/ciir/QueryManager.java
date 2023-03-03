@@ -218,7 +218,7 @@ public class QueryManager {
         }
     }
 
-    private List<Hit> mergeHits (HitLevel hitLevel, String reqNum, List<Hit> hits, List<String> docids) {
+    public List<Hit> mergeHits (HitLevel hitLevel, String reqNum, List<Hit> hits, List<String> docids) {
         Map<String, Hit> eventsAdded = new HashMap<>();
         for (Hit hit : hits) {
             // updateSentenceIDs(hit);
@@ -237,28 +237,27 @@ public class QueryManager {
     }
 
     public void retrieveEventsFromRequestHits() {
-        // Load the document text map in one pass through the corpus file:
-        // (Needed only if you run Phase 3 without Phase 2)
-/*
-        if (Pathnames.runGetCandidateDocs || Pathnames.targetLanguageIsEnglish) {
-            Document.buildDocMap(tasks.getTaskList().parallelStream()
-                    .flatMap(t -> t.getRequests().values().stream())
-                    .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
-                    .map(hit -> hit.docid)
-                    .collect(Collectors.toSet()));
-        } else {
-            Document.buildArabicDocMap(tasks.getTaskList().parallelStream()
-                    .flatMap(t -> t.getRequests().values().stream())
-                    .flatMap(r -> readEventFile(constructRequestLevelFileFromEventExtractorFileName(r), -1).stream())
-                    .map(hit -> hit.docid)
-                    .collect(Collectors.toSet()));
-        }
-*/
-
         String theRunFileName = Pathnames.runFileLocation + getKey() + ".out";
         logger.info("Setting run file to " + theRunFileName);
         setRun(theRunFileName);
 
+        for (Task t : tasks.getTaskList()) {
+            for (Request r : t.getRequests().values()) {
+                List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum,
+                        eventExtractor.readEventFile(eventExtractor.constructRequestLevelFileFromEventExtractorFileName(r), -1),
+                        getDocids(r.reqNum, Pathnames.RESULTS_CAP));
+                eventExtractor.writeEventsAsJson(mergedHits, "REQUESTHITS", eventExtractor.constructRequestLevelEventFileName(r),
+                        Pathnames.REQUEST_HITS_DETAILED);
+                logger.info(eventExtractor.constructRequestLevelEventFileName(r) + " written");
+            }
+        }
+    }
+
+    /**
+     * Version that does not assume the runfile is the language-specific one (as opposed to the neural runfile).
+     * It merges the events file into the current runfile of this QueryManager.
+     */
+    public void retrieveEventsFromRequestHitsNoRunfileRead() {
         for (Task t : tasks.getTaskList()) {
             for (Request r : t.getRequests().values()) {
                 List<Hit> mergedHits = mergeHits(HitLevel.REQUEST_LEVEL, r.reqNum,

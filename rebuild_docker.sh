@@ -1,5 +1,5 @@
 set -v
 DOCKERHUB_USER=gregorybrooks
-sudo docker rmi $DOCKERHUB_USER/tasks-runner:5.2.0
-sudo docker build -t $DOCKERHUB_USER/tasks-runner:5.2.0 .
-sudo docker push gregorybrooks/tasks-runner:5.2.0
+sudo docker rmi $DOCKERHUB_USER/tasks-runner:DD2023Dev
+sudo docker build -t $DOCKERHUB_USER/tasks-runner:DD2023Dev .
+sudo docker push gregorybrooks/tasks-runner:DD2023Dev

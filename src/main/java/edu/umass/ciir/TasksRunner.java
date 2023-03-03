@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TasksRunner {
@@ -151,14 +152,13 @@ public class TasksRunner {
                 }
             }
 
-/*
             if (!(SearchEngineInterface.englishIndexExists())) {
                 logger.info("English index does not exist, so we will build the English index");
                 actions.add(Action.ENGLISH_INDEX_BUILD);
             } else {
                 logger.info("English index already exists, so we will NOT build the English index");
             }
-*/
+
             Pathnames.IEAllowed = true;
 
             /* The following are mutually exclusive search operations */
@@ -621,7 +621,7 @@ public class TasksRunner {
     }
 
 
-    private void doSearch(String taskLevelFormulator, String requestLevelFormulator) {
+    private void doSearch() {
         //annotateExampleDocs();  // call ISI event extractor to add events to the example docs
         //annotateRelevantDocs();  // call ISI event extractor to add events to the relevant docs
         /* Now write out files with a simpler format for the ISI events. */
@@ -636,39 +636,63 @@ public class TasksRunner {
 
         /* Write out the internal analytic tasks info file, with doc text and event info, for query formulators and re-rankers to use */
         tasks.writeJSONVersion();
-
-        List<String> filesToMerge = new ArrayList<>();
-        for (String language : SearchEngineInterface.getTargetLanguages()) {
-            if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
-                doTaskLevelProcessing(taskLevelFormulator, language);
+        if (getProcessingModel() == Pathnames.ProcessingModel.NEURAL) {
+            logger.info("Executing neural search");
+            new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
+            /* Now we need to create the per-Request search results files that are the runfile augmented with
+               doc text, sentences and events. Those results files are used by the REST API.
+             */
+            QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
+            qf.setRun(Pathnames.runFileLocation + "hint_e2e.run");
+            qf.createInputFileForEventExtractorFromRequestHits();
+            if (Pathnames.skipRequestDocAnnotation) {
+                eventExtractor.copyRequestEventFilesToResultsFiles(); // just copy the files to the expected names
+            } else {
+                eventExtractor.annotateRequestDocEvents();
             }
-            doRequestLevelProcessing(requestLevelFormulator, language, filesToMerge);
+            qf.retrieveEventsFromRequestHitsNoRunfileRead(); // merge the events file and the runfile
+
+        } else {
+            List<String> filesToMerge = new ArrayList<>();
+            String requestDocker = Pathnames.requestLevelQueryFormulatorDockerImage;
+            if (actions.contains(Action.GET_CANDIDATE_DOCS)) {
+                requestDocker = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
+            }
+            for (String language : SearchEngineInterface.getTargetLanguages()) {
+                if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
+                    doTaskLevelProcessing(Pathnames.taskLevelQueryFormulatorDockerImage, language);
+                }
+                doRequestLevelProcessing(Pathnames.requestLevelQueryFormulatorDockerImage, language, filesToMerge);
+            }
+
+            QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
+
+            logger.info("Merging multiple language's ranked runfiles into one");
+            mergeRerankedRunFilesRoundRobin(filesToMerge);  // round-robin merging
+            //qf.mergeRerankedRunFilesByScore(filesToMerge);  // naive score merge
+            // If you use these, remember to also change doRequestLevelProcessing() to not do the Z1 reranking,
+            // which destroys the scores
+            //qf.rescoreRunFilesZScores(filesToMerge);
+            //qf.rescoreRunFilesMinMax(filesToMerge);
+
+            logger.info("Second reranking");
+            qf.rerank2();
+            logger.info("Merging DPR with Baseline");
+            qf.mergeDPR_Baseline();
+
+            logger.info("Executing neural search");
+            new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
+
+            logger.info("Merging DPR+Baseline with E2E");
+            qf.mergeDPR_Baseline_E2E();
         }
 
-        QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
-
-        logger.info("Merging multiple language's ranked runfiles into one");
-        mergeRerankedRunFilesRoundRobin(filesToMerge);  // round robin merging
-        //qf.mergeRerankedRunFilesByScore(filesToMerge);  // naive score merge
-        // If you use these, remember to also change doRequestLevelProcessing() to not do the Z1 reranking,
-        // which destroys the scores
-        //qf.rescoreRunFilesZScores(filesToMerge);
-        //qf.rescoreRunFilesMinMax(filesToMerge);
-
-        logger.info("Second reranking");
-        qf.rerank2();
-
-        logger.info("Merging DPR with Baseline");
-        qf.mergeDPR_Baseline();
-
-        logger.info("Executing neural search");
-        new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
-
-        logger.info("Merging DPR+Baseline with E2E");
-        qf.mergeDPR_Baseline_E2E();
-
-        logger.info("Output the final file");
-        writeFinalResultsFile();
+        if (Pathnames.skipFinalFile) {
+            logger.info("Skipping final file creation");
+        } else {
+            logger.info("Creating the final file");
+            writeFinalResultsFile();
+        }
     }
 
     /**
@@ -777,7 +801,7 @@ public class TasksRunner {
         } else {
             eventExtractor.annotateRequestDocEvents();
         }
-        qf.retrieveEventsFromRequestHits();
+        qf.retrieveEventsFromRequestHitsNoRunfileRead();
 
         if (Pathnames.skipReranker) {
             qf.copyRunFileToRerankedRunFile();  // just do the file action that rerank() normally does
@@ -854,21 +878,8 @@ public class TasksRunner {
             eventExtractor.annotateProvidedFileEvents();
         } else if (actions.contains(Action.GET_PHRASES)) {
             getPhrases();
-        } else if (actions.contains(Action.GET_CANDIDATE_DOCS)) {
-            doSearch("", Pathnames.getCandidateDocsQueryFormulatorDockerImage);
-        }
-        else if (actions.contains(Action.SEARCH)) {
-            Pathnames.ProcessingModel processingModel = getProcessingModel();
-            if (processingModel == Pathnames.ProcessingModel.TWO_STEP) {
-                doSearch(Pathnames.taskLevelQueryFormulatorDockerImage, Pathnames.requestLevelQueryFormulatorDockerImage);
-            } else if (processingModel == Pathnames.ProcessingModel.ONE_STEP) {
-                doSearch("", Pathnames.requestLevelQueryFormulatorDockerImage);
-            } else if (processingModel == Pathnames.ProcessingModel.NEURAL) {
-                logger.info("NEURAL PROCESSING MODE: Building and executing queries");
-                new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
-            } else {
-                throw new TasksRunnerException("INVALID PROCESSING MODEL");
-            }
+        } else if (actions.contains(Action.SEARCH)) {
+            doSearch();
         }
 
         logger.info("PROCESSING COMPLETE");
