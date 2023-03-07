@@ -71,7 +71,7 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
 
         String command = "SearchCollection";
         String anseriniLogFile = Pathnames.logFileLocation + submissionId + "." + language + ".anserini.log";
-        String languageParm = SearchEngineInterface.toTwoCharForm(language);
+        String languageParm = Language.toTwoCharForm(language);
         String tempCommand = Pathnames.anseriniLocation + command
                 + " -output " + theRunFileName
                 + " -index " + Pathnames.indexLocation + "anserini/better-clear-ir-" + language
@@ -140,7 +140,7 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
                 String text = mustContainString(derived_metadata, "text", lineNo);
                 text = JSONValue.escape(text);
                 String language = mustContainString(derived_metadata, "language", lineNo);
-                language = SearchEngineInterface.toCanonicalForm(language);
+                language = Language.toCanonicalForm(language);
                 if (!ids.contains(uuid)) {
                     ids.add(uuid);
                     if (!printWriterMap.containsKey(language)) {
@@ -181,7 +181,7 @@ public class AnseriniSearchEngine implements SearchEngineInterface {
                     + " -threads 8"
                     + " -input " + Pathnames.tempFileLocation + language
                     + " -index " + Pathnames.indexLocation + "anserini/better-clear-ir-" + language
-                    + " -language " + SearchEngineInterface.toTwoCharForm(language)
+                    + " -language " + Language.toTwoCharForm(language)
                     + " -optimize -storePositions -storeDocvectors -storeRaw";
 
             Command.execute(tempCommand, anseriniLogFile);

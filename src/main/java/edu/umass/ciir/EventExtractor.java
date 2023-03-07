@@ -70,7 +70,7 @@ public class EventExtractor {
                 annotationSets.put("basic-events", basicEvents);
                 docEntry.put("annotation-sets", annotationSets);
                 docEntry.put("doc-id", key);
-                docEntry.put("lang", SearchEngineInterface.toISIThreeCharForm(hit.language)); // ISO 639-3
+                docEntry.put("lang", Language.toISIThreeCharForm(hit.language)); // ISO 639-3
                 docEntry.put("entry-id", key);
                 JSONArray segmentSections = new JSONArray();
                 if (hit.sentences != null) {

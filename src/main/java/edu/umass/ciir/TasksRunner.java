@@ -539,7 +539,7 @@ public class TasksRunner {
         List<String> targetLanguages = SearchEngineInterface.getTargetLanguages();
         for (String language : targetLanguages) {
             addRankedListForLanguage(Pathnames.runFileLocation + submissionId + "."
-                    + language + ".Request.RERANKED.out", SearchEngineInterface.toThreeCharForm(language), tasks);
+                    + language + ".Request.RERANKED.out", Language.toThreeCharForm(language), tasks);
         }
         addRankedListForLanguage(Pathnames.runFileLocation + submissionId + ".DPR_Baseline_E2E.out", "combined",
                 tasks);

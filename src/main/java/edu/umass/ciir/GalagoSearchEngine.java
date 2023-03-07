@@ -239,7 +239,7 @@ public class GalagoSearchEngine implements SearchEngineInterface {
                 String uuid = mustContainString(derived_metadata, "id", lineNo);
                 String text = mustContainString(derived_metadata, "text", lineNo);
                 String language = mustContainString(derived_metadata, "language", lineNo);
-                language = SearchEngineInterface.toCanonicalForm(language);
+                language = Language.toCanonicalForm(language);
                 if (!ids.contains(uuid)) {
                     ids.add(uuid);
                     if (!printWriterMap.containsKey(language)) {

@@ -182,7 +182,7 @@ public class Document {
             JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
             uuid = (String) derived_metadata.get("id");
             text = (String) derived_metadata.get("text");
-            language = SearchEngineInterface.toCanonicalForm((String) derived_metadata.get("language"));
+            language = Language.toCanonicalForm((String) derived_metadata.get("language"));
             translatedText = "";
             if (derived_metadata.containsKey("translated-text")) {
                 translatedText = (String) derived_metadata.get("translated-text");
@@ -307,7 +307,7 @@ public class Document {
         JSONObject derived_metadata = (JSONObject) json.get("derived-metadata");
         uuid = (String) derived_metadata.get("id");
         text = (String) derived_metadata.get("text");
-        language = SearchEngineInterface.toCanonicalForm((String) derived_metadata.get("language"));
+        language = Language.toCanonicalForm((String) derived_metadata.get("language"));
         translatedText = "";
         if (derived_metadata.containsKey("translated-text")) {
             translatedText = (String) derived_metadata.get("translated-text");

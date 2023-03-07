@@ -12,126 +12,16 @@ public interface SearchEngineInterface {
     void buildIndexes(String corpusFileName);
     void search(int threadCount, int maxHits, String queryFileName, String runFileName,
                        String submissionId, String language);
-
-    /**
-     * Returns the normalized form of a language that is in a corpus file's "language" field.
-     * We convert everything to an all-lowercase, English word like "arabic".
-     * @param rawLanguage The value seen in the corpus file, like "ar" or "Arabic" or "zho".
-     * @return the normalized form of the language, like "arabic"
-     */
-    static String toCanonicalForm(String rawLanguage) {
-        rawLanguage = rawLanguage.toLowerCase(Locale.ROOT);
-        switch (rawLanguage) {
-            case "ar": case "arabic":
-                rawLanguage = "arabic";
-                break;
-            case "ko": case "kor": case "korean":
-                rawLanguage = "korean";
-                break;
-            case "fa": case "farsi":
-                rawLanguage = "farsi";
-                break;
-            case "zh": case "zho": case "chinese":
-                rawLanguage = "chinese";
-                break;
-            case "ru": case "rus": case "russian":
-                rawLanguage = "russian";
-                break;
-            case "en": case "eng": case "english":
-                rawLanguage = "english";
-                break;
-            default:
-                throw new TasksRunnerException("Invalid raw language passed to toCanonicalForm: " + rawLanguage);
-        }
-        return rawLanguage;
-    }
-
-    static String toTwoCharForm(String canonicalForm) {
-        switch (canonicalForm) {
-            case "arabic":
-                canonicalForm = "ar";
-                break;
-            case "korean":
-                canonicalForm = "ko";
-                break;
-            case "farsi":
-                canonicalForm = "fa";
-                break;
-            case "chinese":
-                canonicalForm = "zh";
-                break;
-            case "russian":
-                canonicalForm = "ru";
-                break;
-            case "english":
-                canonicalForm = "en";
-                break;
-            default:
-                throw new TasksRunnerException("Invalid language passed to toTwoCharForm: " + canonicalForm);
-        }
-        return canonicalForm;
-
-    }
-
-    static String toThreeCharForm(String canonicalForm) {
-        switch (canonicalForm) {
-            case "arabic":
-                canonicalForm = "ara";
-                break;
-            case "korean":
-                canonicalForm = "kor";
-                break;
-            case "farsi":
-                canonicalForm = "far";
-                break;
-            case "chinese":
-                canonicalForm = "zho";
-                break;
-            case "russian":
-                canonicalForm = "rus";
-                break;
-            case "english":
-                canonicalForm = "eng";
-                break;
-            default:
-                throw new TasksRunnerException("Invalid language passed to toThreeCharForm: " + canonicalForm);
-        }
-        return canonicalForm;
-    }
-
-    /**
-     * Returns the ISO 639-3 abbreviation for a language, which is what the ISI event annotator requires.
-     * @param canonicalForm The canonical form of the language (e.g. chinese)
-     * @return The language abbreviation
-     */
-    static String toISIThreeCharForm(String canonicalForm) {
-        switch (canonicalForm) {
-            case "arabic":
-                canonicalForm = "ara";
-                break;
-            case "korean":
-                canonicalForm = "kor";
-                break;
-            case "farsi":
-                canonicalForm = "fas";
-                break;
-            case "chinese":
-                canonicalForm = "zho";
-                break;
-            case "russian":
-                canonicalForm = "rus";
-                break;
-            case "english":
-                canonicalForm = "eng";
-                break;
-            default:
-                throw new TasksRunnerException("Invalid language passed to toISIThreeCharForm: " + canonicalForm);
-        }
-        return canonicalForm;
-    }
-
     Map<String, String> getQueries(String queryFileName);
 
+    /**
+     * Returns a list of the languages included in this environments target corpus file.
+     * The target corpus file must have been processed already and indexes built for each
+     * of the languages in that file, since this method just checks for the configuration files that are
+     * created during the indexing process.
+     * Does NOT return "english", ever.
+     * @return the list of languages, which will be in our "canonical" form (lower-case like "arabic")
+     */
     static List<String> getTargetLanguages() {
         List<String> languages = new ArrayList<>();
 
