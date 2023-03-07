@@ -6,8 +6,6 @@ set -ve
 cp ${APP_DIR}tasks.json ${APP_DIR}/tasks.json.SAVE
 cp tasks-ie.json ${APP_DIR}/tasks.json
 
-#cp ${EVENT_EXTRACTOR_FILES_DIRECTORY}/${SUBMISSION_ID}.RELEVANT.json ${APP_DIR}/test_data.bp.json
-
 echo `date`
 
 set +e
