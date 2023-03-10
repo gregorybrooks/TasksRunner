@@ -645,7 +645,7 @@ public class EventExtractor {
                     JSONArray mitreEvents = new JSONArray();
                     hit.put("mitre-events", mitreEvents);
                     JSONArray eventsArray = new JSONArray();
-                    hit.put("isi-events", eventsArray);
+                    hit.put("events", eventsArray);
                 } else {
                     hit.put("docText", h.docText);
                     hit.put("translatedDocText", h.translatedDocText);
@@ -676,7 +676,7 @@ public class EventExtractor {
 
                     List<Event> events = h.events;
                     JSONArray eventsArray = Event.getEventsJSON(events);
-                    hit.put("isi-events", eventsArray);
+                    hit.put("events", eventsArray);
                 }
                 topLevel.add(hit);
                 searchHits.add(new SearchHit(hit));
