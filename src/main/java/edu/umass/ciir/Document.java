@@ -187,12 +187,14 @@ public class Document {
             if (derived_metadata.containsKey("translated-text")) {
                 translatedText = (String) derived_metadata.get("translated-text");
             }
+            /* When the events have been added to the target corpus file (for Demo Day app),
+               take the events from the isi-events field. Else events are not in the corpus docs.
+            */
             if (derived_metadata.containsKey("isi-events")) {
                 logger.info("Found isi-events object in corpus line");
-                events = Event.getEventsFromJSON((JSONArray) derived_metadata.get("isi-events"));
-            }
-            /* Russian docs have sentence metadata left over from Arabic, so must calc them here */
-            if (!language.equals("russian") && derived_metadata.containsKey("segment-sections")) {
+                events = Event.getEventListFromShortFormJSON((JSONArray) derived_metadata.get("isi-events"));
+            }            /* Russian docs have sentence metadata left over from Arabic, so must calc them here */
+            if (derived_metadata.containsKey("segment-sections")) {
                 JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
                 int id = 0;
                 for (Object oSection : segment_sections) {
@@ -312,12 +314,14 @@ public class Document {
         if (derived_metadata.containsKey("translated-text")) {
             translatedText = (String) derived_metadata.get("translated-text");
         }
+            /* When the events have been added to the target corpus file (for Demo Day app),
+               take the events from the isi-events field. Else events are not in the corpus docs.
+            */
         if (derived_metadata.containsKey("isi-events")) {
             logger.info("Found isi-events object in corpus line");
-            events = Event.getEventsFromJSON((JSONArray) derived_metadata.get("isi-events"));
+            events = Event.getEventListFromShortFormJSON((JSONArray) derived_metadata.get("isi-events"));
         }
-        /* Russian docs have sentence metadata left over from Arabic, so must calc them here */
-        if (!language.equals("russian") && derived_metadata.containsKey("segment-sections")) {
+        if (derived_metadata.containsKey("segment-sections")) {
             JSONArray segment_sections = (JSONArray) derived_metadata.get("segment-sections");
             int id = 0;
             for (Object oSection : segment_sections) {

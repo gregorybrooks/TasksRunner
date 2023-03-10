@@ -78,6 +78,7 @@ public class Request {
                     }
                 }
                 String eventsAsSentences = "";
+/*
                 if (reqDoc.containsKey("annotation-sets")) {
                     JSONObject jsonAnnotationSets = (JSONObject) reqDoc.get("annotation-sets");
                     if (jsonAnnotationSets.containsKey("basic-events")) {
@@ -91,6 +92,7 @@ public class Request {
                         }
                     }
                 }
+*/
 
                 List<String> highlights = new ArrayList<>();
                 if (reqDoc.containsKey("segment-text")) {

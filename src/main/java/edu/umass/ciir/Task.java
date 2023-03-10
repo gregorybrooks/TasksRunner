@@ -212,6 +212,7 @@ public class Task {
                     }
                 }
                 String eventsAsSentences = "";
+/*
                 if (taskDoc.containsKey("annotation-sets")) {
                     JSONObject jsonAnnotationSets = (JSONObject) taskDoc.get("annotation-sets");
                     if (jsonAnnotationSets.containsKey("basic-events")) {
@@ -225,6 +226,7 @@ public class Task {
                         }
                     }
                 }
+*/
                 taskExampleDocs.add(new ExampleDocument(docID, docText, sentences, eventsAsSentences));
             }
         }

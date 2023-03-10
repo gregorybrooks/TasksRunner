@@ -86,18 +86,7 @@ public class EventExtractor {
                 docEntry.put("segment-sections", segmentSections);
 
                 // If we've read in events from the corpus file, send them along
-                JSONArray eventsJSON = new JSONArray();
-                List<Event> isiEvents = hit.events;
-//                logger.info("Writing Hit to file, hit.events is " +
-//                        hit.events == null ? "NULL" : Integer.toString(hit.events.size()));
-                if (isiEvents != null) {
-                    for (Event event : isiEvents) {
-                        JSONObject eventJSON = new JSONObject();
-                        eventJSON.put("eventType", event.eventType);
-                        eventsJSON.add(eventJSON);
-                    }
-                }
-                docEntry.put("isi-events", eventsJSON);
+                docEntry.put("isi-events", Event.getEventsJSON(hit.events));
 
                 docEntry.put("segment-text", text);
                 docEntry.put("segment-translated-text", translatedText);
@@ -707,15 +696,14 @@ public class EventExtractor {
                     JSONObject head = (JSONObject) parser.parse(reader);
                     JSONObject entries = (JSONObject) head.get("entries");
                     int idx = 0;
-
-                    for (Object o : entries.keySet()) {
+                    for (Iterator iterator = entries.keySet().iterator(); iterator.hasNext(); ) {
                         idx += 1;
                         if (N > 0) {
                             if (idx > N) {
                                 break;
                             }
                         }
-                        String entryKey = (String) o;
+                        String entryKey = (String) iterator.next();
                         JSONObject entry = (JSONObject) entries.get(entryKey);
                         String[] parts = entryKey.split("--");
                         String docSetType = parts[0];
@@ -725,79 +713,15 @@ public class EventExtractor {
                         String docText = (String) entry.get("segment-text");
                         String translatedDocText = (String) entry.get("segment-translated-text");
 
-                        JSONObject annotation_sets = (JSONObject) entry.get("annotation-sets");
-                        JSONObject basic_events = (JSONObject) annotation_sets.get("basic-events");
-
-                        List<Event> eventList = new ArrayList<>();
-                        Map<String, SpanSet> spansMap = new HashMap<>();
-
-                        JSONObject spanSets = (JSONObject) basic_events.get("span-sets");
-                        for (Iterator iterator3 = spanSets.keySet().iterator(); iterator3.hasNext(); ) {
-                            String key3 = (String) iterator3.next();
-                            JSONObject spanSet = (JSONObject) spanSets.get(key3);
-                            String ssid = entryKey + "--" + spanSet.get("ssid");
-                            SpanSet ss = new SpanSet(entryKey, ssid);
-                            JSONArray spans = (JSONArray) spanSet.get("spans");
-                            for (Object oSpan : spans) {
-                                JSONObject span = (JSONObject) oSpan;
-                                String synclass = (String) span.get("synclass");
-                                String string = (String) span.get("string");
-                                String hstring = (String) span.get("hstring");
-                                long start = (long) span.get("start");
-                                long hstart = (long) span.get("hstart");
-                                long end = (long) span.get("end");
-                                long hend = (long) span.get("hend");
-                                Span s = new Span(synclass, string, start, end, hstring, hstart, hend);
-                                ss.spans.add(s);
-                            }
-                            spansMap.put(ssid, ss);
-                            /* END OF SPANS */
-                        }
-
+                        List<Event> eventList;
+                        /* When the events have been added to the target corpus file (for Demo Day app),
+                           take the events from the isi-events field. Else we have asked the ISI event
+                           extractor to find the events, and it has put them in the annotation-sets/basic-events field.
+                         */
                         if (entry.containsKey("isi-events")) {
-                            JSONArray eventsToParse = (JSONArray) entry.get("isi-events");
-//                            logger.info("Reading from isi-events");
-                            for (Object oEvent : eventsToParse) {
-                                JSONObject event = (JSONObject) oEvent;
-                                String eventType = (String) event.get("eventType");
-                                Event e = new Event();
-                                e.eventType = eventType;
-                                eventList.add(e);
-                            }
+                            eventList = Event.getEventListFromShortFormJSON((JSONArray) entry.get("isi-events"));
                         } else {
-                            JSONObject eventsToParse;
-                            eventsToParse = (JSONObject) basic_events.get("events");
-//                            logger.info("Reading from basic events");
-                            for (Object value : eventsToParse.keySet()) {
-                                String key2 = (String) value;
-                                JSONObject event = (JSONObject) eventsToParse.get(key2);
-                                String eventid = (String) event.get("eventid");
-                                String eventType = (String) event.get("event-type");
-                                String anchor = (String) event.get("anchors");
-                                List<String> agentList = new ArrayList<>();
-                                JSONArray agents = (JSONArray) event.get("agents");
-                                for (Object oAgent : agents) {
-                                    String agent = (String) oAgent;
-                                    agentList.add(agent);
-                                }
-                                List<String> patientList = new ArrayList<>();
-                                JSONArray patients = (JSONArray) event.get("patients");
-                                for (Object oPatient : patients) {
-                                    String patient = (String) oPatient;
-                                    patientList.add(patient);
-                                }
-                                Event e = new Event(entryKey, docSetType, taskOrRequestID, docid, eventid, eventType, anchor,
-                                        agentList, patientList);
-                                e.anchorSpan = new Span(spansMap.get(e.entryKey + "--" + e.anchor).spans.get(0));
-                                for (String agent : e.agentList) {
-                                    e.agentSpans.add(new SpanSet(spansMap.get(e.entryKey + "--" + agent)));
-                                }
-                                for (String patient : e.patientList) {
-                                    e.patientSpans.add(new SpanSet(spansMap.get(e.entryKey + "--" + patient)));
-                                }
-                                eventList.add(e);
-                            }
-                            /* END OF EVENTS */
+                            eventList = Event.getEventListFromLongFormJSON(entry, entryKey);
                         }
                         HitLevel hitLevel = docSetType.equals("RequestLevelHit") ? HitLevel.REQUEST_LEVEL : HitLevel.TASK_LEVEL;
                         Hit hit = new Hit(hitLevel, taskOrRequestID, docid, docText, translatedDocText, eventList);
