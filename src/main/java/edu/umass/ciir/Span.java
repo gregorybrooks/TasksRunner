@@ -11,7 +11,10 @@ public class Span /*implements JSONAware*/ {
     String hstring;
     long hstart;
     long hend;
-    Span(String synclass, String string, long start, long end, String hstring, long hstart, long hend) {
+    String translatedString;
+    String translatedHstring;
+    Span(String synclass, String string, long start, long end, String hstring, long hstart, long hend,
+         String translatedString, String translatedHstring) {
         this.synclass = synclass;
         this.string = string;
         this.start = start;
@@ -19,6 +22,8 @@ public class Span /*implements JSONAware*/ {
         this.hstring = hstring;
         this.hstart = hstart;
         this.hend = hend;
+        this.translatedString = translatedString;
+        this.translatedHstring = translatedHstring;
     }
     Span(Span other) {
         this.synclass = other.synclass;
@@ -28,7 +33,8 @@ public class Span /*implements JSONAware*/ {
         this.hstring = other.hstring;
         this.hstart = other.hstart;
         this.hend = other.hend;
-
+        this.translatedHstring = other.translatedHstring;
+        this.translatedString = other.translatedString;
     }
 
     Span() {}
@@ -87,6 +93,22 @@ public class Span /*implements JSONAware*/ {
 
     public void setHend(long hend) {
         this.hend = hend;
+    }
+
+    public String getTranslatedHstring() {
+        return translatedHstring;
+    }
+
+    public String getTranslatedString() {
+        return translatedString;
+    }
+
+    public void setTranslatedHstring(String translatedHstring) {
+        this.translatedHstring = translatedHstring;
+    }
+
+    public void setTranslatedString(String translatedString) {
+        this.translatedString = translatedString;
     }
 
     /*

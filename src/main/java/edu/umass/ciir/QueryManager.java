@@ -483,6 +483,15 @@ public class QueryManager {
         reciprocalRankMergeRerankedRunFiles(filesToMerge, Pathnames.runFileLocation + submissionId + ".DPR_Baseline_E2E.out");
     }
 
+    public void copyRunFileToFinalFile(String fileName) {
+        String finalFileName = Pathnames.runFileLocation + submissionId + ".DPR_Baseline_E2E.out";
+        try {
+            copyFile(new File(fileName), new File(finalFileName));
+        } catch (Exception e) {
+            throw new TasksRunnerException(e);
+        }
+    }
+
     public void copyRunFileToRerankedRunFile() {
         try {
             copyFile(new File(runFileName), new File(rerankedRunFile));

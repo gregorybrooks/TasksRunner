@@ -214,6 +214,8 @@ public class TasksRunner {
                     if (perform) {
                         mode = "HITL";
                         actions.add(Action.GET_CANDIDATE_DOCS);
+                        actions.add(Action.SEARCH);
+                        Pathnames.processingModel = Pathnames.ProcessingModel.ONE_STEP;
                         //Pathnames.targetLanguageIsEnglish = true;
                         //Pathnames.targetLanguage = Pathnames.Language.ENGLISH;
                         break;
@@ -657,34 +659,38 @@ public class TasksRunner {
             String requestDocker = Pathnames.requestLevelQueryFormulatorDockerImage;
             if (actions.contains(Action.GET_CANDIDATE_DOCS)) {
                 requestDocker = Pathnames.getCandidateDocsQueryFormulatorDockerImage;
-            }
-            for (String language : SearchEngineInterface.getTargetLanguages()) {
-                if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
-                    doTaskLevelProcessing(Pathnames.taskLevelQueryFormulatorDockerImage, language);
+                doRequestLevelProcessing(Pathnames.requestLevelQueryFormulatorDockerImage, "english", filesToMerge);
+                QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
+                qf.copyRunFileToFinalFile(filesToMerge.get(0));
+            } else {
+                for (String language : SearchEngineInterface.getTargetLanguages()) {
+                    if (getProcessingModel() == Pathnames.ProcessingModel.TWO_STEP) {
+                        doTaskLevelProcessing(Pathnames.taskLevelQueryFormulatorDockerImage, language);
+                    }
+                    doRequestLevelProcessing(Pathnames.requestLevelQueryFormulatorDockerImage, language, filesToMerge);
                 }
-                doRequestLevelProcessing(Pathnames.requestLevelQueryFormulatorDockerImage, language, filesToMerge);
+
+                QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
+
+                logger.info("Merging multiple language's ranked runfiles into one");
+                mergeRerankedRunFilesRoundRobin(filesToMerge);  // round-robin merging
+                //qf.mergeRerankedRunFilesByScore(filesToMerge);  // naive score merge
+                // If you use these, remember to also change doRequestLevelProcessing() to not do the Z1 reranking,
+                // which destroys the scores
+                //qf.rescoreRunFilesZScores(filesToMerge);
+                //qf.rescoreRunFilesMinMax(filesToMerge);
+
+                logger.info("Second reranking");
+                qf.rerank2();
+                logger.info("Merging DPR with Baseline");
+                qf.mergeDPR_Baseline();
+
+                logger.info("Executing neural search");
+                new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
+
+                logger.info("Merging DPR+Baseline with E2E");
+                qf.mergeDPR_Baseline_E2E();
             }
-
-            QueryManager qf = new QueryManager(submissionId, "combined", mode, tasks, "Request", eventExtractor);
-
-            logger.info("Merging multiple language's ranked runfiles into one");
-            mergeRerankedRunFilesRoundRobin(filesToMerge);  // round-robin merging
-            //qf.mergeRerankedRunFilesByScore(filesToMerge);  // naive score merge
-            // If you use these, remember to also change doRequestLevelProcessing() to not do the Z1 reranking,
-            // which destroys the scores
-            //qf.rescoreRunFilesZScores(filesToMerge);
-            //qf.rescoreRunFilesMinMax(filesToMerge);
-
-            logger.info("Second reranking");
-            qf.rerank2();
-            logger.info("Merging DPR with Baseline");
-            qf.mergeDPR_Baseline();
-
-            logger.info("Executing neural search");
-            new NeuralQueryProcessorDocker(submissionId, mode, tasks).search();
-
-            logger.info("Merging DPR+Baseline with E2E");
-            qf.mergeDPR_Baseline_E2E();
         }
 
         if (Pathnames.skipFinalFile) {

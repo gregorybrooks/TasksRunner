@@ -21,7 +21,7 @@ public class Event /*implements JSONAware*/ {
     List<Span> agentSpanList;
 //    List<SpanSet> agentSpans = new ArrayList<>();
     List<Span> patientSpanList;
-//    List<SpanSet> patientSpans = new ArrayList<>();
+//    List<SpanSet> patientSpans = new ArrayList<>()
 
     Event() {}
 
@@ -188,7 +188,15 @@ public class Event /*implements JSONAware*/ {
         long start = (long) anchorJSON.get("start");
         String string = (String) anchorJSON.get("string");
         String hstring = (String) anchorJSON.get("hstring");
-        return new Span(synclass, string, start, end, hstring, hstart, hend);
+        String translatedString = "";
+        String translatedHstring = "";
+        if (anchorJSON.containsKey("translatedString")) {
+            translatedString = (String) anchorJSON.get("translatedString");
+        }
+        if (anchorJSON.containsKey("translatedHstring")) {
+            translatedHstring = (String) anchorJSON.get("translatedHstring");
+        }
+        return new Span(synclass, string, start, end, hstring, hstart, hend, translatedString, translatedHstring);
     }
 
     private static Map<String, SpanSet> getSpanMap(JSONObject spanSets, String entryKey) {
@@ -248,6 +256,8 @@ public class Event /*implements JSONAware*/ {
         span.put("hstring", s.hstring.replace("\n", " "));
         span.put("hstart", s.hstart);
         span.put("hend", s.hend);
+        span.put("translatedString", s.translatedString.replace("\n", " "));
+        span.put("translatedHstring", s.translatedHstring.replace("\n", " "));
         return span;
     }
 
