@@ -184,9 +184,9 @@ public class Pathnames {
         searchEngine = getFromEnv("searchEngine", "galago");
 
         preTrainSizeParm = getFromEnv("preTrainSizeParm", "FULL");
-        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "100"));
-        DOCS_TO_PROCESS = Integer.parseInt(getFromEnv("DOCS_TO_PROCESS", "1000"));
-        RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "1000"));
+        REQUEST_HITS_DETAILED = Integer.parseInt(getFromEnv("REQUEST_HITS_DETAILED", "50"));
+        DOCS_TO_PROCESS = Integer.parseInt(getFromEnv("DOCS_TO_PROCESS", "50"));
+        RESULTS_CAP = Integer.parseInt(getFromEnv("RESULTS_CAP", "50"));
         RESULTS_CAP_IN_FINAL_RESULTS_FILE = Integer.parseInt(getFromEnv("RESULTS_CAP_IN_FINAL_RESULTS_FILE", "1000"));
         includeEventsInFinalResults = (getFromEnv("includeEventsInFinalResults", "false").equals("true"));
         skipIndexBuild = (getFromEnv("skipIndexBuild", "false").equals("true"));
