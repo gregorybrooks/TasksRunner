@@ -21,9 +21,9 @@ public class Pathnames {
     private static Map<String, String> env = System.getenv();
 
     public static String preTrainSizeParm = "FULL";    // or "SMALL"
-    public static int REQUEST_HITS_DETAILED = 100;  // number of scoredHits to get full text and event details
-    public static int RESULTS_CAP = 1000;
-    public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 1000;
+    public static int REQUEST_HITS_DETAILED = 50;  // number of scoredHits to get full text and event details
+    public static int RESULTS_CAP = 50;
+    public static int RESULTS_CAP_IN_FINAL_RESULTS_FILE = 50;
     public static int DOCS_TO_PROCESS = 2000;
 
     public static String searchEngine = "galago";
